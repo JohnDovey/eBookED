@@ -1,0 +1,74 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:eBookEditor.App.ViewModels"
+        mc:Ignorable="d"
+        d:DesignWidth="640" d:DesignHeight="700"
+        x:Class="eBookEditor.App.Views.FrontMatterWindow"
+        x:DataType="vm:MetadataViewModel"
+        Title="Front Matter"
+        Width="640" Height="700"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid RowDefinitions="*,Auto">
+    <ScrollViewer Grid.Row="0" Padding="16">
+      <StackPanel Spacing="10">
+
+        <TextBox Watermark="Title" Text="{Binding Title}" />
+        <TextBox Watermark="Subtitle" Text="{Binding Subtitle}" />
+        <TextBox Watermark="Language (BCP-47, e.g. en)" Text="{Binding Language}" />
+
+        <TextBlock Text="Authors" FontWeight="SemiBold" Margin="0,6,0,0" />
+        <ItemsControl ItemsSource="{Binding Authors}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ContributorEntry">
+              <Grid ColumnDefinitions="*,*,Auto" Margin="0,0,0,4">
+                <TextBox Grid.Column="0" Watermark="First name" Text="{Binding FirstName}" Margin="0,0,4,0" />
+                <TextBox Grid.Column="1" Watermark="Last name" Text="{Binding LastName}" Margin="0,0,4,0" />
+                <Button Grid.Column="2" Content="✕" Click="OnRemoveAuthorClick" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Content="+ Add Author" Command="{Binding AddAuthorCommand}" />
+
+        <TextBlock Text="Editors" FontWeight="SemiBold" Margin="0,6,0,0" />
+        <ItemsControl ItemsSource="{Binding Editors}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ContributorEntry">
+              <Grid ColumnDefinitions="*,*,Auto" Margin="0,0,0,4">
+                <TextBox Grid.Column="0" Watermark="First name" Text="{Binding FirstName}" Margin="0,0,4,0" />
+                <TextBox Grid.Column="1" Watermark="Last name" Text="{Binding LastName}" Margin="0,0,4,0" />
+                <Button Grid.Column="2" Content="✕" Click="OnRemoveEditorClick" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Content="+ Add Editor" Command="{Binding AddEditorCommand}" />
+
+        <TextBlock Text="Illustrators" FontWeight="SemiBold" Margin="0,6,0,0" />
+        <ItemsControl ItemsSource="{Binding Illustrators}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ContributorEntry">
+              <Grid ColumnDefinitions="*,*,Auto" Margin="0,0,0,4">
+                <TextBox Grid.Column="0" Watermark="First name" Text="{Binding FirstName}" Margin="0,0,4,0" />
+                <TextBox Grid.Column="1" Watermark="Last name" Text="{Binding LastName}" Margin="0,0,4,0" />
+                <Button Grid.Column="2" Content="✕" Click="OnRemoveIllustratorClick" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Content="+ Add Illustrator" Command="{Binding AddIllustratorCommand}" />
+
+      </StackPanel>
+    </ScrollViewer>
+
+    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right"
+                Spacing="8" Margin="16">
+      <Button Content="Cancel" Click="OnCancelClick" />
+      <Button Content="Save &amp; Regenerate" Classes="accent" Click="OnSaveClick" />
+    </StackPanel>
+  </Grid>
+
+</Window>

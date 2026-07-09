@@ -1,0 +1,30 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:eBookEditor.App.ViewModels"
+        mc:Ignorable="d"
+        d:DesignWidth="420" d:DesignHeight="180"
+        x:Class="eBookEditor.App.Views.StyleWindow"
+        x:DataType="vm:MetadataViewModel"
+        Title="Style"
+        Width="420" Height="180"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid RowDefinitions="*,Auto">
+    <StackPanel Grid.Row="0" Spacing="10" Margin="16">
+      <TextBlock Text="EPUB stylesheet template" FontWeight="SemiBold" />
+      <ComboBox ItemsSource="{Binding AvailableTemplates}" SelectedItem="{Binding SelectedTemplate}"
+                DropDownOpened="OnTemplateDropDownOpened" SelectionChanged="OnTemplateSelectionChanged"
+                HorizontalAlignment="Stretch" />
+    </StackPanel>
+
+    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right"
+                Spacing="8" Margin="16">
+      <Button Content="Cancel" Click="OnCancelClick" />
+      <Button Content="Save &amp; Regenerate" Classes="accent" Click="OnSaveClick" />
+    </StackPanel>
+  </Grid>
+
+</Window>

@@ -1,0 +1,58 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:eBookEditor.App.ViewModels"
+        mc:Ignorable="d"
+        d:DesignWidth="560" d:DesignHeight="560"
+        x:Class="eBookEditor.App.Views.GenreTagsWindow"
+        x:DataType="vm:MetadataViewModel"
+        Title="Genre Tags"
+        Width="560" Height="560"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid RowDefinitions="*,Auto">
+    <ScrollViewer Grid.Row="0" Padding="16">
+      <StackPanel Spacing="10">
+
+        <TextBlock Text="Genre Tags" FontWeight="Bold" FontSize="16" />
+        <ItemsControl ItemsSource="{Binding GenreTags}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:TagEntry">
+              <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+                <TextBox Grid.Column="0" Watermark="Genre" Text="{Binding Value}" Margin="0,0,4,0" />
+                <Button Grid.Column="1" Content="✕" Click="OnRemoveGenreTagClick" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Content="+ Add Genre Tag" Command="{Binding AddGenreTagCommand}" />
+
+        <TextBlock Text="Other Tags" FontWeight="SemiBold" Margin="0,12,0,0" />
+        <ItemsControl ItemsSource="{Binding FreeTags}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:TagEntry">
+              <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+                <TextBox Grid.Column="0" Watermark="Tag" Text="{Binding Value}" Margin="0,0,4,0" />
+                <Button Grid.Column="1" Content="✕" Click="OnRemoveFreeTagClick" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Content="+ Add Tag" Command="{Binding AddFreeTagCommand}" />
+
+        <TextBlock Text="Blurb" FontWeight="Bold" FontSize="16" Margin="0,12,0,0" />
+        <TextBox Watermark="Blurb (back cover)" Text="{Binding Blurb}"
+                 AcceptsReturn="True" TextWrapping="Wrap" Height="90" />
+
+      </StackPanel>
+    </ScrollViewer>
+
+    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right"
+                Spacing="8" Margin="16">
+      <Button Content="Cancel" Click="OnCancelClick" />
+      <Button Content="Save &amp; Regenerate" Classes="accent" Click="OnSaveClick" />
+    </StackPanel>
+  </Grid>
+
+</Window>

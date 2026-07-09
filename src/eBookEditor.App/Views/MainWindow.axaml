@@ -30,8 +30,14 @@
           <MenuItem Header="Import DOCX…" Click="OnImportDocxClick" />
         </MenuItem>
         <MenuItem Header="_Project">
-          <MenuItem Header="Metadata…" Click="OnEditMetadataClick" />
           <MenuItem Header="Regenerate Front Matter" Command="{Binding RegenerateFrontMatterCommand}" />
+        </MenuItem>
+        <MenuItem Header="_Meta Data">
+          <MenuItem Header="Front Matter…" Click="OnEditFrontMatterClick" />
+          <MenuItem Header="Style…" Click="OnEditStyleClick" />
+          <MenuItem Header="Copyright &amp; Publishing…" Click="OnEditCopyrightPublishingClick" />
+          <MenuItem Header="Genre Tags…" Click="OnEditGenreTagsClick" />
+          <MenuItem Header="About the Author…" Click="OnEditAboutTheAuthorClick" />
         </MenuItem>
         <MenuItem Header="_Export">
           <MenuItem Header="EPUB…" Command="{Binding ExportEpubCommand}" />

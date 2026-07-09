@@ -1,0 +1,41 @@
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using eBookEditor.App.ViewModels;
+
+namespace eBookEditor.App.Views;
+
+public partial class StyleWindow : Window
+{
+    private readonly MainWindowViewModel _mainViewModel = null!;
+
+    // Parameterless constructor satisfies Avalonia's XAML runtime/design-time loader,
+    // which requires a public no-arg constructor to exist even though it's never invoked
+    // at actual runtime — real usage always goes through the constructor below.
+    public StyleWindow()
+    {
+        InitializeComponent();
+    }
+
+    public StyleWindow(MainWindowViewModel mainViewModel) : this()
+    {
+        _mainViewModel = mainViewModel;
+        DataContext = mainViewModel.Metadata;
+    }
+
+    private void OnSaveClick(object? sender, RoutedEventArgs e)
+    {
+        _mainViewModel.SaveMetadataAndRegenerate();
+        Close();
+    }
+
+    private void OnCancelClick(object? sender, RoutedEventArgs e)
+    {
+        _mainViewModel.Metadata.LoadFrom(_mainViewModel.CurrentProject.Metadata);
+        Close();
+    }
+
+    private void OnTemplateDropDownOpened(object? sender, EventArgs e) => _mainViewModel.RefreshAvailableTemplates();
+
+    private void OnTemplateSelectionChanged(object? sender, SelectionChangedEventArgs e) =>
+        _mainViewModel.EnsureTemplateFontsInstalled(_mainViewModel.Metadata.SelectedTemplate);
+}

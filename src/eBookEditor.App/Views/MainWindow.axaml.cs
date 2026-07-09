@@ -69,16 +69,33 @@ public partial class MainWindow : Window
     {
         if (e.PropertyName == nameof(EditorViewModel.CurrentText) && !_suppressTextChanged)
             SyncEditorTextFromViewModel();
+        else if (e.PropertyName == nameof(EditorViewModel.Mode) && ViewModel?.Editor.IsEditMode == true)
+            EditorTextBox.Focus();
     }
 
+    /// <summary>
+    /// Pushes CurrentText into the AvaloniaEdit control. Skipping the reassignment when the
+    /// text already matches is essential, not just an optimization: every keystroke round-trips
+    /// through OnEditorTextBoxTextChanged -> ViewModel.CurrentText -> this method, and
+    /// unconditionally setting TextEditor.Text (even to its own current value) resets the
+    /// caret/selection on every character typed, which made typing into the editor effectively
+    /// impossible.
+    /// </summary>
     private void SyncEditorTextFromViewModel()
     {
         if (ViewModel is null)
             return;
 
+        var text = ViewModel.Editor.CurrentText;
+        if (EditorTextBox.Text == text)
+            return;
+
         _suppressTextChanged = true;
-        EditorTextBox.Text = ViewModel.Editor.CurrentText;
+        EditorTextBox.Text = text;
         _suppressTextChanged = false;
+
+        if (ViewModel.Editor.IsEditMode)
+            EditorTextBox.Focus();
     }
 
     private void OnEditorTextBoxTextChanged(object? sender, EventArgs e)
@@ -127,15 +144,47 @@ public partial class MainWindow : Window
         window.Show();
     }
 
-    private async void OnEditMetadataClick(object? sender, RoutedEventArgs e)
+    private async void OnEditFrontMatterClick(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is null)
             return;
 
         ViewModel.ApplyAutofillDefaultsIfEmpty();
+        await new FrontMatterWindow(ViewModel).ShowDialog(this);
+    }
+
+    private async void OnEditStyleClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null)
+            return;
+
         ViewModel.RefreshAvailableTemplates();
-        var dialog = new MetadataEditorWindow(ViewModel);
-        await dialog.ShowDialog(this);
+        await new StyleWindow(ViewModel).ShowDialog(this);
+    }
+
+    private async void OnEditCopyrightPublishingClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null)
+            return;
+
+        ViewModel.ApplyAutofillDefaultsIfEmpty();
+        await new CopyrightPublishingWindow(ViewModel).ShowDialog(this);
+    }
+
+    private async void OnEditGenreTagsClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null)
+            return;
+
+        await new GenreTagsWindow(ViewModel).ShowDialog(this);
+    }
+
+    private async void OnEditAboutTheAuthorClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null)
+            return;
+
+        await new AboutTheAuthorWindow(ViewModel).ShowDialog(this);
     }
 
     private async void OnAboutClick(object? sender, RoutedEventArgs e)
