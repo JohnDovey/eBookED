@@ -65,7 +65,17 @@ public partial class MainWindow : Window
             return;
 
         ViewModel.Editor.PropertyChanged += OnEditorViewModelPropertyChanged;
+        ViewModel.PropertyChanged += OnMainViewModelPropertyChanged;
         SyncEditorTextFromViewModel();
+    }
+
+    private async void OnMainViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(MainWindowViewModel.LastExportResult) || ViewModel?.LastExportResult is not { } result)
+            return;
+
+        ViewModel.LastExportResult = null;
+        await new GenerationResultWindow(result).ShowDialog(this);
     }
 
     private void OnEditorViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -221,6 +231,14 @@ public partial class MainWindow : Window
             return;
 
         await new AboutTheAuthorWindow(ViewModel).ShowDialog(this);
+    }
+
+    private async void OnEditPdfSettingsClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null)
+            return;
+
+        await new PdfSettingsWindow(ViewModel).ShowDialog(this);
     }
 
     private async void OnAboutClick(object? sender, RoutedEventArgs e)

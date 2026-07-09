@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using eBookEditor.Core.Models;
+using eBookEditor.Core.Services;
 using eBookEditor.Epub.Services;
 
 namespace eBookEditor.App.ViewModels;
@@ -24,6 +25,9 @@ public partial class MetadataViewModel : ViewModelBase
     [ObservableProperty] private string _authorPhotoPath = string.Empty;
     [ObservableProperty] private string _copyrightDisclaimer = BookMetadata.DefaultDisclaimerText;
     [ObservableProperty] private string _selectedTemplate = TemplateService.DefaultTemplateName;
+    [ObservableProperty] private string _pdfPageSize = PdfPageSizeCatalog.DefaultName;
+
+    public IReadOnlyList<string> AvailablePdfPageSizes { get; } = PdfPageSizeCatalog.All.Select(o => o.Name).ToList();
 
     public ObservableCollection<ContributorEntry> Authors { get; } = [];
     public ObservableCollection<ContributorEntry> Editors { get; } = [];
@@ -109,6 +113,7 @@ public partial class MetadataViewModel : ViewModelBase
 
         CopyrightDisclaimer = metadata.CopyrightDisclaimer;
         SelectedTemplate = metadata.SelectedTemplate ?? TemplateService.DefaultTemplateName;
+        PdfPageSize = metadata.PdfPageSize;
     }
 
     public BookMetadata ToMetadata()
@@ -155,7 +160,8 @@ public partial class MetadataViewModel : ViewModelBase
             CopyrightDisclaimer = string.IsNullOrWhiteSpace(CopyrightDisclaimer)
                 ? BookMetadata.DefaultDisclaimerText
                 : CopyrightDisclaimer,
-            SelectedTemplate = string.IsNullOrWhiteSpace(SelectedTemplate) ? null : SelectedTemplate
+            SelectedTemplate = string.IsNullOrWhiteSpace(SelectedTemplate) ? null : SelectedTemplate,
+            PdfPageSize = string.IsNullOrWhiteSpace(PdfPageSize) ? PdfPageSizeCatalog.DefaultName : PdfPageSize
         };
     }
 

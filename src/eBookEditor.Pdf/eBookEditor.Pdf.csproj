@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\eBookEditor.Core\eBookEditor.Core.csproj" />
+    <ProjectReference Include="..\eBookEditor.Markdown\eBookEditor.Markdown.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Community license (free for individuals/nonprofits/orgs under $1M USD annual
+         revenue) — acknowledged at runtime via QuestPDF.Settings.License in PdfBuilder's
+         static constructor. -->
+    <PackageReference Include="QuestPDF" Version="2026.7.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

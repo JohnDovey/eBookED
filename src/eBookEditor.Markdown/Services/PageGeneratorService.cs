@@ -41,28 +41,59 @@ public class PageGeneratorService
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Generates the book's imprint page: cover thumbnail and the contributor/publisher/ISBN
+    /// details usually found on such a page near the top, with the copyright statement and
+    /// disclaimer at the bottom — the file/spine slot is still "copyright.md" (renaming it
+    /// would touch every existing project), but its content is the fuller imprint-page
+    /// convention rather than just a bare copyright line.
+    /// </summary>
     public string GenerateCopyrightPage(BookMetadata metadata)
     {
         var sb = new StringBuilder();
-        var year = metadata.CopyrightYear ?? metadata.PublicationDate?.Year;
-        var holder = string.IsNullOrWhiteSpace(metadata.CopyrightHolder)
-            ? string.Join(", ", metadata.Authors.Select(a => a.Name))
-            : metadata.CopyrightHolder;
 
-        sb.AppendLine($"Copyright © {year} {holder}".TrimEnd());
+        if (!string.IsNullOrWhiteSpace(metadata.CoverImagePath))
+        {
+            sb.AppendLine($"![Cover](../{metadata.CoverImagePath})");
+            sb.AppendLine();
+        }
+
+        sb.AppendLine($"**{metadata.Title}**  ");
+        if (!string.IsNullOrWhiteSpace(metadata.Subtitle))
+            sb.AppendLine($"*{metadata.Subtitle}*  ");
+
+        var authorNames = metadata.Authors.Select(a => a.Name).ToList();
+        if (authorNames.Count > 0)
+            sb.AppendLine($"By {string.Join(", ", authorNames)}  ");
+
+        var illustratorNames = metadata.Illustrators.Select(i => i.Name).ToList();
+        if (illustratorNames.Count > 0)
+            sb.AppendLine($"Illustrated by {string.Join(", ", illustratorNames)}  ");
+
+        var editorNames = metadata.Editors.Select(e => e.Name).ToList();
+        if (editorNames.Count > 0)
+            sb.AppendLine($"Edited by {string.Join(", ", editorNames)}  ");
+
         sb.AppendLine();
 
         if (metadata.Publisher is { } publisher)
-        {
-            sb.AppendLine($"Published by {publisher.Name}");
-            sb.AppendLine();
-        }
+            sb.AppendLine($"Published by {publisher.Name}  ");
 
         if (!string.IsNullOrWhiteSpace(metadata.Isbn13))
             sb.AppendLine($"ISBN-13: {metadata.Isbn13}  ");
         if (!string.IsNullOrWhiteSpace(metadata.Isbn10))
             sb.AppendLine($"ISBN-10: {metadata.Isbn10}  ");
+        if (metadata.PublicationDate is { } publicationDate)
+            sb.AppendLine($"Published {publicationDate:yyyy-MM-dd}  ");
 
+        sb.AppendLine();
+        sb.AppendLine();
+
+        var year = metadata.CopyrightYear ?? metadata.PublicationDate?.Year;
+        var holder = string.IsNullOrWhiteSpace(metadata.CopyrightHolder)
+            ? string.Join(", ", authorNames)
+            : metadata.CopyrightHolder;
+        sb.AppendLine($"Copyright © {year} {holder}".TrimEnd());
         sb.AppendLine();
         sb.AppendLine(metadata.CopyrightDisclaimer);
 

@@ -7,6 +7,7 @@ using eBookEditor.Core.Services;
 using eBookEditor.DocxImport.Services;
 using eBookEditor.Epub.Services;
 using eBookEditor.Markdown.Services;
+using eBookEditor.Pdf.Services;
 
 namespace eBookEditor.App.ViewModels;
 
@@ -24,6 +25,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly OrphanChapterScanner _orphanScanner = new();
     private readonly TemplateService _templateService;
     private readonly EpubBuilder _epubBuilder;
+    private readonly PdfBuilder _pdfBuilder = new();
     private readonly AppSettingsService _appSettingsService;
     private readonly FontInstallerService _fontInstallerService;
 
@@ -44,6 +46,9 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty]
     private string _statusMessage = string.Empty;
+
+    [ObservableProperty]
+    private GenerationResult? _lastExportResult;
 
     public bool IsChapterSelected => SelectedSpineItem?.Type == SpineItemType.Chapter;
 
@@ -369,12 +374,42 @@ public partial class MainWindowViewModel : ViewModelBase
             var outputPath = Path.Combine(CurrentProject.OutputDir, fileName);
             _epubBuilder.Build(CurrentProject, outputPath);
             StatusMessage = $"Exported EPUB to {outputPath}";
+
+            var wordCount = CurrentProject.Spine
+                .Where(i => i.Type == SpineItemType.Chapter)
+                .Sum(i => CountWords(_chapterFileService.ReadChapter(CurrentProject.ResolvePath(i)).Body));
+            LastExportResult = new GenerationResult(true, "EPUB", outputPath, null, wordCount, null);
         }
         catch (Exception ex)
         {
             StatusMessage = $"EPUB export failed: {ex.Message}";
+            LastExportResult = new GenerationResult(false, "EPUB", null, ex.Message, null, null);
         }
     }
+
+    [RelayCommand]
+    private void ExportPdf()
+    {
+        try
+        {
+            if (Editor.IsDirty)
+                Editor.Save();
+
+            var fileName = Slug.Create(CurrentProject.Metadata.Title, "book") + ".pdf";
+            var outputPath = Path.Combine(CurrentProject.OutputDir, fileName);
+            var result = _pdfBuilder.Build(CurrentProject, outputPath);
+            StatusMessage = $"Exported PDF to {outputPath}";
+            LastExportResult = new GenerationResult(true, "PDF", outputPath, null, result.WordCount, result.PageCount);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"PDF export failed: {ex.Message}";
+            LastExportResult = new GenerationResult(false, "PDF", null, ex.Message, null, null);
+        }
+    }
+
+    private static int CountWords(string text) =>
+        text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
 
     [RelayCommand]
     private void ExportMarkdownWholeBook()

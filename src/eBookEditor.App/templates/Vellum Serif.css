@@ -57,6 +57,8 @@ body {
     font-family: Alegreya, Palatino, serif;
     font-weight: normal;
     font-style: normal;
+    page-break-before: always;
+    break-before: page;
 }
 
 h1 {

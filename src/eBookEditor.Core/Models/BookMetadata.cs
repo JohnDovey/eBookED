@@ -30,6 +30,7 @@ public record BookMetadata
     public string CopyrightDisclaimer { get; init; } = DefaultDisclaimerText;
     public Guid Identifier { get; init; } = Guid.NewGuid();
     public string? SelectedTemplate { get; init; }
+    public string PdfPageSize { get; init; } = eBookEditor.Core.Services.PdfPageSizeCatalog.DefaultName;
 
     public IEnumerable<Contributor> Authors => Contributors.Where(c => c.Role == ContributorRole.Author);
     public IEnumerable<Contributor> Editors => Contributors.Where(c => c.Role == ContributorRole.Editor);

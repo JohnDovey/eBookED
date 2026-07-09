@@ -7,6 +7,8 @@ public static class DefaultStylesheet
             font-family: serif;
             line-height: 1.5;
             margin: 1em;
+            page-break-before: always;
+            break-before: page;
         }
 
         h1, h2, h3 {

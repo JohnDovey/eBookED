@@ -40,9 +40,11 @@
           <MenuItem Header="Copyright &amp; Publishing…" Click="OnEditCopyrightPublishingClick" />
           <MenuItem Header="Genre Tags…" Click="OnEditGenreTagsClick" />
           <MenuItem Header="About the Author…" Click="OnEditAboutTheAuthorClick" />
+          <MenuItem Header="PDF Settings…" Click="OnEditPdfSettingsClick" />
         </MenuItem>
         <MenuItem Header="_Export">
           <MenuItem Header="EPUB…" Command="{Binding ExportEpubCommand}" />
+          <MenuItem Header="PDF…" Command="{Binding ExportPdfCommand}" />
           <MenuItem Header="Markdown (Whole Book)…" Command="{Binding ExportMarkdownWholeBookCommand}" />
           <MenuItem Header="Markdown (This Chapter)…" Command="{Binding ExportMarkdownChapterCommand}"
                     IsEnabled="{Binding IsChapterSelected}" />

@@ -37,7 +37,7 @@ public class ProjectService
                 Type = SpineItemType.FrontMatter,
                 RelativePath = $"{ProjectPaths.FrontMatterDirName}/{ProjectPaths.CopyrightPageFileName}",
                 IsGenerated = true,
-                Title = "Copyright",
+                Title = "Imprint",
                 Order = 1
             },
             new()

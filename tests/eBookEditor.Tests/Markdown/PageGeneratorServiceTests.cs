@@ -67,6 +67,29 @@ public class PageGeneratorServiceTests : IDisposable
     }
 
     [Fact]
+    public void GenerateCopyrightPage_IsAnImprintPageWithCoverAndContributorsNearTopAndCopyrightAtBottom()
+    {
+        var metadata = SampleMetadata() with { CoverImagePath = "images/cover.jpg" };
+
+        var markdown = _pageGenerator.GenerateCopyrightPage(metadata);
+
+        Assert.Contains("![Cover](../images/cover.jpg)", markdown);
+        Assert.Contains("By Jane Doe", markdown);
+        Assert.Contains("Edited by John Smith", markdown);
+
+        var coverIndex = markdown.IndexOf("![Cover]", StringComparison.Ordinal);
+        var byLineIndex = markdown.IndexOf("By Jane Doe", StringComparison.Ordinal);
+        var isbnIndex = markdown.IndexOf("ISBN-13:", StringComparison.Ordinal);
+        var copyrightIndex = markdown.IndexOf("Copyright ©", StringComparison.Ordinal);
+        var disclaimerIndex = markdown.IndexOf(BookMetadata.DefaultDisclaimerText, StringComparison.Ordinal);
+
+        Assert.True(coverIndex < byLineIndex, "Cover thumbnail should come before contributor names.");
+        Assert.True(byLineIndex < isbnIndex, "Contributors should come before ISBN/publisher details.");
+        Assert.True(isbnIndex < copyrightIndex, "Publisher/ISBN details should come before the copyright statement.");
+        Assert.True(copyrightIndex < disclaimerIndex, "Copyright statement should come immediately before the disclaimer, both at the bottom.");
+    }
+
+    [Fact]
     public void GenerateAboutAuthorPage_IncludesBioPhotoAndSocialLinks()
     {
         var markdown = _pageGenerator.GenerateAboutAuthorPage(SampleMetadata());
