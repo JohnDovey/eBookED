@@ -88,8 +88,15 @@ public partial class MainWindow : Window
             // change; while IsEditMode is false (IsVisible=False), the editor keeps whatever
             // visual lines it last built (possibly none, or a previous chapter's), so a chapter
             // loaded while hidden in Preview mode can come up blank the moment it's shown here.
-            // Forcing a redraw once it's actually visible again is the standard fix for this
-            // class of virtualized-editor staleness.
+            // A bare TextView.Redraw() call isn't reliable here — it just marks the cached
+            // visual lines dirty, but if the control was hidden (zero-size) while that cache
+            // went stale, there may be nothing valid to redraw from. Force-reassigning
+            // Document.Text (even though it's unchanged) drives the same full replace/rebuild
+            // path a real edit takes, which reliably rebuilds the visual line cache from
+            // scratch regardless of what state it was left in.
+            _suppressTextChanged = true;
+            EditorTextBox.Document.Text = ViewModel!.Editor.CurrentText;
+            _suppressTextChanged = false;
             EditorTextBox.TextArea.TextView.Redraw();
             EditorTextBox.Focus();
         }
@@ -116,8 +123,16 @@ public partial class MainWindow : Window
         EditorTextBox.Text = text;
         _suppressTextChanged = false;
 
+        // Switching directly from one chapter to another while already in Edit mode changes
+        // CurrentText without ever changing Mode, so it never reaches the Mode-changed Redraw()
+        // in OnEditorViewModelPropertyChanged — leaving the editor showing stale/blank visual
+        // lines from whichever chapter was displayed before, for the same virtualized-editor
+        // staleness reason documented there. Redraw here whenever new text is actually applied.
         if (ViewModel.Editor.IsEditMode)
+        {
+            EditorTextBox.TextArea.TextView.Redraw();
             EditorTextBox.Focus();
+        }
     }
 
     private async void OnInsertTableClick(object? sender, RoutedEventArgs e)

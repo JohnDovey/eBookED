@@ -13,6 +13,15 @@
          custom containers, and adds a right-click "Apply Style" editor menu backed by ten
          curated CSS styles — all new features (plus one bug fix bundled into the same
          release), so a minor bump. -->
-    <Version>1.9.0</Version>
+    <!-- 1.9.1: user-reported bug fixes, no new features, so a patch bump. Word export
+         produced schema-invalid .docx whenever a table was present (missing <w:tblGrid>,
+         <w:tblBorders> children in the wrong order) or a run combined underline+highlight
+         (<w:highlight>/<w:u> also wrong order) — Word/Pages refused to open the file at all
+         ("isn't in the correct format"), not just render it wrong. Also fixed a gap in the
+         editor-blank-on-Edit bug: switching directly between two chapters while already in
+         Edit mode changed CurrentText without ever changing Mode, so it missed the existing
+         Mode-changed redraw fix entirely; that existing fix was also hardened to force a full
+         Document.Text reset rather than relying on a bare TextView.Redraw() call. -->
+    <Version>1.9.1</Version>
   </PropertyGroup>
 </Project>

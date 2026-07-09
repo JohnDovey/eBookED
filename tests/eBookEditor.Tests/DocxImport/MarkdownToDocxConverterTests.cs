@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using eBookEditor.DocxImport.Services;
 
@@ -96,6 +97,66 @@ public class MarkdownToDocxConverterTests : IDisposable
         Assert.Equal("Name", rows[0].Elements<TableCell>().First().InnerText);
         Assert.Equal("Jane Doe", rows[1].Elements<TableCell>().First().InnerText);
         Assert.Equal("Editor", rows[2].Elements<TableCell>().ElementAt(1).InnerText);
+
+        // Regression: a <w:tbl> without a <w:tblGrid> child (defining the column count) is not
+        // valid OOXML — Word refuses to open the whole file with "isn't in the correct format",
+        // not just skip the table. Same for <w:tblBorders> children out of schema order
+        // (top, left, bottom, right, insideH, insideV).
+        var grid = table.Elements<TableGrid>().SingleOrDefault();
+        Assert.NotNull(grid);
+        Assert.Equal(2, grid!.Elements<GridColumn>().Count());
+    }
+
+    [Fact]
+    public void ConvertToFile_ProducesSchemaValidDocx_ForEveryFeatureCombined()
+    {
+        // Regression test for a real bug a user hit: opening an exported .docx in Word/Pages
+        // failed with "isn't in the correct format" — caused by a missing <w:tblGrid> in every
+        // table and <w:tblBorders> children in the wrong schema order, neither of which surface
+        // as a .NET exception (DocumentFormat.OpenXml happily writes structurally-valid-looking
+        // but schema-invalid XML unless you run it through OpenXmlValidator). This exercises
+        // every block/inline kind in one document, including combined underline+highlight on a
+        // single run (another real ordering bug this test caught: <w:highlight> must precede
+        // <w:u> in <w:rPr>).
+        const string markdown = """
+            # Chapter One
+
+            Plain text, *italic*, **bold**, ***bold italic***.
+
+            ~~strike~~, ==highlight==, H~2~O, E=mc^2^, ++underlined and ==nested highlight==++.
+
+            - [x] done
+            - [ ] not done
+
+            Term
+            :   Definition text here.
+
+            ::: {.smallcaps}
+            Styled paragraph.
+            :::
+
+            | A | B | C |
+            | - | - | - |
+            | 1 | 2 | 3 |
+            | 4 | 5 | 6 |
+
+            ```
+            code line
+            ```
+
+            ---
+
+            Text after a thematic break.
+            """;
+        var path = Path.Combine(_tempDir, "chapter-full-validation.docx");
+
+        _converter.ConvertToFile(markdown, "Test Book", path);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        var errors = new OpenXmlValidator().Validate(document).ToList();
+
+        Assert.True(errors.Count == 0,
+            string.Join("\n", errors.Select(e => $"{e.Path?.XPath} :: {e.Description}")));
     }
 
     [Fact]

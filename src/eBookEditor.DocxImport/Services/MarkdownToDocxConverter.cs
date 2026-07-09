@@ -187,11 +187,17 @@ public class MarkdownToDocxConverter
         var docxTable = new Table();
         docxTable.AppendChild(new TableProperties(new TableBorders(
             new TopBorder { Val = BorderValues.Single, Size = 4 },
-            new BottomBorder { Val = BorderValues.Single, Size = 4 },
             new LeftBorder { Val = BorderValues.Single, Size = 4 },
+            new BottomBorder { Val = BorderValues.Single, Size = 4 },
             new RightBorder { Val = BorderValues.Single, Size = 4 },
             new InsideHorizontalBorder { Val = BorderValues.Single, Size = 4 },
             new InsideVerticalBorder { Val = BorderValues.Single, Size = 4 })));
+
+        var columnCount = table.OfType<MdTableRow>().FirstOrDefault()?.OfType<MdTableCell>().Count() ?? 0;
+        var tableGrid = new TableGrid();
+        for (var i = 0; i < columnCount; i++)
+            tableGrid.Append(new GridColumn());
+        docxTable.AppendChild(tableGrid);
 
         foreach (var row in table.OfType<MdTableRow>())
         {
@@ -396,11 +402,14 @@ public class MarkdownToDocxConverter
     {
         var run = new Run();
         var properties = new RunProperties();
+        // CT_RPr child order is schema-fixed (b, i, strike, ..., highlight, u, ..., vertAlign) —
+        // Word refuses to open a document with elements out of this order, so append in that
+        // sequence, not the order features happen to be listed in this method's parameters.
         if (bold) properties.Append(new Bold());
         if (italic) properties.Append(new Italic());
         if (strikethrough) properties.Append(new Strike());
-        if (underline) properties.Append(new Underline { Val = UnderlineValues.Single });
         if (highlight) properties.Append(new Highlight { Val = HighlightColorValues.Yellow });
+        if (underline) properties.Append(new Underline { Val = UnderlineValues.Single });
         if (subscript) properties.Append(new VerticalTextAlignment { Val = VerticalPositionValues.Subscript });
         if (superscript) properties.Append(new VerticalTextAlignment { Val = VerticalPositionValues.Superscript });
         if (properties.HasChildren)
