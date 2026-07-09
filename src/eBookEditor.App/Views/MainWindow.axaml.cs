@@ -67,13 +67,32 @@ public partial class MainWindow : Window
         ViewModel.Editor.CurrentText = EditorTextBox.Text ?? string.Empty;
     }
 
+    private async void OnNewProjectClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null)
+            return;
+
+        var wizard = new NewProjectWizardWindow();
+        await wizard.ShowDialog(this);
+
+        if (wizard.CreatedProject is { } project)
+            ViewModel.SwitchToProject(project);
+    }
+
     private async void OnEditMetadataClick(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is null)
             return;
 
         ViewModel.ApplyAutofillDefaultsIfEmpty();
+        ViewModel.RefreshAvailableTemplates();
         var dialog = new MetadataEditorWindow(ViewModel);
+        await dialog.ShowDialog(this);
+    }
+
+    private async void OnAboutClick(object? sender, RoutedEventArgs e)
+    {
+        var dialog = new AboutWindow();
         await dialog.ShowDialog(this);
     }
 

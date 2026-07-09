@@ -1,0 +1,21 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        mc:Ignorable="d"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        x:Class="eBookEditor.App.Views.AboutWindow"
+        Title="About eBook Editor"
+        Width="360" Height="240"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+
+  <StackPanel Margin="24" Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
+    <TextBlock Text="eBook Editor" FontSize="22" FontWeight="Bold" HorizontalAlignment="Center" />
+    <TextBlock x:Name="VersionText" Opacity="0.7" HorizontalAlignment="Center" />
+    <TextBlock Text="Author and publish eBooks: Markdown chapters, auto-generated"
+               TextWrapping="Wrap" TextAlignment="Center" Margin="0,8,0,0" />
+    <TextBlock Text="front/back matter, EPUB 3.3 and Markdown export."
+               TextWrapping="Wrap" TextAlignment="Center" />
+    <Button Content="Close" Click="OnCloseClick" HorizontalAlignment="Center" Margin="0,16,0,0" />
+  </StackPanel>
+
+</Window>

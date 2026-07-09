@@ -15,6 +15,28 @@
 
   <DockPanel>
 
+    <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto">
+      <Menu Grid.Column="0">
+        <MenuItem Header="_File">
+          <MenuItem Header="New Project…" Click="OnNewProjectClick" />
+          <MenuItem Header="Import DOCX…" Click="OnImportDocxClick" />
+        </MenuItem>
+        <MenuItem Header="_Project">
+          <MenuItem Header="Metadata…" Click="OnEditMetadataClick" />
+          <MenuItem Header="Regenerate Front Matter" Command="{Binding RegenerateFrontMatterCommand}" />
+        </MenuItem>
+        <MenuItem Header="_Export">
+          <MenuItem Header="EPUB…" Command="{Binding ExportEpubCommand}" />
+          <MenuItem Header="Markdown (Whole Book)…" Command="{Binding ExportMarkdownWholeBookCommand}" />
+          <MenuItem Header="Markdown (This Chapter)…" Command="{Binding ExportMarkdownChapterCommand}"
+                    IsEnabled="{Binding IsChapterSelected}" />
+        </MenuItem>
+      </Menu>
+      <Menu Grid.Column="1">
+        <MenuItem Header="About" Click="OnAboutClick" />
+      </Menu>
+    </Grid>
+
     <Border DockPanel.Dock="Bottom" Padding="8,4" BorderThickness="0,1,0,0" BorderBrush="Gray">
       <TextBlock Text="{Binding StatusMessage}" Opacity="0.7" TextTrimming="CharacterEllipsis" />
     </Border>
@@ -26,25 +48,6 @@
         <DockPanel Margin="12">
           <TextBlock DockPanel.Dock="Top" Text="{Binding CurrentProject.Metadata.Title}"
                      FontWeight="Bold" FontSize="16" Margin="0,0,0,8" TextWrapping="Wrap" />
-
-          <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,6">
-            <Button Content="Metadata…" Click="OnEditMetadataClick" Margin="0,0,6,6" />
-            <Button Content="Regenerate" Command="{Binding RegenerateFrontMatterCommand}" Margin="0,0,6,6" />
-          </WrapPanel>
-
-          <Button DockPanel.Dock="Top" Content="Import DOCX…" Click="OnImportDocxClick"
-                  HorizontalAlignment="Stretch" Margin="0,0,0,6" />
-
-          <Button DockPanel.Dock="Top" Content="Export EPUB…" Command="{Binding ExportEpubCommand}"
-                  HorizontalAlignment="Stretch" Margin="0,0,0,6" />
-
-          <Button DockPanel.Dock="Top" Content="Export Markdown (Whole Book)…"
-                  Command="{Binding ExportMarkdownWholeBookCommand}"
-                  HorizontalAlignment="Stretch" Margin="0,0,0,6" />
-
-          <Button DockPanel.Dock="Top" Content="Export Markdown (This Chapter)…"
-                  Command="{Binding ExportMarkdownChapterCommand}" IsVisible="{Binding IsChapterSelected}"
-                  HorizontalAlignment="Stretch" Margin="0,0,0,6" />
 
           <Button DockPanel.Dock="Top" Content="+ Add Chapter" Command="{Binding AddChapterCommand}"
                   HorizontalAlignment="Stretch" Margin="0,0,0,8" />

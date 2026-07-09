@@ -11,6 +11,12 @@ public class EpubBuilder
 {
     private readonly MarkdownToHtmlConverter _htmlConverter = new();
     private readonly ChapterFileService _chapterFileService = new();
+    private readonly TemplateService _templateService;
+
+    public EpubBuilder(TemplateService? templateService = null)
+    {
+        _templateService = templateService ?? new TemplateService();
+    }
 
     public void Build(EbookProject project, string outputPath)
     {
@@ -73,7 +79,7 @@ public class EpubBuilder
             fileStream.CopyTo(entryStream);
         }
 
-        WriteEntry(archive, "OEBPS/styles.css", DefaultStylesheet.Css);
+        WriteEntry(archive, "OEBPS/styles.css", _templateService.GetTemplateCss(metadata.SelectedTemplate));
 
         var docList = contentDocs.Select(c => c.Doc).ToList();
         WriteEntry(archive, "OEBPS/nav.xhtml", EpubNavDocumentWriter.Build(docList));

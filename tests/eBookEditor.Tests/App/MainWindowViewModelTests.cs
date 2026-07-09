@@ -1,6 +1,7 @@
 using eBookEditor.App.ViewModels;
 using eBookEditor.Core.Models;
 using eBookEditor.Core.Services;
+using eBookEditor.Epub.Services;
 using eBookEditor.Markdown.Services;
 
 namespace eBookEditor.Tests.App;
@@ -11,12 +12,14 @@ public class MainWindowViewModelTests : IDisposable
     private readonly ProjectService _projectService = new();
     private readonly PageGeneratorService _pageGenerator = new();
     private readonly AppSettingsService _appSettingsService;
+    private readonly TemplateService _templateService;
 
     public MainWindowViewModelTests()
     {
         _tempDir = Path.Combine(Path.GetTempPath(), "ebookeditor-tests-" + Guid.NewGuid());
         Directory.CreateDirectory(_tempDir);
         _appSettingsService = new AppSettingsService(new TestAppPaths(Path.Combine(_tempDir, "app-data")));
+        _templateService = new TemplateService(Path.Combine(_tempDir, "templates"));
     }
 
     public void Dispose()
@@ -30,7 +33,7 @@ public class MainWindowViewModelTests : IDisposable
         var metadata = new BookMetadata { Title = projectName, CopyrightHolder = "Test Author" };
         var project = _projectService.CreateProject(_tempDir, projectName, metadata);
         _pageGenerator.RegenerateAllGeneratedPages(project);
-        return new MainWindowViewModel(project, _appSettingsService);
+        return new MainWindowViewModel(project, _appSettingsService, _templateService);
     }
 
     [Fact]
@@ -247,5 +250,61 @@ public class MainWindowViewModelTests : IDisposable
         var settings = _appSettingsService.Load();
 
         Assert.Contains(vm.CurrentProject.DirectoryPath, settings.RecentProjectPaths);
+    }
+
+    [Fact]
+    public void RefreshAvailableTemplates_SeedsDefaultAndPopulatesMetadataPickerList()
+    {
+        var vm = NewViewModel();
+
+        vm.RefreshAvailableTemplates();
+
+        Assert.Contains(TemplateService.DefaultTemplateName, vm.Metadata.AvailableTemplates);
+        Assert.Equal(TemplateService.DefaultTemplateName, vm.Metadata.SelectedTemplate);
+    }
+
+    [Fact]
+    public void SaveMetadataAndRegenerate_PersistsSelectedTemplateAndEpubExportUsesIt()
+    {
+        var vm = NewViewModel();
+        vm.RefreshAvailableTemplates();
+        Directory.CreateDirectory(_templateService.TemplatesDirectory);
+        File.WriteAllText(Path.Combine(_templateService.TemplatesDirectory, "Elegant.css"), "body { color: navy; }");
+        vm.RefreshAvailableTemplates();
+        vm.Metadata.SelectedTemplate = "Elegant";
+
+        vm.SaveMetadataAndRegenerate();
+        Assert.Equal("Elegant", vm.CurrentProject.Metadata.SelectedTemplate);
+
+        vm.ExportEpubCommand.Execute(null);
+        var epubPath = Path.Combine(vm.CurrentProject.OutputDir, "vm-test-book.epub");
+        using var archive = System.IO.Compression.ZipFile.OpenRead(epubPath);
+        using var reader = new StreamReader(archive.GetEntry("OEBPS/styles.css")!.Open());
+        Assert.Equal("body { color: navy; }", reader.ReadToEnd());
+    }
+
+    [Fact]
+    public void SwitchToProject_SavesDirtyEditsAndLoadsNewProjectState()
+    {
+        var vm = NewViewModel("First Book");
+        vm.Editor.CurrentText = "Unsaved title page edits.";
+        var firstProjectPath = vm.CurrentProject.DirectoryPath;
+
+        var secondMetadata = new BookMetadata { Title = "Second Book", CopyrightHolder = "Someone Else" };
+        var secondProject = _projectService.CreateProject(_tempDir, "Second Book", secondMetadata);
+        _pageGenerator.RegenerateAllGeneratedPages(secondProject);
+
+        vm.SwitchToProject(secondProject);
+
+        Assert.Equal("Second Book", vm.CurrentProject.Metadata.Title);
+        Assert.Equal("Second Book", vm.Metadata.Title);
+        Assert.False(vm.Editor.IsDirty);
+        Assert.Contains("Second Book", vm.Editor.CurrentText);
+
+        var firstTitlePage = File.ReadAllText(Path.Combine(firstProjectPath, "frontmatter", ProjectPaths.TitlePageFileName));
+        Assert.Contains("Unsaved title page edits.", firstTitlePage);
+
+        var settings = _appSettingsService.Load();
+        Assert.Contains(secondProject.DirectoryPath, settings.RecentProjectPaths);
     }
 }

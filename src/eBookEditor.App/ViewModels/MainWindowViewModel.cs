@@ -17,7 +17,8 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly BookIndexGenerator _bookIndexGenerator = new();
     private readonly MarkdownExportService _markdownExportService = new();
     private readonly DocxImportService _docxImportService = new();
-    private readonly EpubBuilder _epubBuilder = new();
+    private readonly TemplateService _templateService;
+    private readonly EpubBuilder _epubBuilder;
     private readonly AppSettingsService _appSettingsService;
 
     public EditorViewModel Editor { get; } = new();
@@ -42,10 +43,12 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public IReadOnlyList<SpineItem> SpineItems => CurrentProject.Spine.OrderBy(i => i.Order).ToList();
 
-    public MainWindowViewModel(EbookProject project, AppSettingsService? appSettingsService = null)
+    public MainWindowViewModel(EbookProject project, AppSettingsService? appSettingsService = null, TemplateService? templateService = null)
     {
         _currentProject = project;
         _appSettingsService = appSettingsService ?? new AppSettingsService(new AppPaths());
+        _templateService = templateService ?? new TemplateService();
+        _epubBuilder = new EpubBuilder(_templateService);
         Metadata.LoadFrom(project.Metadata);
         Editor.LoadFile(Path.Combine(project.FrontMatterDir, ProjectPaths.TitlePageFileName));
         _appSettingsService.RecordProjectOpened(project.DirectoryPath);
@@ -56,6 +59,21 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(IsChapterSelected));
         ChapterTitleInput = value?.Title ?? string.Empty;
         ChapterSubtitleInput = value?.Subtitle ?? string.Empty;
+    }
+
+    public void RefreshAvailableTemplates() => Metadata.RefreshAvailableTemplates(_templateService);
+
+    public void SwitchToProject(EbookProject project)
+    {
+        if (Editor.IsDirty)
+            Editor.Save();
+
+        CurrentProject = project;
+        SelectedSpineItem = null;
+        Metadata.LoadFrom(project.Metadata);
+        Editor.LoadFile(Path.Combine(project.FrontMatterDir, ProjectPaths.TitlePageFileName));
+        _appSettingsService.RecordProjectOpened(project.DirectoryPath);
+        OnPropertyChanged(nameof(SpineItems));
     }
 
     public void SaveMetadataAndRegenerate()

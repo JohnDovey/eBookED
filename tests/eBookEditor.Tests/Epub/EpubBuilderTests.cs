@@ -153,4 +153,35 @@ public class EpubBuilderTests : IDisposable
         var identifier = opfXml.Descendants(dc + "identifier").First().Value;
         Assert.StartsWith($"urn:uuid:{metadata.Identifier}", identifier);
     }
+
+    [Fact]
+    public void Build_UsesSelectedTemplateCssWhenSet()
+    {
+        var templatesDir = Path.Combine(_tempDir, "templates");
+        Directory.CreateDirectory(templatesDir);
+        File.WriteAllText(Path.Combine(templatesDir, "Custom.css"), "body { color: purple; }");
+
+        var project = BuildSampleProject();
+        project.ProjectFile.Metadata = project.Metadata with { SelectedTemplate = "Custom" };
+        var outputPath = Path.Combine(project.OutputDir, "book.epub");
+
+        new EpubBuilder(new TemplateService(templatesDir)).Build(project, outputPath);
+
+        using var archive = ZipFile.OpenRead(outputPath);
+        using var reader = new StreamReader(archive.GetEntry("OEBPS/styles.css")!.Open());
+        Assert.Equal("body { color: purple; }", reader.ReadToEnd());
+    }
+
+    [Fact]
+    public void Build_FallsBackToDefaultCssWhenNoTemplateSelected()
+    {
+        var project = BuildSampleProject();
+        var outputPath = Path.Combine(project.OutputDir, "book.epub");
+
+        _epubBuilder.Build(project, outputPath);
+
+        using var archive = ZipFile.OpenRead(outputPath);
+        using var reader = new StreamReader(archive.GetEntry("OEBPS/styles.css")!.Open());
+        Assert.Equal(DefaultStylesheet.Css, reader.ReadToEnd());
+    }
 }

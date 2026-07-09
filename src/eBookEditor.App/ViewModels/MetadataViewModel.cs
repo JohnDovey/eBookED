@@ -1,5 +1,7 @@
+using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using eBookEditor.Core.Models;
+using eBookEditor.Epub.Services;
 
 namespace eBookEditor.App.ViewModels;
 
@@ -32,6 +34,27 @@ public partial class MetadataViewModel : ViewModelBase
     [ObservableProperty] private string _socialLinks = string.Empty;
     [ObservableProperty] private string _storeLinks = string.Empty;
     [ObservableProperty] private string _copyrightDisclaimer = BookMetadata.DefaultDisclaimerText;
+    [ObservableProperty] private string _selectedTemplate = TemplateService.DefaultTemplateName;
+
+    public ObservableCollection<string> AvailableTemplates { get; } = [];
+
+    /// <summary>
+    /// Rescans the templates directory and refreshes the picker list. Called each time the
+    /// template picker is opened, not cached, so newly-added .css files always show up.
+    /// </summary>
+    public void RefreshAvailableTemplates(TemplateService templateService)
+    {
+        var names = templateService.ScanTemplateNames();
+
+        AvailableTemplates.Clear();
+        foreach (var name in names)
+            AvailableTemplates.Add(name);
+
+        if (!AvailableTemplates.Contains(SelectedTemplate))
+            SelectedTemplate = AvailableTemplates.Contains(TemplateService.DefaultTemplateName)
+                ? TemplateService.DefaultTemplateName
+                : AvailableTemplates.FirstOrDefault() ?? TemplateService.DefaultTemplateName;
+    }
 
     public void LoadFrom(BookMetadata metadata)
     {
@@ -57,6 +80,7 @@ public partial class MetadataViewModel : ViewModelBase
         SocialLinks = string.Join("\n", (metadata.AboutAuthor?.SocialLinks ?? []).Select(s => $"{s.Platform}|{s.Url}"));
         StoreLinks = string.Join("\n", metadata.StoreLinks.Select(s => $"{s.Store}|{s.Url}"));
         CopyrightDisclaimer = metadata.CopyrightDisclaimer;
+        SelectedTemplate = metadata.SelectedTemplate ?? TemplateService.DefaultTemplateName;
     }
 
     public BookMetadata ToMetadata()
@@ -98,7 +122,8 @@ public partial class MetadataViewModel : ViewModelBase
                 .ToList(),
             CopyrightDisclaimer = string.IsNullOrWhiteSpace(CopyrightDisclaimer)
                 ? BookMetadata.DefaultDisclaimerText
-                : CopyrightDisclaimer
+                : CopyrightDisclaimer,
+            SelectedTemplate = string.IsNullOrWhiteSpace(SelectedTemplate) ? null : SelectedTemplate
         };
     }
 

@@ -1,0 +1,33 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:eBookEditor.App.ViewModels"
+        mc:Ignorable="d"
+        x:Class="eBookEditor.App.Views.NewProjectWizardWindow"
+        x:DataType="vm:NewProjectWizardViewModel"
+        Title="New Project"
+        Width="480" Height="340"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+
+  <StackPanel Margin="20" Spacing="10">
+    <TextBlock Text="New eBook Project" FontWeight="Bold" FontSize="18" Margin="0,0,0,8" />
+
+    <TextBox Watermark="Book title" Text="{Binding ProjectName}" />
+    <TextBox Watermark="Author name" Text="{Binding AuthorName}" />
+
+    <Grid ColumnDefinitions="*,Auto">
+      <TextBox Grid.Column="0" Watermark="Save location" Text="{Binding Location}" IsReadOnly="True" Margin="0,0,6,0" />
+      <Button Grid.Column="1" Content="Browse…" Click="OnBrowseClick" />
+    </Grid>
+
+    <TextBlock Text="{Binding ErrorMessage}" Foreground="Red" TextWrapping="Wrap" />
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,16,0,0">
+      <Button Content="Cancel" Click="OnCancelClick" />
+      <Button Content="Create" Classes="accent" Click="OnCreateClick" />
+    </StackPanel>
+  </StackPanel>
+
+</Window>

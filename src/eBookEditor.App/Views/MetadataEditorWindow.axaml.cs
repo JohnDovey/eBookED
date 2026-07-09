@@ -33,4 +33,6 @@ public partial class MetadataEditorWindow : Window
         _mainViewModel.Metadata.LoadFrom(_mainViewModel.CurrentProject.Metadata);
         Close();
     }
+
+    private void OnTemplateDropDownOpened(object? sender, EventArgs e) => _mainViewModel.RefreshAvailableTemplates();
 }

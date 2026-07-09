@@ -23,6 +23,10 @@
         <TextBox Watermark="Illustrator(s), comma separated" Text="{Binding IllustratorNames}" />
         <TextBox Watermark="Language (BCP-47, e.g. en)" Text="{Binding Language}" />
 
+        <TextBlock Text="Style" FontWeight="Bold" FontSize="16" Margin="0,12,0,0" />
+        <ComboBox ItemsSource="{Binding AvailableTemplates}" SelectedItem="{Binding SelectedTemplate}"
+                  DropDownOpened="OnTemplateDropDownOpened" HorizontalAlignment="Stretch" />
+
         <TextBlock Text="Copyright &amp; Publishing" FontWeight="Bold" FontSize="16" Margin="0,12,0,0" />
         <TextBox Watermark="Copyright holder" Text="{Binding CopyrightHolder}" />
         <TextBox Watermark="Copyright year" Text="{Binding CopyrightYear}" />

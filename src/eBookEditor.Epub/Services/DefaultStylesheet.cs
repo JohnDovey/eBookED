@@ -1,6 +1,6 @@
 namespace eBookEditor.Epub.Services;
 
-internal static class DefaultStylesheet
+public static class DefaultStylesheet
 {
     public const string Css = """
         body {

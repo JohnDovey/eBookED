@@ -29,6 +29,7 @@ public record BookMetadata
     public List<StoreLink> StoreLinks { get; init; } = new();
     public string CopyrightDisclaimer { get; init; } = DefaultDisclaimerText;
     public Guid Identifier { get; init; } = Guid.NewGuid();
+    public string? SelectedTemplate { get; init; }
 
     public IEnumerable<Contributor> Authors => Contributors.Where(c => c.Role == ContributorRole.Author);
     public IEnumerable<Contributor> Editors => Contributors.Where(c => c.Role == ContributorRole.Editor);

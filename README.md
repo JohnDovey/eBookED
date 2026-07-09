@@ -15,7 +15,7 @@ dotnet run --project src/eBookEditor.App
 dotnet test tests/eBookEditor.Tests
 ```
 
-On first run, the app scaffolds a demo project under `src/eBookEditor.App/sample-project-data/` so there's something to explore immediately — a real "New Project" flow is future work (see [Known limitations](#known-limitations)).
+On first run, the app scaffolds a demo project under `src/eBookEditor.App/sample-project-data/` so there's something to explore immediately. Use **File → New Project…** to start a real book from scratch.
 
 ## Solution structure
 
@@ -23,9 +23,9 @@ On first run, the app scaffolds a demo project under `src/eBookEditor.App/sample
 |---|---|
 | `eBookEditor.Core` | Domain models (`BookMetadata`, `SpineItem`, `EbookProject`, …) and services with no UI or format dependencies: `ProjectService` (create/load/save), `SpineService` (ordering/numbering), `ChapterFileService` (YAML front matter + body), `AppSettingsService` (cross-project autofill/MRU). |
 | `eBookEditor.Markdown` | Markdig pipeline, `PageGeneratorService` (title/copyright/TOC/about-the-author page generation), `BookIndexGenerator` (`book.md`), `MarkdownExportService` (whole-book / single-chapter export). |
-| `eBookEditor.Epub` | Hand-rolled EPUB 3.3 writer (`EpubBuilder`) — container.xml, package.opf, nav.xhtml, legacy toc.ncx, XHTML content docs, image bundling — plus a structural `EpubValidationHelper`. |
+| `eBookEditor.Epub` | Hand-rolled EPUB 3.3 writer (`EpubBuilder`) — container.xml, package.opf, nav.xhtml, legacy toc.ncx, XHTML content docs, image bundling, selectable CSS `TemplateService` — plus a structural `EpubValidationHelper`. |
 | `eBookEditor.DocxImport` | `.docx` → chapters importer built on `DocumentFormat.OpenXml`: detects chapter boundaries (Heading 1 style or "Chapter N" text), converts bold/italic/headings/lists/images to Markdown. |
-| `eBookEditor.App` | The Avalonia desktop shell (MVVM via CommunityToolkit.Mvvm): sidebar with drag-to-reorder chapters, Markdown editor (AvaloniaEdit) with a whole-pane edit/preview toggle (Markdown.Avalonia), metadata editor, and the EPUB/Markdown export and DOCX import actions. |
+| `eBookEditor.App` | The Avalonia desktop shell (MVVM via CommunityToolkit.Mvvm): a title bar menu (File/Project/Export/About), New Project wizard, sidebar with drag-to-reorder chapters, Markdown editor (AvaloniaEdit) with a whole-pane edit/preview toggle (Markdown.Avalonia), metadata editor (including CSS template picker), and the EPUB/Markdown export and DOCX import actions. |
 | `tests/eBookEditor.Tests` | xUnit coverage across all of the above, including `.docx` fixtures built programmatically with the OpenXml SDK (no binary test fixtures needed) and generated EPUBs validated both by `EpubValidationHelper` and, during development, `unzip`/`xmllint`. |
 
 ## Project directory layout
@@ -46,11 +46,14 @@ Each book is a directory, not a single file:
 
 Chapter filenames are stable once created — reordering only changes `Spine[].Order` in `project.ebookproj.json`, never the filesystem, so image references and git history stay intact.
 
+## CSS templates
+
+EPUB export styling comes from a `templates/` directory next to the installed app (not per-project), holding one `.css` file per template — the filename (minus extension) is the display name shown in the Metadata editor's Style picker. A "Default" template is seeded automatically from the built-in stylesheet the first time the picker is opened. The list is rescanned every time the picker opens, so dropping a new `.css` file into `templates/` makes it available immediately. The book's chosen template is saved in its metadata and used whenever that book is exported to EPUB.
+
 ## Known limitations
 
 This is a working first pass covering the full pipeline end to end (author → organize → import → export), not a finished product. Notable simplifications:
 
-- No New Project wizard yet — the app opens a fixed demo project (`SampleProjectFactory`); creating additional projects currently requires calling `ProjectService.CreateProject` directly.
 - The metadata editor uses comma-separated text fields for lists (authors, tags, social/store links) rather than dynamic add/remove rows.
 - DOCX import doesn't convert tables, and hyperlink targets are dropped (link text is kept).
 - No automated visual/UI testing was possible in the environment this was built in (a sandboxed session without a real windowing session for the Avalonia/macOS native render timer) — correctness was verified through the full xUnit suite plus running real builds and inspecting generated output, not through interactive UI testing.
