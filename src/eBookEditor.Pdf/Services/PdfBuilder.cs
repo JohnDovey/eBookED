@@ -72,7 +72,8 @@ public class PdfBuilder
                         if (item.Type == SpineItemType.Chapter)
                             wordCount += CountWords(body);
 
-                        _renderer.RenderMarkdownBody(column, body, SectionName(item));
+                        var sourceDir = Path.GetDirectoryName(project.ResolvePath(item));
+                        _renderer.RenderMarkdownBody(column, body, sourceDir, SectionName(item));
                     }
                 });
 

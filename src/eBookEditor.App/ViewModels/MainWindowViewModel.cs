@@ -350,7 +350,8 @@ public partial class MainWindowViewModel : ViewModelBase
             var (_, body) = _chapterFileService.ReadChapter(CurrentProject.ResolvePath(item));
             var fileName = Slug.Create(item.Title ?? "chapter", "chapter") + ".docx";
             var outputPath = Path.Combine(CurrentProject.OutputDir, fileName);
-            _markdownToDocxConverter.ConvertToFile(body, item.Title ?? "Untitled Chapter", outputPath);
+            var sourceDir = Path.GetDirectoryName(CurrentProject.ResolvePath(item));
+            _markdownToDocxConverter.ConvertToFile(body, item.Title ?? "Untitled Chapter", outputPath, sourceDir);
             StatusMessage = $"Exported chapter to {outputPath}";
         }
         catch (Exception ex)

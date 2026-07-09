@@ -1,32 +1,40 @@
 using eBookEditor.Markdown.Services;
+using Markdig.Extensions.Footnotes;
+using Markdig.Extensions.Tables;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 using QuestPDF.Fluent;
+using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
 namespace eBookEditor.Pdf.Services;
 
 /// <summary>
 /// Renders a chapter/page's Markdown body into a QuestPDF column — headings, paragraphs with
-/// bold/italic/link runs, and bullet/numbered lists (as prefixed paragraphs, same
-/// simplification as MarkdownToDocxConverter). Tables, images inside body text, and code
-/// blocks aren't rendered yet.
+/// bold/italic/link runs, bullet/numbered lists (as prefixed paragraphs), tables, images
+/// (resolved against <paramref name="sourceDir"/>), and footnotes. Markdig collects every
+/// footnote definition for a document into one FootnoteGroup block at the end — since each
+/// chapter is parsed independently, that naturally becomes a "Notes" section at the end of
+/// each chapter here, the same way the EPUB's HTML renderer places them. True page-bottom
+/// footnotes (reflowing exactly onto whichever physical page referenced them) would need a
+/// custom paginator; out of proportion for this app, so this is an endnotes-per-chapter
+/// rendering instead — a common, acceptable print convention. Code blocks aren't rendered yet.
 /// </summary>
 internal class MarkdownToPdfRenderer
 {
-    public void RenderMarkdownBody(ColumnDescriptor column, string markdown, string? sectionName = null)
+    public void RenderMarkdownBody(ColumnDescriptor column, string markdown, string? sourceDir, string? sectionName = null)
     {
         var document = Markdig.Markdown.Parse(markdown, MarkdownPipelineFactory.Create());
 
         var isFirstBlock = true;
         foreach (var block in document)
         {
-            RenderBlock(column, block, isFirstBlock ? sectionName : null);
+            RenderBlock(column, block, isFirstBlock ? sectionName : null, sourceDir);
             isFirstBlock = false;
         }
     }
 
-    private static void RenderBlock(ColumnDescriptor column, Block block, string? sectionName)
+    private static void RenderBlock(ColumnDescriptor column, Block block, string? sectionName, string? sourceDir)
     {
         IContainer Item()
         {
@@ -40,6 +48,10 @@ internal class MarkdownToPdfRenderer
                 var fontSize = heading.Level switch { 1 => 20f, 2 => 16f, _ => 13f };
                 Item().PaddingTop(heading.Level == 1 ? 0 : 10).PaddingBottom(6).Text(text =>
                     RenderInlines(text, heading.Inline, bold: true, italic: false, fontSize));
+                break;
+
+            case ParagraphBlock { Inline: not null } paragraph when TryGetSoleImage(paragraph.Inline, out var imageLink):
+                RenderImage(Item(), imageLink!, sourceDir);
                 break;
 
             case ParagraphBlock { Inline: not null } paragraph:
@@ -64,10 +76,107 @@ internal class MarkdownToPdfRenderer
                 }
                 break;
 
+            case Table table:
+                RenderTable(column, table);
+                break;
+
+            case FootnoteGroup group:
+                RenderFootnotes(column, group);
+                break;
+
             case QuoteBlock quote:
                 foreach (var child in quote)
-                    RenderBlock(column, child, null);
+                    RenderBlock(column, child, null, sourceDir);
                 break;
+        }
+    }
+
+    private static bool TryGetSoleImage(ContainerInline container, out LinkInline? image)
+    {
+        Inline? only = container.FirstChild;
+        if (only is LinkInline { IsImage: true } link && only.NextSibling is null)
+        {
+            image = link;
+            return true;
+        }
+
+        image = null;
+        return false;
+    }
+
+    private static void RenderImage(IContainer container, LinkInline imageLink, string? sourceDir)
+    {
+        if (sourceDir is null || string.IsNullOrWhiteSpace(imageLink.Url))
+            return;
+
+        var absolutePath = Path.GetFullPath(Path.Combine(sourceDir, imageLink.Url));
+        if (!File.Exists(absolutePath))
+            return;
+
+        container.PaddingBottom(8).AlignCenter().Element(image => image.MaxWidth(320).Image(absolutePath).FitWidth());
+    }
+
+    private static void RenderTable(ColumnDescriptor column, Table table)
+    {
+        var rows = table.OfType<TableRow>().ToList();
+        if (rows.Count == 0)
+            return;
+
+        var columnCount = table.ColumnDefinitions.Count > 0
+            ? table.ColumnDefinitions.Count
+            : rows[0].Count();
+
+        column.Item().PaddingVertical(6).Table(questTable =>
+        {
+            questTable.ColumnsDefinition(columns =>
+            {
+                for (var i = 0; i < columnCount; i++)
+                    columns.RelativeColumn();
+            });
+
+            uint rowIndex = 1;
+            foreach (var row in rows)
+            {
+                uint colIndex = 1;
+                foreach (var cell in row.OfType<TableCell>())
+                {
+                    var cellContainer = questTable.Cell().Row(rowIndex).Column(colIndex)
+                        .Border(0.5f).BorderColor(Colors.Grey.Lighten1).Padding(4)
+                        .Background(row.IsHeader ? Colors.Grey.Lighten3 : Colors.White);
+
+                    cellContainer.Text(text =>
+                    {
+                        foreach (var cellBlock in cell.OfType<ParagraphBlock>().Where(p => p.Inline is not null))
+                            RenderInlines(text, cellBlock.Inline!, bold: row.IsHeader, italic: false, fontSize: 10);
+                    });
+
+                    colIndex++;
+                }
+                rowIndex++;
+            }
+        });
+    }
+
+    private static void RenderFootnotes(ColumnDescriptor column, FootnoteGroup group)
+    {
+        var footnotes = group.OfType<Footnote>().OrderBy(f => f.Order).ToList();
+        if (footnotes.Count == 0)
+            return;
+
+        column.Item().PaddingTop(16).LineHorizontal(0.5f).LineColor(Colors.Grey.Lighten1);
+        column.Item().PaddingTop(6).PaddingBottom(4).Text("Notes").Bold().FontSize(11);
+
+        foreach (var footnote in footnotes)
+        {
+            column.Item().PaddingBottom(4).Row(row =>
+            {
+                row.ConstantItem(18).Text($"{footnote.Order}.").FontSize(9);
+                row.RelativeItem().Text(text =>
+                {
+                    foreach (var noteBlock in footnote.OfType<ParagraphBlock>().Where(p => p.Inline is not null))
+                        RenderInlines(text, noteBlock.Inline!, bold: false, italic: false, fontSize: 9);
+                });
+            });
         }
     }
 
@@ -98,6 +207,10 @@ internal class MarkdownToPdfRenderer
 
                 case LinkInline { IsImage: false } link:
                     Style(text.Hyperlink(PlainText(link), link.Url ?? string.Empty), bold, italic, fontSize);
+                    break;
+
+                case FootnoteLink { IsBackLink: false } footnoteLink:
+                    text.Span(footnoteLink.Footnote.Order.ToString()).FontSize(fontSize * 0.75f).Superscript();
                     break;
 
                 case LineBreakInline:

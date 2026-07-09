@@ -29,5 +29,24 @@ public static class DefaultStylesheet
             border: 1px solid #888;
             padding: 0.4em;
         }
+
+        .footnote-ref {
+            text-decoration: none;
+        }
+
+        .footnotes {
+            margin-top: 2em;
+            font-size: 0.9em;
+        }
+
+        .footnotes hr {
+            border: none;
+            border-top: 1px solid #888;
+            margin-bottom: 1em;
+        }
+
+        .footnote-back-ref {
+            text-decoration: none;
+        }
         """;
 }

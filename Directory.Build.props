@@ -6,11 +6,10 @@
     <LangVersion>latest</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
     <!-- Bump the minor version for new features, patch for other code changes (see
-         feedback_version_bump_policy memory). This round adds PDF export (QuestPDF), a
-         page-size settings modal, a redesigned Imprint front-matter page with bottom-pinned
-         copyright (PDF) / page-break-before chapters (EPUB), roman-numeral front matter
-         page numbers, and a post-export result modal with word/page counts — all new
+         feedback_version_bump_policy memory). This round adds footnote support across
+         EPUB/PDF/Word export (real Word FootnotesPart, QuestPDF endnotes-per-chapter,
+         EPUB CSS polish) and table/image rendering in PDF and Word export — all new
          features, so a minor bump. -->
-    <Version>1.5.0</Version>
+    <Version>1.6.0</Version>
   </PropertyGroup>
 </Project>

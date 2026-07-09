@@ -74,4 +74,83 @@ public class MarkdownToDocxConverterTests : IDisposable
         var relationship = mainPart.HyperlinkRelationships.Single(r => r.Id == hyperlink.Id);
         Assert.Equal("https://example.com/", relationship.Uri.ToString());
     }
+
+    [Fact]
+    public void ConvertToFile_RendersTables()
+    {
+        const string markdown = """
+            | Name | Role |
+            | --- | --- |
+            | Jane Doe | Author |
+            | Ed Itor | Editor |
+            """;
+        var path = Path.Combine(_tempDir, "chapter-table.docx");
+
+        _converter.ConvertToFile(markdown, "Chapter With Table", path);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        var table = document.MainDocumentPart!.Document!.Body!.Descendants<Table>().Single();
+        var rows = table.Elements<TableRow>().ToList();
+
+        Assert.Equal(3, rows.Count);
+        Assert.Equal("Name", rows[0].Elements<TableCell>().First().InnerText);
+        Assert.Equal("Jane Doe", rows[1].Elements<TableCell>().First().InnerText);
+        Assert.Equal("Editor", rows[2].Elements<TableCell>().ElementAt(1).InnerText);
+    }
+
+    [Fact]
+    public void ConvertToFile_EmbedsImagesResolvedAgainstSourceDir()
+    {
+        // Minimal valid 1x1 PNG.
+        var pngBytes = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        var imagesDir = Path.Combine(_tempDir, "images");
+        Directory.CreateDirectory(imagesDir);
+        File.WriteAllBytes(Path.Combine(imagesDir, "cover.png"), pngBytes);
+
+        var chaptersDir = Path.Combine(_tempDir, "chapters");
+        Directory.CreateDirectory(chaptersDir);
+        var path = Path.Combine(_tempDir, "chapter-image.docx");
+
+        _converter.ConvertToFile("![Cover](../images/cover.png)", "Chapter With Image", path, chaptersDir);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        var mainPart = document.MainDocumentPart!;
+        Assert.Single(mainPart.ImageParts);
+        Assert.NotNull(mainPart.Document!.Body!.Descendants<Drawing>().SingleOrDefault());
+    }
+
+    [Fact]
+    public void ConvertToFile_MissingImageIsSkippedWithoutError()
+    {
+        var path = Path.Combine(_tempDir, "chapter-missing-image.docx");
+
+        _converter.ConvertToFile("![Missing](../images/does-not-exist.png)", "Chapter", path, _tempDir);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        Assert.Empty(document.MainDocumentPart!.ImageParts);
+    }
+
+    [Fact]
+    public void ConvertToFile_AddsRealWordFootnotes()
+    {
+        const string markdown = """
+            Some text with a footnote[^1].
+
+            [^1]: This is the note.
+            """;
+        var path = Path.Combine(_tempDir, "chapter-footnote.docx");
+
+        _converter.ConvertToFile(markdown, "Chapter With Footnote", path);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        var mainPart = document.MainDocumentPart!;
+        var footnoteReference = mainPart.Document!.Body!.Descendants<FootnoteReference>().Single();
+        Assert.Equal(1, footnoteReference.Id!.Value);
+
+        var footnotesPart = mainPart.FootnotesPart;
+        Assert.NotNull(footnotesPart);
+        var realFootnote = footnotesPart!.Footnotes!.Elements<Footnote>().Single(f => f.Id!.Value == 1);
+        Assert.Contains("This is the note.", realFootnote.InnerText);
+    }
 }

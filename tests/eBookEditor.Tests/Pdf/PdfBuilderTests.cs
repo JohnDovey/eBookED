@@ -107,4 +107,45 @@ public class PdfBuilderTests : IDisposable
         Assert.Contains("612", pdfText);
         Assert.Contains("792", pdfText);
     }
+
+    [Fact]
+    public void Build_RendersChapterWithTableImageAndFootnote()
+    {
+        var project = BuildSampleProject();
+
+        // Minimal valid 1x1 PNG.
+        var pngBytes = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        Directory.CreateDirectory(project.ImagesDir);
+        File.WriteAllBytes(Path.Combine(project.ImagesDir, "diagram.png"), pngBytes);
+
+        var chapterPath = _chapterFileService.CreateNewChapterFile(project.ChaptersDir, "Chapter Two");
+        var relativePath = Path.GetRelativePath(project.DirectoryPath, chapterPath).Replace('\\', '/');
+        _chapterFileService.WriteChapter(chapterPath,
+            new ChapterFrontMatter { Title = "Chapter Two" },
+            """
+            Some text with a footnote[^1].
+
+            | Name | Role |
+            | --- | --- |
+            | Jane Doe | Author |
+
+            ![Diagram](../images/diagram.png)
+
+            [^1]: This is the note.
+            """);
+        _spineService.AddChapter(project, "Chapter Two", relativePath);
+        _projectService.SaveProject(project);
+
+        var outputPath = Path.Combine(project.OutputDir, "book.pdf");
+
+        var result = _pdfBuilder.Build(project, outputPath);
+
+        Assert.True(File.Exists(outputPath));
+        var header = new byte[5];
+        using (var stream = File.OpenRead(outputPath))
+            stream.ReadExactly(header);
+        Assert.Equal("%PDF-", System.Text.Encoding.ASCII.GetString(header));
+        Assert.True(result.PageCount >= project.Spine.Count);
+    }
 }
