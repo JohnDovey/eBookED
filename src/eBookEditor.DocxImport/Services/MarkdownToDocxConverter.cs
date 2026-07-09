@@ -17,15 +17,18 @@ using MdTableRow = Markdig.Extensions.Tables.TableRow;
 namespace eBookEditor.DocxImport.Services;
 
 /// <summary>
-/// Converts a chapter's Markdown body into a .docx file — the reverse of DocxImportService.
-/// Handles headings (mapped to Word's built-in Heading1-3 styles, so a round-tripped export
-/// re-imports with the same chapter structure), paragraphs with bold/italic/link runs,
-/// bullet/numbered lists, tables, images (resolved against <paramref name="sourceDir"/> in
-/// ConvertToFile), fenced/indented code blocks (monospace, one Run per line since Word Text
-/// elements don't respect embedded newlines), and footnotes as real Word footnotes
-/// (FootnotesPart/FootnoteReference). List items are rendered as "•"/"1." prefixed paragraphs
-/// rather than native Word list numbering, which needs a full NumberingDefinitionsPart — a
-/// reasonable simplification since the visual result reads the same.
+/// Converts a chapter's (or, fed MarkdownExportService.ExportWholeBook's output, a whole
+/// book's) Markdown into a .docx file — the reverse of DocxImportService. Handles headings
+/// (mapped to Word's built-in Heading1-3 styles, so a round-tripped export re-imports with
+/// the same chapter structure), paragraphs with bold/italic/link runs, bullet/numbered
+/// lists, tables, images (resolved against <paramref name="sourceDir"/> in ConvertToFile),
+/// fenced/indented code blocks (monospace, one Run per line since Word Text elements don't
+/// respect embedded newlines), footnotes as real Word footnotes (FootnotesPart/
+/// FootnoteReference), and "---" thematic breaks as page breaks (matching how
+/// ExportWholeBook separates front matter/chapters/back matter). List items are rendered as
+/// "•"/"1." prefixed paragraphs rather than native Word list numbering, which needs a full
+/// NumberingDefinitionsPart — a reasonable simplification since the visual result reads the
+/// same.
 /// </summary>
 public class MarkdownToDocxConverter
 {
@@ -84,6 +87,14 @@ public class MarkdownToDocxConverter
 
             case FootnoteGroup group:
                 AppendFootnotesPart(mainPart, group);
+                break;
+
+            // MarkdownExportService.ExportWholeBook separates front matter/chapters/back
+            // matter with a "---" thematic break; rendering it as a page break here gives a
+            // whole-book Word export the same "every section starts on a new page"
+            // convention already used by the EPUB and PDF exports.
+            case ThematicBreakBlock:
+                body.Append(new Paragraph(new Run(new Break { Type = BreakValues.Page })));
                 break;
 
             case QuoteBlock quote:

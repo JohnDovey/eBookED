@@ -25,13 +25,15 @@ PDF export uses the same CSS template as EPUB: it picks up the template's body a
 
 The imprint page in the PDF is laid out slightly differently than in the EPUB: the cover, contributors, publisher, and ISBN sit near the top, with the copyright statement pinned to the very bottom of the page — something only a fixed page layout can do.
 
-## Word (a single chapter)
+Every page also gets a running header and footer, following the same left/right (verso/recto) convention printed books use. Even-numbered ("left") pages show the page number and the book's title in the header, and the page number and the author's name in the footer. Odd-numbered ("right") pages show the current chapter's number and name and the page number in the header, and just the page number in the footer.
 
-Right-click a chapter in the sidebar and choose **Export Chapter as Word…** to export just that chapter as a standalone `.docx` file. Headings map to Word's built-in heading styles, tables become real Word tables, images are embedded at their real size, and footnotes become genuine native Word footnotes (visible in Word's own footnote pane, not just text at the bottom of the page).
+## Word
+
+Right-click a chapter in the sidebar and choose **Export Chapter as Word…** to export just that chapter as a standalone `.docx` file, or use **Export → Word (Whole Book)…** to export the whole book — front matter, every chapter, and back matter — as one `.docx` file, each section starting on its own page. Either way, headings map to Word's built-in heading styles, tables become real Word tables, images are embedded at their real size, and footnotes become genuine native Word footnotes (visible in Word's own footnote pane, not just text at the bottom of the page).
 
 ## Markdown
 
-**Export → Markdown (Whole Book)…** concatenates every chapter (front matter stripped) into one plain `.md` file, in reading order — useful for handing your manuscript to a tool or person that just wants plain text.
+**Export → Markdown (Whole Book)…** concatenates the whole book — front matter, every chapter, and back matter — into one plain `.md` file, in reading order, each section separated by a horizontal rule — useful for handing your manuscript to a tool or person that just wants plain text.
 
 **Export → Markdown (This Chapter)…** exports only the currently selected chapter the same way. This option is only enabled when a chapter (not front/back matter) is selected.
 

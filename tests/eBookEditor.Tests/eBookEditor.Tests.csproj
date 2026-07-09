@@ -12,6 +12,11 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <!-- Test-only: extracts real text (correctly resolving embedded/subset font glyph IDs
+         back to characters) so PDF tests can assert on actual page content — raw byte
+         search doesn't work since QuestPDF embeds subset fonts with non-ASCII glyph
+         indices in content streams. -->
+    <PackageReference Include="PdfPig" Version="0.1.9" />
   </ItemGroup>
 
   <ItemGroup>

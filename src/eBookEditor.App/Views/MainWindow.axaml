@@ -45,6 +45,7 @@
         <MenuItem Header="_Export">
           <MenuItem Header="EPUB…" Command="{Binding ExportEpubCommand}" />
           <MenuItem Header="PDF…" Command="{Binding ExportPdfCommand}" />
+          <MenuItem Header="Word (Whole Book)…" Command="{Binding ExportWordWholeBookCommand}" />
           <MenuItem Header="Markdown (Whole Book)…" Command="{Binding ExportMarkdownWholeBookCommand}" />
           <MenuItem Header="Markdown (This Chapter)…" Command="{Binding ExportMarkdownChapterCommand}"
                     IsEnabled="{Binding IsChapterSelected}" />

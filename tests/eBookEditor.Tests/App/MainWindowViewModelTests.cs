@@ -193,6 +193,24 @@ public class MainWindowViewModelTests : IDisposable
     }
 
     [Fact]
+    public void ExportWordWholeBook_WritesDocxWithEveryChapter()
+    {
+        var vm = NewViewModel();
+        vm.AddChapterCommand.Execute(null);
+
+        vm.ExportWordWholeBookCommand.Execute(null);
+
+        var expectedPath = Path.Combine(vm.CurrentProject.OutputDir, "vm-test-book.docx");
+        Assert.True(File.Exists(expectedPath));
+        Assert.Contains(expectedPath, vm.StatusMessage);
+
+        using var document = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(expectedPath, false);
+        var bodyText = document.MainDocumentPart!.Document!.Body!.InnerText;
+        Assert.Contains("VM Test Book", bodyText);
+        Assert.Contains("New Chapter", bodyText);
+    }
+
+    [Fact]
     public void ExportMarkdownWholeBook_WritesConcatenatedMarkdownFile()
     {
         var vm = NewViewModel();

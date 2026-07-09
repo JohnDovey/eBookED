@@ -180,4 +180,28 @@ public class MarkdownToDocxConverterTests : IDisposable
         Assert.Contains("def greet(name):", codeParagraph.InnerText);
         Assert.Contains("return f\"Hello, {name}!\"", codeParagraph.InnerText);
     }
+
+    [Fact]
+    public void ConvertToFile_RendersThematicBreaksAsPageBreaks()
+    {
+        // MarkdownExportService.ExportWholeBook separates sections with "---"; the whole-book
+        // Word export relies on this becoming a page break so each section still starts on
+        // its own page, matching the EPUB/PDF exports' convention.
+        const string markdown = """
+            First section.
+
+            ---
+
+            Second section.
+            """;
+        var path = Path.Combine(_tempDir, "chapter-thematic-break.docx");
+
+        _converter.ConvertToFile(markdown, "Chapter With Break", path);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        var body = document.MainDocumentPart!.Document!.Body!;
+        var pageBreak = body.Descendants<Break>().SingleOrDefault(b => b.Type?.Value == BreakValues.Page);
+
+        Assert.NotNull(pageBreak);
+    }
 }

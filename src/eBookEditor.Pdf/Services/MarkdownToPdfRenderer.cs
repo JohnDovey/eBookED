@@ -40,7 +40,10 @@ internal class MarkdownToPdfRenderer
         IContainer Item()
         {
             var item = column.Item();
-            return sectionName is null ? item : item.Section(sectionName);
+            // CaptureContentPosition (queried back via DynamicContext.GetContentCapturedPositions
+            // in PdfPageHeader) lets the running header look up which physical page this chapter
+            // opened on, to show "the current chapter" on right-hand pages.
+            return sectionName is null ? item : item.Section(sectionName).CaptureContentPosition(sectionName);
         }
 
         switch (block)

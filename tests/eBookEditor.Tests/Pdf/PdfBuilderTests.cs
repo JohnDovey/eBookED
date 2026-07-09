@@ -3,6 +3,7 @@ using eBookEditor.Core.Services;
 using eBookEditor.Epub.Services;
 using eBookEditor.Markdown.Services;
 using eBookEditor.Pdf.Services;
+using UglyToad.PdfPig;
 
 namespace eBookEditor.Tests.Pdf;
 
@@ -199,6 +200,96 @@ public class PdfBuilderTests : IDisposable
             stream.ReadExactly(header);
         Assert.Equal("%PDF-", System.Text.Encoding.ASCII.GetString(header));
         Assert.True(result.PageCount >= project.Spine.Count);
+    }
+
+    [Fact]
+    public void Build_ImprintPageStaysOnOnePhysicalPage()
+    {
+        // Front matter (title, imprint, toc) + 1 chapter + back matter (about-author) = 5
+        // spine items; each should render as exactly one physical page for this short
+        // sample content. Regression test: the imprint page used to overflow onto a second
+        // physical page (its ExtendVertical-pinned copyright block was pushed past the page
+        // boundary instead of pinning to this page's bottom), inflating PageCount to 6.
+        var project = BuildSampleProject();
+        var outputPath = Path.Combine(project.OutputDir, "book.pdf");
+
+        var result = _pdfBuilder.Build(project, outputPath);
+
+        Assert.Equal(project.Spine.Count, result.PageCount);
+    }
+
+    [Fact]
+    public void Build_ImprintPageWithLongDisclaimer_DoesNotThrow()
+    {
+        // Regression test for QuestPDF.Drawing.Exceptions.DocumentLayoutException: an earlier
+        // fix attempt bounded the imprint page to a hard-computed page height, which threw
+        // when real content (a long disclaimer, like this project's actual default one)
+        // needed even slightly more room than that estimate.
+        var project = BuildSampleProject();
+        project.ProjectFile.Metadata = project.Metadata with
+        {
+            CopyrightDisclaimer = string.Join(" ", Enumerable.Repeat(BookMetadata.DefaultDisclaimerText, 3))
+        };
+        var outputPath = Path.Combine(project.OutputDir, "book.pdf");
+
+        var result = _pdfBuilder.Build(project, outputPath);
+
+        Assert.True(File.Exists(outputPath));
+        Assert.True(result.PageCount >= project.Spine.Count);
+    }
+
+    [Fact]
+    public void Build_TableOfContentsPageNumbers_MatchTheHeaderFooterFormatting()
+    {
+        // Regression test: the TOC previously showed a garbage page number for the imprint
+        // page (BeginPageNumberOfSection referenced a Section that was never actually
+        // defined, since only chapters were wrapped in .Section(...)), and even once that was
+        // fixed, showed a raw arabic page number that didn't match the roman numeral the
+        // header/footer actually print on that physical page.
+        var project = BuildSampleProject();
+        var outputPath = Path.Combine(project.OutputDir, "book.pdf");
+        _pdfBuilder.Build(project, outputPath);
+
+        using var document = PdfDocument.Open(outputPath);
+        var tocPageText = document.GetPage(3).Text; // 1 title, 2 imprint, 3 toc
+
+        Assert.Contains("Imprint", tocPageText);
+        Assert.Contains("Chapter 1: Chapter One", tocPageText);
+        Assert.DoesNotContain("123", tocPageText);
+        // The imprint entry's page number must be the roman numeral the imprint page itself
+        // is labeled with (ii), not a raw/garbage arabic number.
+        var imprintIndex = tocPageText.IndexOf("Imprint", StringComparison.Ordinal);
+        var nextEntryIndex = tocPageText.IndexOf("Chapter 1", StringComparison.Ordinal);
+        var imprintEntry = tocPageText[imprintIndex..nextEntryIndex];
+        Assert.Contains("ii", imprintEntry);
+        Assert.DoesNotContain("iii", imprintEntry);
+    }
+
+    [Fact]
+    public void Build_HeaderAndFooter_FollowLeftRightPageConvention()
+    {
+        var project = BuildSampleProject();
+        var outputPath = Path.Combine(project.OutputDir, "book.pdf");
+        _pdfBuilder.Build(project, outputPath);
+
+        using var document = PdfDocument.Open(outputPath);
+
+        // Page 2 (imprint) is even/left: header = page# + book title, footer = page# + author.
+        var leftPageText = document.GetPage(2).Text;
+        Assert.Contains("ii", leftPageText);
+        Assert.Contains("Pdf Test Book", leftPageText);
+        Assert.Contains("Jane Author", leftPageText);
+
+        // Page 4 (the chapter) is even/left too (title=1, imprint=2, toc=3, chapter=4).
+        var chapterPageText = document.GetPage(4).Text;
+        Assert.Contains("Pdf Test Book", chapterPageText);
+        Assert.Contains("Jane Author", chapterPageText);
+
+        // Page 3 (toc) is odd/right: header should name the current chapter — none has
+        // started yet, so just the page number; footer shows only the page number too.
+        var tocPageText = document.GetPage(3).Text;
+        Assert.DoesNotContain("Pdf Test Book", tocPageText);
+        Assert.DoesNotContain("Jane Author", tocPageText);
     }
 
     private static string FindRepoRoot()

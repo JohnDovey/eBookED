@@ -414,6 +414,30 @@ public partial class MainWindowViewModel : ViewModelBase
         text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
 
     [RelayCommand]
+    private void ExportWordWholeBook()
+    {
+        try
+        {
+            if (Editor.IsDirty)
+                Editor.Save();
+
+            var markdown = _markdownExportService.ExportWholeBook(CurrentProject);
+            var fileName = Slug.Create(CurrentProject.Metadata.Title, "book") + ".docx";
+            var outputPath = Path.Combine(CurrentProject.OutputDir, fileName);
+            // Front matter/chapters/back matter each reference images as "../images/…"
+            // relative to their own directory, but those directories are all siblings of
+            // images/ at the project root, so any one of them resolves correctly for every
+            // section in the whole-book markdown — ChaptersDir is as good as any.
+            _markdownToDocxConverter.ConvertToFile(markdown, CurrentProject.Metadata.Title, outputPath, CurrentProject.ChaptersDir);
+            StatusMessage = $"Exported whole book Word document to {outputPath}";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Word export failed: {ex.Message}";
+        }
+    }
+
+    [RelayCommand]
     private void ExportMarkdownWholeBook()
     {
         try

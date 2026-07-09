@@ -6,12 +6,11 @@
     <LangVersion>latest</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
     <!-- Bump the minor version for new features, patch for other code changes (see
-         feedback_version_bump_policy memory). This round adds PDF export using (and
-         embedding) the book's selected CSS template's fonts, fenced code block rendering
-         in PDF/Word, an editor right-click Insert Table modal, a User Manual project
-         (manual/), and a fix for a blank-editor bug on Preview-to-Edit mode switches —
-         all new features (plus one bug fix bundled into the same release), so a minor
-         bump. -->
-    <Version>1.7.0</Version>
+         feedback_version_bump_policy memory). This round adds print-convention left/right
+         running headers/footers to PDF export, a whole-book Word export alongside the
+         existing per-chapter one, and fixes a bug where the imprint page could split across
+         two physical pages with a garbage TOC page number — all new features (plus one bug
+         fix bundled into the same release), so a minor bump. -->
+    <Version>1.8.0</Version>
   </PropertyGroup>
 </Project>
