@@ -31,6 +31,36 @@
          content filename. Front/back matter links (title-page.md, imprint.md, etc.) have no
          spaces, so only chapter entries were affected — easy to miss without a real chapter in
          the test fixtures, which is exactly why the existing EpubBuilderTests hadn't caught it. -->
-    <Version>1.9.2</Version>
+    <!-- 1.9.3: four more user-reported bug fixes from the same round of real-world testing,
+         no new features. (1) Word export was STILL corrupt after 1.9.1's schema-order fix,
+         for a different reason: hyperlinks to chapter paths containing spaces
+         ("chapters/001 - Getting Ready.md") were fed straight into
+         AddHyperlinkRelationship as unescaped URIs, which the OpenXml SDK's own package layer
+         flags as malformed — in practice this baked a literal "rewritten://<guid>" placeholder
+         into the saved file's actual relationship target, which Word rightly refused to open.
+         Fixed by percent-encoding link destinations before they reach AddHyperlinkRelationship.
+         A second, deeper cause of the same symptom turned up testing against the user's actual
+         project: when a link's destination fails to parse (the space case above), CommonMark
+         can resolve "[text](broken url)" as a shortcut reference instead — and Markdig's
+         AutoIdentifier extension implicitly registers every heading as a reference target under
+         its own text, so a TOC entry whose text matches a later chapter heading resolves that
+         way. LinkInline.Url comes back empty for that case; the real URL lives behind
+         GetDynamicUrl. Reading only .Url fed an empty string into AddHyperlinkRelationship —
+         fixed by resolving GetDynamicUrl first and falling back to plain (non-hyperlinked) text
+         if that's empty too, in both the Word and PDF renderers.
+         (2) PDF table-of-contents page numbers rendered as a literal "?" for any empty/unwritten
+         chapter (a "New Chapter" stub), and the running header got stuck showing the previous
+         chapter's name for the rest of the book — both caused by QuestPDF's .Section() only
+         ever being attached to a chapter's first rendered content block, which several block
+         types bypassed entirely and an empty chapter never reached at all. Fixed by registering
+         the section via an unconditional zero-height marker, decoupled from content shape.
+         (3) Further hardened the editor-blank-on-Edit fix: the redraw was still running
+         synchronously inside the Mode-changed handler, before Avalonia necessarily finished
+         laying out the just-revealed control with a real size — deferred via
+         Dispatcher.UIThread.Post so it runs after layout catches up. (4) DOCX import: a
+         "Table of Contents" section (Word-field-generated or hand-typed) listing chapter
+         titles was previously indistinguishable from real chapter headings by text alone, so
+         each entry became its own bogus, empty chapter — now recognized and skipped. -->
+    <Version>1.9.3</Version>
   </PropertyGroup>
 </Project>

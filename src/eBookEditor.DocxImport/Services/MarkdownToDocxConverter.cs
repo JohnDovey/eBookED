@@ -370,9 +370,27 @@ public class MarkdownToDocxConverter
                     break;
 
                 case LinkInline { IsImage: false } link:
-                    var relationshipId = mainPart.AddHyperlinkRelationship(
-                        new Uri(link.Url ?? string.Empty, UriKind.RelativeOrAbsolute), true).Id;
-                    parent.Append(new Hyperlink(RunFor(PlainText(link), bold, italic, strikethrough, underline, highlight, subscript, superscript)) { Id = relationshipId });
+                    var resolvedUrl = ResolveUrl(link);
+                    var linkRun = RunFor(PlainText(link), bold, italic, strikethrough, underline, highlight, subscript, superscript);
+                    if (string.IsNullOrWhiteSpace(resolvedUrl))
+                    {
+                        // link.Url comes back empty for a link whose destination failed to
+                        // parse (e.g. an unescaped space) that CommonMark then resolved as a
+                        // shortcut reference instead — including Markdig's AutoIdentifier
+                        // extension implicitly registering every heading as a reference target
+                        // under its own text. The real destination lives behind
+                        // GetDynamicUrl for that case; if even that resolves to nothing, this
+                        // was never a real link, so render it as plain text rather than create
+                        // a relationship pointing nowhere — an empty/malformed hyperlink
+                        // relationship Target is exactly the kind of thing that made Word
+                        // refuse to open a previous export outright.
+                        parent.Append(linkRun);
+                    }
+                    else
+                    {
+                        var relationshipId = mainPart.AddHyperlinkRelationship(SafeHyperlinkUri(resolvedUrl), true).Id;
+                        parent.Append(new Hyperlink(linkRun) { Id = relationshipId });
+                    }
                     break;
 
                 case FootnoteLink { IsBackLink: false } footnoteLink:
@@ -394,6 +412,39 @@ public class MarkdownToDocxConverter
                     break;
             }
         }
+    }
+
+    /// <summary>
+    /// LinkInline.Url is empty for a link CommonMark resolved as a reference rather than an
+    /// inline destination (including Markdig's AutoIdentifier extension implicitly registering
+    /// every heading as a reference target under its own text) — the real URL lives behind
+    /// GetDynamicUrl instead for that case.
+    /// </summary>
+    private static string? ResolveUrl(LinkInline link) => link.GetDynamicUrl?.Invoke() ?? link.Url;
+
+    /// <summary>
+    /// Chapter/front/back-matter links (e.g. "chapters/001 - Getting Ready.md", from the TOC
+    /// page's own links to other spine items) contain literal spaces, which RFC 3986 doesn't
+    /// allow unescaped in a URI. Feeding that straight into AddHyperlinkRelationship produces a
+    /// package the OpenXml SDK itself flags internally as containing a "malformed URI
+    /// relationship" — in practice this wrote a literal "rewritten://&lt;guid&gt;" placeholder
+    /// into the saved .docx's real relationship target instead of ever resolving back to the
+    /// real path, which is exactly the kind of dangling/invalid relationship Word's stricter
+    /// parser refuses to open at all ("isn't in the correct format"), not a cosmetic glitch.
+    /// Percent-encoding each path segment (not the whole string, so "/" separators survive)
+    /// keeps the destination well-formed without needing to know whether it's a local relative
+    /// path or a real absolute URL.
+    /// </summary>
+    private static Uri SafeHyperlinkUri(string? url)
+    {
+        if (string.IsNullOrEmpty(url))
+            return new Uri(string.Empty, UriKind.Relative);
+
+        if (Uri.TryCreate(url, UriKind.Absolute, out var absolute))
+            return absolute;
+
+        var encoded = string.Join('/', url.Split('/').Select(Uri.EscapeDataString));
+        return new Uri(encoded, UriKind.RelativeOrAbsolute);
     }
 
     private static Run RunFor(

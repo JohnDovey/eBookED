@@ -122,4 +122,38 @@ public class DocxImportServiceTests : IDisposable
 
         Assert.Contains("[our site](https://example.com/)", chapters[0].BodyMarkdown);
     }
+
+    [Fact]
+    public void Import_DoesNotSplitAHandTypedTableOfContentsListIntoChapters()
+    {
+        // Regression test for a real user request: a manually-typed "Table of Contents"
+        // section listing chapter titles ("Chapter 1: Getting Ready", etc.) reads identically
+        // to real chapter headings by text alone — without special handling, each entry became
+        // its own bogus, empty chapter.
+        var docxPath = DocxFixtureBuilder.BuildDocxWithHandTypedToc(Path.Combine(_tempDir, "hand-typed-toc.docx"));
+
+        var chapters = _importService.Import(docxPath);
+
+        Assert.Equal(2, chapters.Count);
+        Assert.Equal("Chapter 1: Getting Ready", chapters[0].Title);
+        Assert.Contains("Real content for chapter one.", chapters[0].BodyMarkdown);
+        Assert.Equal("Chapter 2: Starting Out", chapters[1].Title);
+        Assert.Contains("Real content for chapter two.", chapters[1].BodyMarkdown);
+    }
+
+    [Fact]
+    public void Import_DoesNotSplitAWordFieldGeneratedTableOfContentsIntoChapters()
+    {
+        // Word's own Insert > Table of Contents field renders each entry in a "TOC1"-styled
+        // paragraph — must be filtered out by style alone, regardless of what its text says.
+        var docxPath = DocxFixtureBuilder.BuildDocxWithFieldGeneratedToc(Path.Combine(_tempDir, "field-toc.docx"));
+
+        var chapters = _importService.Import(docxPath);
+
+        Assert.Equal(2, chapters.Count);
+        Assert.Equal("Chapter 1: Getting Ready", chapters[0].Title);
+        Assert.Contains("Real content for chapter one.", chapters[0].BodyMarkdown);
+        Assert.Equal("Chapter 2: Starting Out", chapters[1].Title);
+        Assert.Contains("Real content for chapter two.", chapters[1].BodyMarkdown);
+    }
 }

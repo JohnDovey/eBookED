@@ -340,6 +340,36 @@ public class PdfBuilderTests : IDisposable
         Assert.Contains("styledparagraph", allText.Replace(" ", ""));
     }
 
+    [Fact]
+    public void Build_TocPageNumberAndRunningHeaderResolveCorrectly_ForAnEmptyChapter()
+    {
+        // Regression test for a real bug a user hit: an unwritten "New Chapter" stub (created
+        // via ChapterFileService.CreateNewChapterFile, which leaves the body empty until the
+        // author writes something) has zero Markdown blocks, so RenderMarkdownBody's loop never
+        // ran at all — meaning the chapter's QuestPDF .Section() never got registered anywhere.
+        // That broke two things: the TOC's page-number lookup for that chapter had nothing to
+        // resolve and rendered a literal "?", and the running header's "current chapter" lookup
+        // stayed stuck on whichever earlier chapter DID register, for the rest of the book.
+        var project = BuildSampleProject();
+        var emptyChapterPath = _chapterFileService.CreateNewChapterFile(project.ChaptersDir, "Chapter Two");
+        var relativePath = Path.GetRelativePath(project.DirectoryPath, emptyChapterPath).Replace('\\', '/');
+        _spineService.AddChapter(project, "Chapter Two", relativePath);
+        _chapterFileService.SyncChapterFileNames(project);
+        _pageGenerator.RegenerateAllGeneratedPages(project);
+        _projectService.SaveProject(project);
+
+        var outputPath = Path.Combine(project.OutputDir, "book.pdf");
+        _pdfBuilder.Build(project, outputPath);
+
+        using var document = PdfDocument.Open(outputPath);
+        var pageTexts = Enumerable.Range(1, document.NumberOfPages).Select(i => document.GetPage(i).Text).ToList();
+        var tocPageText = pageTexts.Single(t => t.Contains("Table of Contents", StringComparison.Ordinal));
+        var emptyChapterPageText = pageTexts.Single(t => t.Contains("Chapter Two", StringComparison.Ordinal) && !t.Contains("Table of Contents", StringComparison.Ordinal));
+
+        Assert.DoesNotContain("?", tocPageText);
+        Assert.Contains("Chapter Two", emptyChapterPageText);
+    }
+
     private static string FindRepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);

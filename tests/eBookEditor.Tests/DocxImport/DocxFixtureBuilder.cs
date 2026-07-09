@@ -104,6 +104,55 @@ internal static class DocxFixtureBuilder
         return row;
     }
 
+    /// <summary>A hand-typed "Table of Contents" section — a heading followed by plain
+    /// paragraphs that each read exactly like a chapter title, the way an author might
+    /// manually copy their chapter list into the front of the manuscript.</summary>
+    public static string BuildDocxWithHandTypedToc(string path)
+    {
+        using var document = WordprocessingDocument.Create(path, DocumentFormat.OpenXml.WordprocessingDocumentType.Document);
+        var mainPart = document.AddMainDocumentPart();
+        mainPart.Document = new Document();
+        var body = new Body();
+        mainPart.Document.Append(body);
+
+        body.Append(Heading("Table of Contents", "Heading1"));
+        body.Append(Paragraph(Run("Chapter 1: Getting Ready")));
+        body.Append(Paragraph(Run("Chapter 2: Starting Out")));
+        body.Append(Paragraph(Run("Chapter 3: The Finale")));
+
+        body.Append(Heading("Chapter 1: Getting Ready", "Heading1"));
+        body.Append(Paragraph(Run("Real content for chapter one.")));
+        body.Append(Heading("Chapter 2: Starting Out", "Heading1"));
+        body.Append(Paragraph(Run("Real content for chapter two.")));
+
+        mainPart.Document.Save();
+        return path;
+    }
+
+    /// <summary>Word's own Insert &gt; Table of Contents field: each entry is a paragraph
+    /// styled "TOC1" (page-number leader collapsed into plain text here, since only the style
+    /// matters for the filtering this fixture exercises).</summary>
+    public static string BuildDocxWithFieldGeneratedToc(string path)
+    {
+        using var document = WordprocessingDocument.Create(path, DocumentFormat.OpenXml.WordprocessingDocumentType.Document);
+        var mainPart = document.AddMainDocumentPart();
+        mainPart.Document = new Document();
+        var body = new Body();
+        mainPart.Document.Append(body);
+
+        body.Append(Heading("Contents", "Heading1"));
+        body.Append(Heading("Chapter 1: Getting Ready\t1", "TOC1"));
+        body.Append(Heading("Chapter 2: Starting Out\t5", "TOC1"));
+
+        body.Append(Heading("Chapter 1: Getting Ready", "Heading1"));
+        body.Append(Paragraph(Run("Real content for chapter one.")));
+        body.Append(Heading("Chapter 2: Starting Out", "Heading1"));
+        body.Append(Paragraph(Run("Real content for chapter two.")));
+
+        mainPart.Document.Save();
+        return path;
+    }
+
     public static string BuildDocxWithPreamble(string path)
     {
         using var document = WordprocessingDocument.Create(path, DocumentFormat.OpenXml.WordprocessingDocumentType.Document);

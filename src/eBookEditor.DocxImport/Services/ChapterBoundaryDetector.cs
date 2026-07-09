@@ -13,13 +13,39 @@ internal static partial class ChapterBoundaryDetector
 
     public static bool IsChapterBoundary(Paragraph paragraph)
     {
-        var styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
-        if (styleId is not null && styleId.Equals("Heading1", StringComparison.OrdinalIgnoreCase))
+        if (IsHeading1(paragraph))
             return true;
 
         var text = GetPlainText(paragraph);
-        return ChapterTitleRegex().IsMatch(text.Trim());
+        return LooksLikeChapterTitle(text);
     }
+
+    public static bool IsHeading1(Paragraph paragraph)
+    {
+        var styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
+        return styleId is not null && styleId.Equals("Heading1", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Matches Word's built-in Table of Contents field entry styles ("TOC1", "TOC 1",
+    /// "TOC2", …) — these paragraphs list chapter titles with page numbers and must never be
+    /// treated as real chapter content or a chapter boundary.</summary>
+    public static bool IsTocFieldEntry(Paragraph paragraph)
+    {
+        var styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
+        return styleId is not null && styleId.Replace(" ", "").StartsWith("TOC", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>A paragraph's own text is exactly a "Table of Contents"/"Contents" heading —
+    /// the section header a hand-typed (as opposed to Word-field-generated) TOC list of
+    /// chapter titles would normally sit under.</summary>
+    public static bool IsTableOfContentsHeading(Paragraph paragraph)
+    {
+        var text = GetPlainText(paragraph).Trim();
+        return text.Equals("Table of Contents", StringComparison.OrdinalIgnoreCase) ||
+               text.Equals("Contents", StringComparison.OrdinalIgnoreCase);
+    }
+
+    public static bool LooksLikeChapterTitle(string text) => ChapterTitleRegex().IsMatch(text.Trim());
 
     public static bool IsSubheading(Paragraph paragraph)
     {

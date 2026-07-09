@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 using eBookEditor.App.ViewModels;
 using eBookEditor.Core.Models;
 using eBookEditor.Core.Services;
@@ -88,18 +89,33 @@ public partial class MainWindow : Window
             // change; while IsEditMode is false (IsVisible=False), the editor keeps whatever
             // visual lines it last built (possibly none, or a previous chapter's), so a chapter
             // loaded while hidden in Preview mode can come up blank the moment it's shown here.
-            // A bare TextView.Redraw() call isn't reliable here — it just marks the cached
-            // visual lines dirty, but if the control was hidden (zero-size) while that cache
-            // went stale, there may be nothing valid to redraw from. Force-reassigning
-            // Document.Text (even though it's unchanged) drives the same full replace/rebuild
-            // path a real edit takes, which reliably rebuilds the visual line cache from
-            // scratch regardless of what state it was left in.
+            // Force-reassigning Document.Text (even though it's unchanged) drives the same full
+            // replace/rebuild path a real edit takes, which reliably rebuilds the visual line
+            // cache from scratch regardless of what state it was left in.
             _suppressTextChanged = true;
             EditorTextBox.Document.Text = ViewModel!.Editor.CurrentText;
             _suppressTextChanged = false;
+            RedrawAndFocusEditorAfterLayout();
+        }
+    }
+
+    /// <summary>
+    /// Just-flipped-visible AvaloniaEdit still has whatever Bounds it had while hidden
+    /// (possibly zero) at the exact moment the Mode/CurrentText PropertyChanged handler runs —
+    /// IsVisible flipping True on the ViewModel side doesn't mean Avalonia has actually measured
+    /// and arranged the control with its real size yet; that happens on the next layout pass.
+    /// Calling TextView.Redraw() synchronously, before that pass has run, can rebuild the visual
+    /// line cache against a stale/zero viewport and still show nothing. Posting to the
+    /// dispatcher defers the redraw to a later turn of the UI message loop, after layout has
+    /// caught up.
+    /// </summary>
+    private void RedrawAndFocusEditorAfterLayout()
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
             EditorTextBox.TextArea.TextView.Redraw();
             EditorTextBox.Focus();
-        }
+        }, DispatcherPriority.Loaded);
     }
 
     /// <summary>
@@ -124,15 +140,12 @@ public partial class MainWindow : Window
         _suppressTextChanged = false;
 
         // Switching directly from one chapter to another while already in Edit mode changes
-        // CurrentText without ever changing Mode, so it never reaches the Mode-changed Redraw()
+        // CurrentText without ever changing Mode, so it never reaches the Mode-changed redraw
         // in OnEditorViewModelPropertyChanged — leaving the editor showing stale/blank visual
         // lines from whichever chapter was displayed before, for the same virtualized-editor
         // staleness reason documented there. Redraw here whenever new text is actually applied.
         if (ViewModel.Editor.IsEditMode)
-        {
-            EditorTextBox.TextArea.TextView.Redraw();
-            EditorTextBox.Focus();
-        }
+            RedrawAndFocusEditorAfterLayout();
     }
 
     private async void OnInsertTableClick(object? sender, RoutedEventArgs e)

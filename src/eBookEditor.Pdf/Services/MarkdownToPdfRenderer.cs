@@ -30,41 +30,40 @@ internal class MarkdownToPdfRenderer
 {
     public void RenderMarkdownBody(ColumnDescriptor column, string markdown, string? sourceDir, string? sectionName = null, string? headingFontFamily = null)
     {
-        var document = Markdig.Markdown.Parse(markdown, MarkdownPipelineFactory.Create());
+        // Registering the section on whichever content item happened to render first used to
+        // miss entirely for chapters starting with a list/table/code block/footnote group/
+        // definition list (those branches below call column.Item() directly, bypassing the
+        // per-block section hookup) and ALWAYS missed for a chapter with zero blocks (an
+        // unwritten "New Chapter" stub, still empty) — in both cases the TOC's page-number
+        // lookup for that chapter had nothing to resolve, rendering a literal "?", and the
+        // running header's "current chapter" tracking got stuck on whatever chapter registered
+        // last. A zero-height marker item, emitted unconditionally regardless of what (if
+        // anything) the chapter actually contains, guarantees every spine item's section is
+        // registered exactly once.
+        if (sectionName is not null)
+            column.Item().Height(0).Section(sectionName).CaptureContentPosition(sectionName);
 
-        var isFirstBlock = true;
+        var document = Markdig.Markdown.Parse(markdown, MarkdownPipelineFactory.Create());
         foreach (var block in document)
-        {
-            RenderBlock(column, block, isFirstBlock ? sectionName : null, sourceDir, headingFontFamily);
-            isFirstBlock = false;
-        }
+            RenderBlock(column, block, sourceDir, headingFontFamily);
     }
 
-    private static void RenderBlock(ColumnDescriptor column, Block block, string? sectionName, string? sourceDir, string? headingFontFamily)
+    private static void RenderBlock(ColumnDescriptor column, Block block, string? sourceDir, string? headingFontFamily)
     {
-        IContainer Item()
-        {
-            var item = column.Item();
-            // CaptureContentPosition (queried back via DynamicContext.GetContentCapturedPositions
-            // in PdfPageHeader) lets the running header look up which physical page this chapter
-            // opened on, to show "the current chapter" on right-hand pages.
-            return sectionName is null ? item : item.Section(sectionName).CaptureContentPosition(sectionName);
-        }
-
         switch (block)
         {
             case HeadingBlock heading:
                 var fontSize = heading.Level switch { 1 => 20f, 2 => 16f, _ => 13f };
-                Item().PaddingTop(heading.Level == 1 ? 0 : 10).PaddingBottom(6).Text(text =>
+                column.Item().PaddingTop(heading.Level == 1 ? 0 : 10).PaddingBottom(6).Text(text =>
                     RenderInlines(text, heading.Inline, bold: true, italic: false, fontSize, headingFontFamily));
                 break;
 
             case ParagraphBlock { Inline: not null } paragraph when TryGetSoleImage(paragraph.Inline, out var imageLink):
-                RenderImage(Item(), imageLink!, sourceDir);
+                RenderImage(column.Item(), imageLink!, sourceDir);
                 break;
 
             case ParagraphBlock { Inline: not null } paragraph:
-                Item().PaddingBottom(8).Text(text =>
+                column.Item().PaddingBottom(8).Text(text =>
                     RenderInlines(text, paragraph.Inline, bold: false, italic: false, fontSize: 11));
                 break;
 
@@ -103,12 +102,12 @@ internal class MarkdownToPdfRenderer
 
             case CustomContainer container:
                 foreach (var child in container)
-                    RenderBlock(column, child, null, sourceDir, headingFontFamily);
+                    RenderBlock(column, child, sourceDir, headingFontFamily);
                 break;
 
             case QuoteBlock quote:
                 foreach (var child in quote)
-                    RenderBlock(column, child, null, sourceDir, headingFontFamily);
+                    RenderBlock(column, child, sourceDir, headingFontFamily);
                 break;
         }
     }
@@ -269,7 +268,17 @@ internal class MarkdownToPdfRenderer
                     break;
 
                 case LinkInline { IsImage: false } link:
-                    Style(text.Hyperlink(PlainText(link), link.Url ?? string.Empty), bold, italic, fontSize, fontFamily, strikethrough, underline, highlight, subscript, superscript);
+                    // LinkInline.Url is empty for a link CommonMark resolved as a reference
+                    // rather than an inline destination (e.g. Markdig's AutoIdentifier extension
+                    // implicitly registers every heading as a reference target under its own
+                    // text) — the real URL lives behind GetDynamicUrl for that case. Render as
+                    // plain (non-hyperlinked) text if even that resolves to nothing, rather than
+                    // point a link at an empty href.
+                    var resolvedLinkUrl = link.GetDynamicUrl?.Invoke() ?? link.Url;
+                    if (string.IsNullOrWhiteSpace(resolvedLinkUrl))
+                        Style(text.Span(PlainText(link)), bold, italic, fontSize, fontFamily, strikethrough, underline, highlight, subscript, superscript);
+                    else
+                        Style(text.Hyperlink(PlainText(link), resolvedLinkUrl), bold, italic, fontSize, fontFamily, strikethrough, underline, highlight, subscript, superscript);
                     break;
 
                 case FootnoteLink { IsBackLink: false } footnoteLink:

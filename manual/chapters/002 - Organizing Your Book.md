@@ -45,6 +45,8 @@ A file's name can hint at where it belongs: naming a file `"23. What Now.md"` or
 
 **File → Import DOCX…** takes a single large `.docx` file (a whole manuscript) and splits it into multiple chapters automatically, detecting boundaries by Heading 1 style or "Chapter N" text patterns. Bold/italic formatting, headings, lists, images, tables, and hyperlinks are all converted to Markdown.
 
+A "Table of Contents" section — whether a Word-generated field or a hand-typed list of chapter titles — is recognized and skipped rather than split into a run of bogus, empty chapters, since each entry would otherwise read exactly like a real chapter heading.
+
 ## The chapter right-click menu
 
 Right-click any chapter in the sidebar for two actions:

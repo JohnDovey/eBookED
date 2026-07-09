@@ -77,6 +77,68 @@ public class MarkdownToDocxConverterTests : IDisposable
     }
 
     [Fact]
+    public void ConvertToFile_LinksToASpaceContainingPath_ProduceAWellFormedRelationship()
+    {
+        // Regression test for a real bug a user hit: the TOC page links to chapter files named
+        // "NNN - Title.md" (spaces and all). Feeding that straight into
+        // WordprocessingDocument.AddHyperlinkRelationship as an unescaped Uri writes a package
+        // the OpenXml SDK itself flags as having a "malformed URI relationship" — in practice
+        // this showed up as a literal "rewritten://<guid>" placeholder baked into the saved
+        // .docx's actual relationship Target instead of the real path, which made Word/Pages
+        // refuse to open the file ("isn't in the correct format"). The destination must be
+        // percent-encoded before it ever reaches AddHyperlinkRelationship.
+        var path = Path.Combine(_tempDir, "chapter-space-link.docx");
+
+        _converter.ConvertToFile(
+            "- [Chapter 1: Getting Ready](<chapters/001 - Getting Ready.md>)",
+            "Table of Contents", path);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        var mainPart = document.MainDocumentPart!;
+        var relationship = mainPart.HyperlinkRelationships.Single();
+
+        Assert.DoesNotContain("rewritten://", relationship.Uri.OriginalString, StringComparison.Ordinal);
+        Assert.DoesNotContain(" ", relationship.Uri.OriginalString, StringComparison.Ordinal);
+        Assert.Equal("chapters/001%20-%20Getting%20Ready.md", relationship.Uri.OriginalString);
+
+        var errors = new OpenXmlValidator().Validate(document).ToList();
+        Assert.True(errors.Count == 0, string.Join("\n", errors.Select(e => $"{e.Path?.XPath} :: {e.Description}")));
+    }
+
+    [Fact]
+    public void ConvertToFile_LinkWhoseDestinationFailsToParse_FallsBackToDynamicUrlOrPlainText()
+    {
+        // Regression test for the real bug behind the previous test's fix STILL producing a
+        // corrupt file for the user's actual project: when an inline link's destination fails
+        // to parse (the unescaped-space case above), CommonMark backtracks and can resolve
+        // "[text](broken url)" as a shortcut reference instead — and Markdig's AutoIdentifier
+        // extension implicitly registers every heading as a reference target under its own
+        // text. LinkInline.Url comes back empty for that resolved-as-reference case; the real
+        // URL lives behind GetDynamicUrl. Reading only .Url and feeding the empty string into
+        // AddHyperlinkRelationship produced a well-formed-looking but empty relationship
+        // target — another way to end up with a file Word refuses to open.
+        var path = Path.Combine(_tempDir, "toc-matches-heading.docx");
+        const string markdown = """
+            - [Chapter One](chapters/001 - a file.md)
+
+            # Chapter One
+
+            Real content.
+            """;
+
+        _converter.ConvertToFile(markdown, "Book", path);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        var mainPart = document.MainDocumentPart!;
+
+        Assert.DoesNotContain(mainPart.HyperlinkRelationships, r => string.IsNullOrWhiteSpace(r.Uri.OriginalString));
+        Assert.DoesNotContain(mainPart.HyperlinkRelationships, r => r.Uri.OriginalString.Contains("rewritten://", StringComparison.Ordinal));
+
+        var errors = new OpenXmlValidator().Validate(document).ToList();
+        Assert.True(errors.Count == 0, string.Join("\n", errors.Select(e => $"{e.Path?.XPath} :: {e.Description}")));
+    }
+
+    [Fact]
     public void ConvertToFile_RendersTables()
     {
         const string markdown = """
