@@ -7,7 +7,7 @@ numberOverride:
 
 # Inserting Tables the Easy Way
 
-Markdown tables are simple once you know the syntax (see *Markdown Syntax Reference*), but lining up all those `|` characters by hand gets tedious for anything bigger than a couple of columns. Right-click anywhere in the editor (while in Edit mode) and choose **Insert Table…** for a visual builder instead.
+Markdown tables are simple once you know the syntax (see *Markdown Syntax Reference*), but lining up all those `|` characters by hand gets tedious for anything bigger than a couple of columns. Right-click anywhere in the editor and choose **Insert Table…** for a visual builder instead.
 
 ## Building a table
 

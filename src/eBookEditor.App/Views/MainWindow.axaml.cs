@@ -4,7 +4,6 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
-using Avalonia.Threading;
 using eBookEditor.App.ViewModels;
 using eBookEditor.Core.Models;
 using eBookEditor.Core.Services;
@@ -20,12 +19,14 @@ public partial class MainWindow : Window
     private bool _forceClose;
     private SpineItem? _dragCandidate;
     private Point _dragStartPoint;
+    private PreviewWindow? _previewWindow;
 
     public MainWindow()
     {
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
         EditorTextBox.TextChanged += OnEditorTextBoxTextChanged;
+        EditorTextBox.TextArea.Caret.PositionChanged += OnEditorCaretPositionChanged;
         Closing += OnWindowClosing;
         Closed += OnWindowClosed;
     }
@@ -83,39 +84,6 @@ public partial class MainWindow : Window
     {
         if (e.PropertyName == nameof(EditorViewModel.CurrentText) && !_suppressTextChanged)
             SyncEditorTextFromViewModel();
-        else if (e.PropertyName == nameof(EditorViewModel.Mode) && ViewModel?.Editor.IsEditMode == true)
-        {
-            // AvaloniaEdit's TextView only invalidates the visual lines that overlap a text
-            // change; while IsEditMode is false (IsVisible=False), the editor keeps whatever
-            // visual lines it last built (possibly none, or a previous chapter's), so a chapter
-            // loaded while hidden in Preview mode can come up blank the moment it's shown here.
-            // Force-reassigning Document.Text (even though it's unchanged) drives the same full
-            // replace/rebuild path a real edit takes, which reliably rebuilds the visual line
-            // cache from scratch regardless of what state it was left in.
-            _suppressTextChanged = true;
-            EditorTextBox.Document.Text = ViewModel!.Editor.CurrentText;
-            _suppressTextChanged = false;
-            RedrawAndFocusEditorAfterLayout();
-        }
-    }
-
-    /// <summary>
-    /// Just-flipped-visible AvaloniaEdit still has whatever Bounds it had while hidden
-    /// (possibly zero) at the exact moment the Mode/CurrentText PropertyChanged handler runs —
-    /// IsVisible flipping True on the ViewModel side doesn't mean Avalonia has actually measured
-    /// and arranged the control with its real size yet; that happens on the next layout pass.
-    /// Calling TextView.Redraw() synchronously, before that pass has run, can rebuild the visual
-    /// line cache against a stale/zero viewport and still show nothing. Posting to the
-    /// dispatcher defers the redraw to a later turn of the UI message loop, after layout has
-    /// caught up.
-    /// </summary>
-    private void RedrawAndFocusEditorAfterLayout()
-    {
-        Dispatcher.UIThread.Post(() =>
-        {
-            EditorTextBox.TextArea.TextView.Redraw();
-            EditorTextBox.Focus();
-        }, DispatcherPriority.Loaded);
     }
 
     /// <summary>
@@ -139,13 +107,56 @@ public partial class MainWindow : Window
         EditorTextBox.Text = text;
         _suppressTextChanged = false;
 
-        // Switching directly from one chapter to another while already in Edit mode changes
-        // CurrentText without ever changing Mode, so it never reaches the Mode-changed redraw
-        // in OnEditorViewModelPropertyChanged — leaving the editor showing stale/blank visual
-        // lines from whichever chapter was displayed before, for the same virtualized-editor
-        // staleness reason documented there. Redraw here whenever new text is actually applied.
-        if (ViewModel.Editor.IsEditMode)
-            RedrawAndFocusEditorAfterLayout();
+        if (ViewModel.Editor.FilePath is { } path)
+            UpdatePreviewWindow(text, Path.GetFileNameWithoutExtension(path));
+    }
+
+    /// <summary>
+    /// Opens a standalone preview window for the chapter currently in the editor, or brings the
+    /// existing one to the front if already open — one preview window per main window, reused
+    /// rather than piling up duplicates. Its content and scroll position are then kept in sync
+    /// by SyncEditorTextFromViewModel/OnEditorCaretPositionChanged as long as it stays open.
+    /// </summary>
+    private void OnOpenPreviewClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null)
+            return;
+
+        if (_previewWindow is null)
+        {
+            _previewWindow = new PreviewWindow();
+            _previewWindow.Closed += (_, _) => _previewWindow = null;
+            _previewWindow.Show(this);
+        }
+        else
+        {
+            _previewWindow.Activate();
+        }
+
+        var title = ViewModel.Editor.FilePath is { } path ? Path.GetFileNameWithoutExtension(path) : null;
+        _previewWindow.UpdateContent(ViewModel.Editor.CurrentText, title);
+        ScrollPreviewToCaret();
+    }
+
+    private void UpdatePreviewWindow(string markdown, string? title)
+    {
+        if (_previewWindow is null)
+            return;
+
+        _previewWindow.UpdateContent(markdown, title);
+        ScrollPreviewToCaret();
+    }
+
+    private void OnEditorCaretPositionChanged(object? sender, EventArgs e) => ScrollPreviewToCaret();
+
+    private void ScrollPreviewToCaret()
+    {
+        if (_previewWindow is null)
+            return;
+
+        var lineCount = EditorTextBox.Document.LineCount;
+        var fraction = lineCount <= 1 ? 0 : (double)(EditorTextBox.TextArea.Caret.Line - 1) / (lineCount - 1);
+        _previewWindow.ScrollToFraction(fraction);
     }
 
     private async void OnInsertTableClick(object? sender, RoutedEventArgs e)

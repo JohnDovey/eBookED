@@ -61,6 +61,20 @@
          "Table of Contents" section (Word-field-generated or hand-typed) listing chapter
          titles was previously indistinguishable from real chapter headings by text alone, so
          each entry became its own bogus, empty chapter — now recognized and skipped. -->
-    <Version>1.9.3</Version>
+    <!-- 1.10.0: new feature, so a minor bump — and the definitive fix for the editor-blank
+         bug that 1.9.1/1.9.3 kept patching around without fully curing. The user reported it
+         was still happening after both fixes, which pointed at the real problem: AvaloniaEdit
+         going IsVisible=False (whenever Preview mode was toggled on) let its cached visual
+         lines go stale in ways that redraw-on-reveal could only ever paper over, not prevent.
+         Removed the whole-pane Edit/Preview toggle entirely — the editor is now always visible,
+         so that entire class of bug can't recur — and replaced it with an "Open Preview" button
+         that opens a standalone PreviewWindow (Markdown.Avalonia), kept in sync with the
+         editor's content and, approximately (proportional line-fraction, not an exact source
+         mapping), the cursor's position as you type or switch chapters. EditorViewModel lost
+         its Mode/PreviewSource/TogglePreviewCommand entirely; generated pages (title/imprint/
+         TOC/about-author) no longer force Preview on open since there's no mode to force
+         anymore — their raw Markdown is just always visible like any other page's, same as
+         everything else, with rendering available on demand via the same Open Preview button. -->
+    <Version>1.10.0</Version>
   </PropertyGroup>
 </Project>

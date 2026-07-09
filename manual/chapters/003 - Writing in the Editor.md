@@ -7,20 +7,19 @@ numberOverride:
 
 # Writing in the Editor
 
-## Edit and Preview modes
+## Editing a chapter or page
 
-Select any chapter (or front/back matter page) in the sidebar and its content opens in the editor pane on the right. A button above the editor reads **Mode: Edit** or **Mode: Preview** — click it to switch between:
+Select any chapter (or front/back matter page) in the sidebar and its raw Markdown source opens in the editor pane on the right — a text editor with line numbers and word wrap. This includes generated pages (title page, imprint, table of contents, About the Author): you can see and edit their Markdown too, though hand-edits there get overwritten the next time that page regenerates from your metadata.
 
-- **Edit mode** — the raw Markdown source, in a text editor with line numbers and word wrap.
-- **Preview mode** — a rendered view of the same content, showing headings, bold/italic text, lists, tables, and images as they'll actually look.
+## Previewing your work
 
-Preview is only recomputed when you switch into it, not on every keystroke, so typing stays responsive even in long chapters.
+The editor doesn't render Markdown inline — click **Open Preview** above it to open a separate window showing the current chapter as it'll actually look (headings, bold/italic text, lists, tables, images). The preview window stays open and in sync as you keep working: its content updates as you edit or switch chapters, and it scrolls to roughly track wherever your cursor is in the source, so you don't have to keep scrolling the preview by hand to see the section you're editing.
 
-Generated pages — the title page, imprint, table of contents, and About the Author page — always open in Preview, since they're regenerated from your metadata automatically and hand-editing them would just be overwritten the next time you change that metadata.
+Only one preview window is needed at a time — clicking **Open Preview** again just brings the existing one back to the front instead of opening a second copy.
 
 ## The right-click menu
 
-Right-click anywhere in the editor while in Edit mode for a context menu with:
+Right-click anywhere in the editor for a context menu with:
 
 - **Insert Table…** — opens a visual table builder. See *Inserting Tables the Easy Way*.
 - **Apply Style** — select some text first, then right-click and choose a style from the list (Small Caps, Underline, Strikethrough, Monospace, Sans-serif, All Caps, Verse, Inset, Attribution, Drop Cap). It wraps your selection in the Markdown needed to hook it to that style, with no syntax to remember. See *Markdown Syntax Reference → Styled blocks*, next.

@@ -3,7 +3,6 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:ae="using:AvaloniaEditCore"
-        xmlns:md="https://github.com/whistyun/Markdown.Avalonia"
         xmlns:vm="using:eBookEditor.App.ViewModels"
         xmlns:models="using:eBookEditor.Core.Models"
         mc:Ignorable="d"
@@ -107,8 +106,7 @@
       <DockPanel Grid.Column="1" Margin="12">
 
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
-          <Button Content="{Binding Editor.ModeLabel, StringFormat='Mode: {0}'}"
-                  Command="{Binding Editor.TogglePreviewCommand}" />
+          <Button Content="Open Preview" Click="OnOpenPreviewClick" />
           <TextBlock Text="{Binding Editor.FilePath}" VerticalAlignment="Center" Opacity="0.6" />
         </StackPanel>
 
@@ -118,24 +116,18 @@
           <Button Grid.Column="2" Content="Apply" Command="{Binding SaveChapterHeaderCommand}" Margin="4,0,0,0" />
         </Grid>
 
-        <Grid>
-          <ae:TextEditor x:Name="EditorTextBox"
-                         IsVisible="{Binding Editor.IsEditMode}"
-                         FontFamily="Cascadia Code,Menlo,Consolas,monospace"
-                         FontSize="14"
-                         ShowLineNumbers="True"
-                         WordWrap="True">
-            <ae:TextEditor.ContextMenu>
-              <ContextMenu Opened="OnEditorContextMenuOpened">
-                <MenuItem Header="Insert Table…" Click="OnInsertTableClick" />
-                <MenuItem Header="Apply Style" x:Name="ApplyStyleMenuItem" />
-              </ContextMenu>
-            </ae:TextEditor.ContextMenu>
-          </ae:TextEditor>
-
-          <md:MarkdownScrollViewer IsVisible="{Binding Editor.IsPreviewMode}"
-                                    Markdown="{Binding Editor.PreviewSource}" />
-        </Grid>
+        <ae:TextEditor x:Name="EditorTextBox"
+                       FontFamily="Cascadia Code,Menlo,Consolas,monospace"
+                       FontSize="14"
+                       ShowLineNumbers="True"
+                       WordWrap="True">
+          <ae:TextEditor.ContextMenu>
+            <ContextMenu Opened="OnEditorContextMenuOpened">
+              <MenuItem Header="Insert Table…" Click="OnInsertTableClick" />
+              <MenuItem Header="Apply Style" x:Name="ApplyStyleMenuItem" />
+            </ContextMenu>
+          </ae:TextEditor.ContextMenu>
+        </ae:TextEditor>
       </DockPanel>
 
     </Grid>

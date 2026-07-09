@@ -7,7 +7,7 @@ numberOverride:
 
 # Markdown Syntax Reference
 
-Every chapter, and every front/back matter page, is written in **Markdown** — plain text with a small set of symbols that mean "make this bold," "make this a heading," and so on. This chapter covers everything eBook Editor understands, with a "how you type it" example next to each one. Switch the editor to Preview mode at any time to see how your own text will actually look.
+Every chapter, and every front/back matter page, is written in **Markdown** — plain text with a small set of symbols that mean "make this bold," "make this a heading," and so on. This chapter covers everything eBook Editor understands, with a "how you type it" example next to each one. Click **Open Preview** at any time to see how your own text will actually look.
 
 ## Headings
 

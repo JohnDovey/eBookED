@@ -209,7 +209,7 @@ public partial class MainWindowViewModel : ViewModelBase
         SelectedSpineItem = item;
         var path = CurrentProject.ResolvePath(item);
         if (File.Exists(path))
-            Editor.LoadFile(path, forcePreviewMode: item.IsGenerated);
+            Editor.LoadFile(path);
     }
 
     [RelayCommand]
@@ -528,6 +528,6 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(SpineItems));
 
         if (Editor.FilePath is { } path && File.Exists(path))
-            Editor.LoadFile(path, forcePreviewMode: SelectedSpineItem?.IsGenerated ?? false);
+            Editor.LoadFile(path);
     }
 }

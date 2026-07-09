@@ -37,7 +37,7 @@ The main window has three parts:
 
 - **Title bar menu** — File (new/open/save/import), Project (regenerate front matter), Meta Data (the book's metadata, split across several focused windows — see *Book Metadata*), Export (EPUB/PDF/Word/Markdown), and About.
 - **Sidebar** (left) — an ordered list of everything in your book: front matter, chapters, and back matter, in the order they'll appear in the finished book. A **+ Add Chapter** button sits at the top.
-- **Editor pane** (right) — shows whatever's selected in the sidebar. A **Mode: Edit / Mode: Preview** button toggles between raw Markdown editing and a rendered preview of the same content.
+- **Editor pane** (right) — shows the raw Markdown of whatever's selected in the sidebar. An **Open Preview** button opens a separate window with a rendered view of the same content, kept in sync as you edit.
 
 A status bar along the bottom shows the result of your last action (a save, an export, an error).
 

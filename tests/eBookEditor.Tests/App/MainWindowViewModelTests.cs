@@ -46,45 +46,32 @@ public class MainWindowViewModelTests : IDisposable
     }
 
     [Fact]
-    public void Constructor_OpensTitlePageInPreviewModeSinceItIsGenerated()
-    {
-        var vm = NewViewModel();
-
-        Assert.True(vm.Editor.IsPreviewMode);
-        Assert.Contains("VM Test Book", vm.Editor.PreviewSource);
-    }
-
-    [Fact]
-    public void OpenSpineItem_ChapterRespectsCurrentlyActiveMode()
+    public void OpenSpineItem_ChapterLoadsItsRawMarkdownIntoTheEditor()
     {
         var vm = NewViewModel();
         vm.AddChapterCommand.Execute(null);
         var chapter = Assert.Single(vm.SpineItems, i => i.Type == SpineItemType.Chapter);
 
-        // Title page opened in Preview by construction; toggle to Edit before opening the chapter.
-        vm.Editor.TogglePreviewCommand.Execute(null);
-        Assert.True(vm.Editor.IsEditMode);
-
         vm.OpenSpineItem(chapter);
 
-        Assert.True(vm.Editor.IsEditMode);
+        Assert.Equal(chapter.Id, vm.SelectedSpineItem!.Id);
+        Assert.Equal(vm.CurrentProject.ResolvePath(chapter), vm.Editor.FilePath);
     }
 
     [Fact]
-    public void OpenSpineItem_GeneratedPageAlwaysOpensInPreviewRegardlessOfPriorMode()
+    public void OpenSpineItem_GeneratedPageAlsoLoadsItsRawMarkdownIntoTheEditor()
     {
+        // Generated pages (title/copyright/TOC/about-author) no longer force a separate
+        // rendered-preview pane — the editor always shows raw Markdown for whatever's
+        // selected, and rendering (for anything, generated or not) happens on demand in the
+        // standalone preview window instead (see MainWindow.OnOpenPreviewClick).
         var vm = NewViewModel();
-        vm.AddChapterCommand.Execute(null);
-        var chapter = Assert.Single(vm.SpineItems, i => i.Type == SpineItemType.Chapter);
-        vm.OpenSpineItem(chapter);
-        if (vm.Editor.IsPreviewMode)
-            vm.Editor.TogglePreviewCommand.Execute(null);
-        Assert.True(vm.Editor.IsEditMode);
 
         var copyrightItem = vm.SpineItems.Single(i => i.RelativePath.EndsWith(ProjectPaths.CopyrightPageFileName, StringComparison.Ordinal));
         vm.OpenSpineItem(copyrightItem);
 
-        Assert.True(vm.Editor.IsPreviewMode);
+        Assert.Equal(vm.CurrentProject.ResolvePath(copyrightItem), vm.Editor.FilePath);
+        Assert.Contains("Copyright", vm.Editor.CurrentText);
     }
 
     [Fact]
