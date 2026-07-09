@@ -115,7 +115,11 @@ public class PageGeneratorService
                 ? $"Chapter {item.ResolvedNumber}: {item.Title}"
                 : item.Title ?? item.RelativePath;
 
-            sb.AppendLine($"- [{label}]({item.RelativePath})");
+            // Chapter filenames contain spaces ("001 - Getting Ready.md"); CommonMark link
+            // destinations can't contain unescaped spaces unless wrapped in angle brackets, so
+            // without them Markdig doesn't recognize this as a link at all and renders the
+            // literal "[text](url)" text instead.
+            sb.AppendLine($"- [{label}](<{item.RelativePath}>)");
         }
 
         return sb.ToString();

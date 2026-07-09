@@ -11,7 +11,10 @@ namespace eBookEditor.Epub.Services;
 /// </summary>
 internal static partial class EpubInternalLinkResolver
 {
-    [GeneratedRegex("""(?<!!)\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)""")]
+    // A link destination is either angle-bracket-wrapped (allows spaces, as GenerateTocPage
+    // emits for chapter paths like "chapters/001 - Getting Ready.md") or bare (no spaces
+    // allowed, per CommonMark) — group 2 or group 3 respectively.
+    [GeneratedRegex("""(?<!!)\[([^\]]*)\]\((?:<([^>]+)>|([^)\s]+))(?:\s+"[^"]*")?\)""")]
     private static partial Regex LinkRegex();
 
     public static string RewriteChapterLinks(string markdown, IReadOnlyDictionary<string, string> contentFileNamesByRelativePath)
@@ -19,7 +22,7 @@ internal static partial class EpubInternalLinkResolver
         return LinkRegex().Replace(markdown, match =>
         {
             var text = match.Groups[1].Value;
-            var path = match.Groups[2].Value;
+            var path = match.Groups[2].Success ? match.Groups[2].Value : match.Groups[3].Value;
 
             return contentFileNamesByRelativePath.TryGetValue(path, out var fileName)
                 ? $"[{text}]({fileName})"

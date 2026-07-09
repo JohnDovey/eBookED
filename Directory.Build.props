@@ -22,6 +22,15 @@
          Edit mode changed CurrentText without ever changing Mode, so it missed the existing
          Mode-changed redraw fix entirely; that existing fix was also hardened to force a full
          Document.Text reset rather than relying on a bare TextView.Redraw() call. -->
-    <Version>1.9.1</Version>
+    <!-- 1.9.2: another user-reported bug fix, no new features. Chapter links on the in-book
+         EPUB Table of Contents page rendered as literal "[text](url)" text instead of clickable
+         links, because chapter filenames ("NNN - Title.md") contain spaces and CommonMark link
+         destinations can't contain unescaped spaces without angle brackets — Markdig silently
+         fell back to literal text, and EpubInternalLinkResolver's own regex had the same
+         space-blindness so it never even got a chance to rewrite the link to the real EPUB
+         content filename. Front/back matter links (title-page.md, imprint.md, etc.) have no
+         spaces, so only chapter entries were affected — easy to miss without a real chapter in
+         the test fixtures, which is exactly why the existing EpubBuilderTests hadn't caught it. -->
+    <Version>1.9.2</Version>
   </PropertyGroup>
 </Project>

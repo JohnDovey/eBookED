@@ -117,12 +117,16 @@ public class PageGeneratorServiceTests : IDisposable
     public void GenerateTocPage_ListsChaptersWithResolvedNumbersAndExcludesTocItself()
     {
         var project = _projectService.CreateProject(_tempDir, "Toc Test", SampleMetadata());
-        File.WriteAllText(Path.Combine(project.ChaptersDir, "one.md"), "One");
-        _spineService.AddChapter(project, "The Beginning", "chapters/one.md");
+        // Real chapter filenames follow "NNN - Title.md" (see ChapterFileNaming.BuildFileName)
+        // and contain spaces — the link destination must be angle-bracket-wrapped for this to
+        // parse as an actual Markdown link at all; a space-free test fixture wouldn't catch a
+        // regression here (see EpubBuilderTests for the exported-EPUB-level regression test).
+        File.WriteAllText(Path.Combine(project.ChaptersDir, "001 - The Beginning.md"), "One");
+        _spineService.AddChapter(project, "The Beginning", "chapters/001 - The Beginning.md");
 
         var markdown = _pageGenerator.GenerateTocPage(project.Spine);
 
-        Assert.Contains("- [Chapter 1: The Beginning](chapters/one.md)", markdown);
+        Assert.Contains("- [Chapter 1: The Beginning](<chapters/001 - The Beginning.md>)", markdown);
         Assert.DoesNotContain(ProjectPaths.TocPageFileName, markdown);
     }
 

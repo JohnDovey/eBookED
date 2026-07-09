@@ -48,6 +48,12 @@ public class EpubBuilderTests : IDisposable
             new ChapterFrontMatter { Title = "Chapter One" },
             "Hello **world**, this is the first chapter.");
         _spineService.AddChapter(project, "Chapter One", relativePath);
+        // Real usage always syncs filenames after adding a chapter (see
+        // MainWindowViewModel.AddChapter), which renames to "NNN - Title.md" — spaces and all.
+        // A slugged CreateNewChapterFile name alone ("chapter-one-abc123.md") never has spaces,
+        // so skipping this step let a real space-in-filename bug (broken TOC links) slip past
+        // this whole test suite untested.
+        _chapterFileService.SyncChapterFileNames(project);
 
         File.WriteAllText(project.BookMdPath, new BookIndexGenerator().GenerateBookMd(project));
         _projectService.SaveProject(project);
@@ -120,15 +126,25 @@ public class EpubBuilderTests : IDisposable
         using var tocReader = new StreamReader(tocEntry.Open());
         var tocHtml = tocReader.ReadToEnd();
 
-        var anchorHrefs = System.Text.RegularExpressions.Regex.Matches(tocHtml, "<a[^>]*href=\"([^\"]+)\"")
-            .Select(m => m.Groups[1].Value)
+        var anchors = System.Text.RegularExpressions.Regex.Matches(tocHtml, "<a[^>]*href=\"([^\"]+)\"[^>]*>([^<]*)</a>")
+            .Select(m => (Href: m.Groups[1].Value, Text: m.Groups[2].Value))
             .ToList();
 
-        Assert.NotEmpty(anchorHrefs);
-        Assert.DoesNotContain(anchorHrefs, href => href.Contains(".md", StringComparison.Ordinal));
+        Assert.NotEmpty(anchors);
+        Assert.DoesNotContain(anchors, a => a.Href.Contains(".md", StringComparison.Ordinal));
 
-        var linkedEntries = anchorHrefs
-            .Select(href => archive.GetEntry($"OEBPS/{href}"))
+        // Regression: the chapter's filename ("NNN - Chapter One.md", via SyncChapterFileNames)
+        // contains a space, which used to make this link parse as literal "[text](url)" text
+        // instead of an <a> element at all — every spine item except the TOC page itself must
+        // resolve to a real, clickable anchor, and none of the raw Markdown syntax should leak
+        // into the rendered HTML.
+        var expectedLinkCount = project.Spine.Count(i => !i.RelativePath.EndsWith(ProjectPaths.TocPageFileName, StringComparison.Ordinal));
+        Assert.Equal(expectedLinkCount, anchors.Count);
+        Assert.Contains(anchors, a => a.Text.Contains("Chapter One", StringComparison.Ordinal));
+        Assert.DoesNotContain("](", tocHtml);
+
+        var linkedEntries = anchors
+            .Select(a => archive.GetEntry($"OEBPS/{a.Href}"))
             .ToList();
 
         Assert.DoesNotContain(linkedEntries, e => e is null);
