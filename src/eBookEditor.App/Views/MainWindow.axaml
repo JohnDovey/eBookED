@@ -86,6 +86,12 @@
                         DragDrop.AllowDrop="True"
                         DragDrop.DragOver="OnSpineItemDragOver"
                         DragDrop.Drop="OnSpineItemDrop">
+                  <Border.ContextMenu>
+                    <ContextMenu>
+                      <MenuItem Header="Delete Chapter" Click="OnDeleteChapterClick" />
+                      <MenuItem Header="Export Chapter as Word…" Click="OnExportChapterAsWordClick" />
+                    </ContextMenu>
+                  </Border.ContextMenu>
                   <TextBlock Text="{Binding DisplayTitle}" FontSize="11" TextWrapping="Wrap" />
                 </Border>
               </DataTemplate>

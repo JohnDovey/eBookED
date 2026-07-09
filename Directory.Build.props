@@ -6,10 +6,9 @@
     <LangVersion>latest</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
     <!-- Bump the minor version for new features, patch for other code changes (see
-         feedback_version_bump_policy memory). This round adds chapter import (drag-and-drop
-         and File menu picker) for .md/.docx/.html, orphan chapter-file scanning, filename-
-         based chapter ordering/renumbering, an ordered-list sidebar, and working EPUB
-         in-book TOC links — new features, so a minor bump. -->
-    <Version>1.3.0</Version>
+         feedback_version_bump_policy memory). This round adds a chapter right-click context
+         menu (Delete, Export as Word) and the Markdown-to-DOCX exporter it needs — new
+         features, so a minor bump. -->
+    <Version>1.4.0</Version>
   </PropertyGroup>
 </Project>

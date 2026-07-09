@@ -310,6 +310,24 @@ public partial class MainWindow : Window
         ViewModel.OpenSpineItem(item);
     }
 
+    private async void OnDeleteChapterClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null || sender is not Control { DataContext: SpineItem { Type: SpineItemType.Chapter } item })
+            return;
+
+        var dialog = new ConfirmDialog("Delete Chapter", $"Delete \"{item.Title}\"? This can't be undone.", "Delete");
+        if (await dialog.ShowDialog<bool>(this))
+            ViewModel.DeleteChapter(item);
+    }
+
+    private void OnExportChapterAsWordClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null || sender is not Control { DataContext: SpineItem { Type: SpineItemType.Chapter } item })
+            return;
+
+        ViewModel.ExportChapterAsWord(item);
+    }
+
     private void OnSpineItemPointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (sender is Control { DataContext: SpineItem { Type: SpineItemType.Chapter } item })

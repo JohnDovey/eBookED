@@ -423,4 +423,45 @@ public class MainWindowViewModelTests : IDisposable
         var chapters = vm.CurrentProject.Spine.Where(i => i.Type == SpineItemType.Chapter).OrderBy(i => i.Order).ToList();
         Assert.Equal(["Found Chapter", "Existing Chapter"], chapters.Select(c => c.Title));
     }
+
+    [Fact]
+    public void DeleteChapter_RemovesFromSpineAndDeletesFile()
+    {
+        var vm = NewViewModel();
+        vm.AddChapterCommand.Execute(null);
+        var chapter = Assert.Single(vm.CurrentProject.Spine, i => i.Type == SpineItemType.Chapter);
+        var path = vm.CurrentProject.ResolvePath(chapter);
+
+        vm.DeleteChapter(chapter);
+
+        Assert.DoesNotContain(vm.CurrentProject.Spine, i => i.Type == SpineItemType.Chapter);
+        Assert.False(File.Exists(path));
+    }
+
+    [Fact]
+    public void DeleteChapter_WhenDeletedChapterWasOpen_SwitchesEditorToTitlePage()
+    {
+        var vm = NewViewModel();
+        vm.AddChapterCommand.Execute(null);
+        var chapter = Assert.Single(vm.CurrentProject.Spine, i => i.Type == SpineItemType.Chapter);
+
+        vm.DeleteChapter(chapter);
+
+        Assert.False(vm.IsChapterSelected);
+        Assert.Contains(vm.CurrentProject.Metadata.Title, vm.Editor.CurrentText);
+    }
+
+    [Fact]
+    public void ExportChapterAsWord_WritesDocxFileToOutputDir()
+    {
+        var vm = NewViewModel();
+        vm.AddChapterCommand.Execute(null);
+        var chapter = Assert.Single(vm.CurrentProject.Spine, i => i.Type == SpineItemType.Chapter);
+
+        vm.ExportChapterAsWord(chapter);
+
+        var files = Directory.GetFiles(vm.CurrentProject.OutputDir, "*.docx");
+        Assert.Single(files);
+        Assert.Contains(vm.CurrentProject.OutputDir, vm.StatusMessage);
+    }
 }

@@ -19,6 +19,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly BookIndexGenerator _bookIndexGenerator = new();
     private readonly MarkdownExportService _markdownExportService = new();
     private readonly DocxImportService _docxImportService = new();
+    private readonly MarkdownToDocxConverter _markdownToDocxConverter = new();
     private readonly ChapterImportService _chapterImportService = new();
     private readonly OrphanChapterScanner _orphanScanner = new();
     private readonly TemplateService _templateService;
@@ -303,6 +304,54 @@ public partial class MainWindowViewModel : ViewModelBase
         SyncChapterFileNamesAndRefreshSelection();
         _projectService.SaveProject(CurrentProject);
         RegenerateGeneratedContent();
+    }
+
+    /// <summary>Deletes a chapter's file and removes it from the spine. If it was the open
+    /// file, the editor is pointed at the title page instead so it isn't left referencing a
+    /// deleted file.</summary>
+    public void DeleteChapter(SpineItem item)
+    {
+        if (item.Type != SpineItemType.Chapter)
+            return;
+
+        var wasSelected = SelectedSpineItem?.Id == item.Id;
+        var path = CurrentProject.ResolvePath(item);
+        if (File.Exists(path))
+            File.Delete(path);
+
+        _spineService.RemoveItem(CurrentProject, item.Id);
+        SyncChapterFileNamesAndRefreshSelection();
+        _projectService.SaveProject(CurrentProject);
+        RegenerateGeneratedContent();
+
+        if (wasSelected && FindTitlePageItem(CurrentProject) is { } titlePage)
+            OpenSpineItem(titlePage);
+
+        StatusMessage = $"Deleted chapter \"{item.Title}\".";
+    }
+
+    /// <summary>Exports a single chapter's Markdown body as a .docx file — the reverse of
+    /// Import DOCX/Import Chapters.</summary>
+    public void ExportChapterAsWord(SpineItem item)
+    {
+        if (item.Type != SpineItemType.Chapter)
+            return;
+
+        try
+        {
+            if (Editor.IsDirty)
+                Editor.Save();
+
+            var (_, body) = _chapterFileService.ReadChapter(CurrentProject.ResolvePath(item));
+            var fileName = Slug.Create(item.Title ?? "chapter", "chapter") + ".docx";
+            var outputPath = Path.Combine(CurrentProject.OutputDir, fileName);
+            _markdownToDocxConverter.ConvertToFile(body, item.Title ?? "Untitled Chapter", outputPath);
+            StatusMessage = $"Exported chapter to {outputPath}";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Word export failed: {ex.Message}";
+        }
     }
 
     [RelayCommand]
