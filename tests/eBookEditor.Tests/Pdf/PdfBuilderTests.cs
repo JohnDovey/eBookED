@@ -1,5 +1,6 @@
 using eBookEditor.Core.Models;
 using eBookEditor.Core.Services;
+using eBookEditor.Epub.Services;
 using eBookEditor.Markdown.Services;
 using eBookEditor.Pdf.Services;
 
@@ -147,5 +148,64 @@ public class PdfBuilderTests : IDisposable
             stream.ReadExactly(header);
         Assert.Equal("%PDF-", System.Text.Encoding.ASCII.GetString(header));
         Assert.True(result.PageCount >= project.Spine.Count);
+    }
+
+    [Fact]
+    public void Build_WithVellumSerifTemplate_EmbedsTheTemplatesFonts()
+    {
+        var repoRoot = FindRepoRoot();
+        var fontsDir = Path.Combine(repoRoot, "src", "eBookEditor.App", "fonts");
+        var templatesDir = Path.Combine(repoRoot, "src", "eBookEditor.App", "templates");
+        var pdfBuilder = new PdfBuilder(new TemplateService(templatesDir), new FontService(fontsDir));
+
+        var project = BuildSampleProject();
+        project.ProjectFile.Metadata = project.Metadata with { SelectedTemplate = "Vellum Serif" };
+        var outputPath = Path.Combine(project.OutputDir, "book.pdf");
+
+        pdfBuilder.Build(project, outputPath);
+
+        var pdfBytes = File.ReadAllBytes(outputPath);
+        var pdfText = System.Text.Encoding.Latin1.GetString(pdfBytes);
+        Assert.Contains("Alegreya", pdfText);
+    }
+
+    [Fact]
+    public void Build_RendersChapterWithFencedCodeBlock()
+    {
+        var project = BuildSampleProject();
+
+        var chapterPath = _chapterFileService.CreateNewChapterFile(project.ChaptersDir, "Chapter Two");
+        var relativePath = Path.GetRelativePath(project.DirectoryPath, chapterPath).Replace('\\', '/');
+        _chapterFileService.WriteChapter(chapterPath,
+            new ChapterFrontMatter { Title = "Chapter Two" },
+            """
+            Some text before a code sample.
+
+            ```
+            def greet(name):
+                return f"Hello, {name}!"
+            ```
+            """);
+        _spineService.AddChapter(project, "Chapter Two", relativePath);
+        _projectService.SaveProject(project);
+
+        var outputPath = Path.Combine(project.OutputDir, "book.pdf");
+
+        var result = _pdfBuilder.Build(project, outputPath);
+
+        Assert.True(File.Exists(outputPath));
+        var header = new byte[5];
+        using (var stream = File.OpenRead(outputPath))
+            stream.ReadExactly(header);
+        Assert.Equal("%PDF-", System.Text.Encoding.ASCII.GetString(header));
+        Assert.True(result.PageCount >= project.Spine.Count);
+    }
+
+    private static string FindRepoRoot()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "eBookEditor.slnx")))
+            dir = dir.Parent;
+        return dir?.FullName ?? throw new InvalidOperationException("Could not locate repo root from test assembly location.");
     }
 }

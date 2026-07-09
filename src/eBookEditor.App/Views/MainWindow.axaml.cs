@@ -83,7 +83,16 @@ public partial class MainWindow : Window
         if (e.PropertyName == nameof(EditorViewModel.CurrentText) && !_suppressTextChanged)
             SyncEditorTextFromViewModel();
         else if (e.PropertyName == nameof(EditorViewModel.Mode) && ViewModel?.Editor.IsEditMode == true)
+        {
+            // AvaloniaEdit's TextView only invalidates the visual lines that overlap a text
+            // change; while IsEditMode is false (IsVisible=False), the editor keeps whatever
+            // visual lines it last built (possibly none, or a previous chapter's), so a chapter
+            // loaded while hidden in Preview mode can come up blank the moment it's shown here.
+            // Forcing a redraw once it's actually visible again is the standard fix for this
+            // class of virtualized-editor staleness.
+            EditorTextBox.TextArea.TextView.Redraw();
             EditorTextBox.Focus();
+        }
     }
 
     /// <summary>
@@ -109,6 +118,20 @@ public partial class MainWindow : Window
 
         if (ViewModel.Editor.IsEditMode)
             EditorTextBox.Focus();
+    }
+
+    private async void OnInsertTableClick(object? sender, RoutedEventArgs e)
+    {
+        var window = new InsertTableWindow();
+        await window.ShowDialog(this);
+
+        if (window.Result is not { } markdown)
+            return;
+
+        var offset = EditorTextBox.CaretOffset;
+        EditorTextBox.Document.Insert(offset, markdown);
+        EditorTextBox.CaretOffset = offset + markdown.Length;
+        EditorTextBox.Focus();
     }
 
     private void OnEditorTextBoxTextChanged(object? sender, EventArgs e)

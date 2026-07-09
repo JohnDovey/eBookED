@@ -153,4 +153,31 @@ public class MarkdownToDocxConverterTests : IDisposable
         var realFootnote = footnotesPart!.Footnotes!.Elements<Footnote>().Single(f => f.Id!.Value == 1);
         Assert.Contains("This is the note.", realFootnote.InnerText);
     }
+
+    [Fact]
+    public void ConvertToFile_RendersFencedCodeBlocksAsMonospaceParagraphs()
+    {
+        const string markdown = """
+            ```
+            def greet(name):
+                return f"Hello, {name}!"
+            ```
+            """;
+        var path = Path.Combine(_tempDir, "chapter-code.docx");
+
+        _converter.ConvertToFile(markdown, "Chapter With Code", path);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        var paragraphs = document.MainDocumentPart!.Document!.Body!.Elements<Paragraph>().ToList();
+        var codeParagraph = paragraphs.Single(p => p.InnerText.Contains("def greet"));
+
+        var runs = codeParagraph.Elements<Run>().ToList();
+        // One text run per line, plus a Break run between them (2 lines -> 3 runs).
+        Assert.Equal(3, runs.Count);
+        Assert.NotNull(runs[1].Elements<Break>().SingleOrDefault());
+        Assert.Equal("Courier New", runs[0].RunProperties!.RunFonts!.Ascii);
+        Assert.Equal("Courier New", runs[2].RunProperties!.RunFonts!.Ascii);
+        Assert.Contains("def greet(name):", codeParagraph.InnerText);
+        Assert.Contains("return f\"Hello, {name}!\"", codeParagraph.InnerText);
+    }
 }

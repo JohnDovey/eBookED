@@ -123,7 +123,13 @@
                          FontFamily="Cascadia Code,Menlo,Consolas,monospace"
                          FontSize="14"
                          ShowLineNumbers="True"
-                         WordWrap="True" />
+                         WordWrap="True">
+            <ae:TextEditor.ContextMenu>
+              <ContextMenu>
+                <MenuItem Header="Insert Table…" Click="OnInsertTableClick" />
+              </ContextMenu>
+            </ae:TextEditor.ContextMenu>
+          </ae:TextEditor>
 
           <md:MarkdownScrollViewer IsVisible="{Binding Editor.IsPreviewMode}"
                                     Markdown="{Binding Editor.PreviewSource}" />

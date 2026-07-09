@@ -12,29 +12,30 @@ namespace eBookEditor.Pdf.Services;
 /// <summary>
 /// Renders a chapter/page's Markdown body into a QuestPDF column — headings, paragraphs with
 /// bold/italic/link runs, bullet/numbered lists (as prefixed paragraphs), tables, images
-/// (resolved against <paramref name="sourceDir"/>), and footnotes. Markdig collects every
-/// footnote definition for a document into one FootnoteGroup block at the end — since each
-/// chapter is parsed independently, that naturally becomes a "Notes" section at the end of
-/// each chapter here, the same way the EPUB's HTML renderer places them. True page-bottom
-/// footnotes (reflowing exactly onto whichever physical page referenced them) would need a
-/// custom paginator; out of proportion for this app, so this is an endnotes-per-chapter
-/// rendering instead — a common, acceptable print convention. Code blocks aren't rendered yet.
+/// (resolved against <paramref name="sourceDir"/>), fenced/indented code blocks, and
+/// footnotes. Markdig collects every footnote definition for a document into one
+/// FootnoteGroup block at the end — since each chapter is parsed independently, that
+/// naturally becomes a "Notes" section at the end of each chapter here, the same way the
+/// EPUB's HTML renderer places them. True page-bottom footnotes (reflowing exactly onto
+/// whichever physical page referenced them) would need a custom paginator; out of proportion
+/// for this app, so this is an endnotes-per-chapter rendering instead — a common, acceptable
+/// print convention.
 /// </summary>
 internal class MarkdownToPdfRenderer
 {
-    public void RenderMarkdownBody(ColumnDescriptor column, string markdown, string? sourceDir, string? sectionName = null)
+    public void RenderMarkdownBody(ColumnDescriptor column, string markdown, string? sourceDir, string? sectionName = null, string? headingFontFamily = null)
     {
         var document = Markdig.Markdown.Parse(markdown, MarkdownPipelineFactory.Create());
 
         var isFirstBlock = true;
         foreach (var block in document)
         {
-            RenderBlock(column, block, isFirstBlock ? sectionName : null, sourceDir);
+            RenderBlock(column, block, isFirstBlock ? sectionName : null, sourceDir, headingFontFamily);
             isFirstBlock = false;
         }
     }
 
-    private static void RenderBlock(ColumnDescriptor column, Block block, string? sectionName, string? sourceDir)
+    private static void RenderBlock(ColumnDescriptor column, Block block, string? sectionName, string? sourceDir, string? headingFontFamily)
     {
         IContainer Item()
         {
@@ -47,7 +48,7 @@ internal class MarkdownToPdfRenderer
             case HeadingBlock heading:
                 var fontSize = heading.Level switch { 1 => 20f, 2 => 16f, _ => 13f };
                 Item().PaddingTop(heading.Level == 1 ? 0 : 10).PaddingBottom(6).Text(text =>
-                    RenderInlines(text, heading.Inline, bold: true, italic: false, fontSize));
+                    RenderInlines(text, heading.Inline, bold: true, italic: false, fontSize, headingFontFamily));
                 break;
 
             case ParagraphBlock { Inline: not null } paragraph when TryGetSoleImage(paragraph.Inline, out var imageLink):
@@ -80,13 +81,17 @@ internal class MarkdownToPdfRenderer
                 RenderTable(column, table);
                 break;
 
+            case CodeBlock codeBlock:
+                RenderCodeBlock(column, codeBlock);
+                break;
+
             case FootnoteGroup group:
                 RenderFootnotes(column, group);
                 break;
 
             case QuoteBlock quote:
                 foreach (var child in quote)
-                    RenderBlock(column, child, null, sourceDir);
+                    RenderBlock(column, child, null, sourceDir, headingFontFamily);
                 break;
         }
     }
@@ -157,6 +162,16 @@ internal class MarkdownToPdfRenderer
         });
     }
 
+    private static void RenderCodeBlock(ColumnDescriptor column, CodeBlock codeBlock)
+    {
+        var lines = new List<string>();
+        for (var i = 0; i < codeBlock.Lines.Count; i++)
+            lines.Add(codeBlock.Lines.Lines[i].Slice.ToString());
+
+        column.Item().PaddingVertical(6).Background(Colors.Grey.Lighten4).Padding(8)
+            .Text(string.Join("\n", lines)).FontFamily("Courier New").FontSize(9.5f);
+    }
+
     private static void RenderFootnotes(ColumnDescriptor column, FootnoteGroup group)
     {
         var footnotes = group.OfType<Footnote>().OrderBy(f => f.Order).ToList();
@@ -180,7 +195,7 @@ internal class MarkdownToPdfRenderer
         }
     }
 
-    private static void RenderInlines(TextDescriptor text, ContainerInline? container, bool bold, bool italic, float fontSize)
+    private static void RenderInlines(TextDescriptor text, ContainerInline? container, bool bold, bool italic, float fontSize, string? fontFamily = null)
     {
         if (container is null)
             return;
@@ -190,11 +205,11 @@ internal class MarkdownToPdfRenderer
             switch (inline)
             {
                 case LiteralInline literal:
-                    Style(text.Span(literal.Content.ToString()), bold, italic, fontSize);
+                    Style(text.Span(literal.Content.ToString()), bold, italic, fontSize, fontFamily);
                     break;
 
                 case CodeInline code:
-                    Style(text.Span(code.Content), bold, italic, fontSize);
+                    Style(text.Span(code.Content), bold, italic, fontSize, fontFamily);
                     break;
 
                 case EmphasisInline emphasis:
@@ -202,11 +217,11 @@ internal class MarkdownToPdfRenderer
                         text, emphasis,
                         bold: bold || emphasis.DelimiterCount is 2 or 3,
                         italic: italic || emphasis.DelimiterCount is 1 or 3,
-                        fontSize);
+                        fontSize, fontFamily);
                     break;
 
                 case LinkInline { IsImage: false } link:
-                    Style(text.Hyperlink(PlainText(link), link.Url ?? string.Empty), bold, italic, fontSize);
+                    Style(text.Hyperlink(PlainText(link), link.Url ?? string.Empty), bold, italic, fontSize, fontFamily);
                     break;
 
                 case FootnoteLink { IsBackLink: false } footnoteLink:
@@ -218,15 +233,16 @@ internal class MarkdownToPdfRenderer
                     break;
 
                 case ContainerInline nested:
-                    RenderInlines(text, nested, bold, italic, fontSize);
+                    RenderInlines(text, nested, bold, italic, fontSize, fontFamily);
                     break;
             }
         }
     }
 
-    private static void Style(TextSpanDescriptor span, bool bold, bool italic, float fontSize)
+    private static void Style(TextSpanDescriptor span, bool bold, bool italic, float fontSize, string? fontFamily = null)
     {
         span.FontSize(fontSize);
+        if (fontFamily is not null) span.FontFamily(fontFamily);
         if (bold) span.Bold();
         if (italic) span.Italic();
     }

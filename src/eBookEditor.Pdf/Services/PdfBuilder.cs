@@ -1,5 +1,6 @@
 using eBookEditor.Core.Models;
 using eBookEditor.Core.Services;
+using eBookEditor.Epub.Services;
 using eBookEditor.Pdf.Models;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
@@ -14,16 +15,26 @@ namespace eBookEditor.Pdf.Services;
 /// SectionLink support. The imprint (copyright) page is rendered directly from metadata
 /// rather than through the generic Markdown renderer, so its copyright statement can be
 /// pinned to the bottom of the page — something a reflowable EPUB page can't do, but a fixed
-/// PDF page can.
+/// PDF page can. Typography comes from the book's selected CSS template via
+/// PdfTemplateFonts, so PDF export uses (and embeds) the same fonts as the EPUB rather than
+/// a fixed default typeface.
 /// </summary>
 public class PdfBuilder
 {
     private readonly MarkdownToPdfRenderer _renderer = new();
     private readonly ChapterFileService _chapterFileService = new();
+    private readonly TemplateService _templateService;
+    private readonly PdfTemplateFonts _templateFonts;
 
     static PdfBuilder()
     {
         QuestPDF.Settings.License = LicenseType.Community;
+    }
+
+    public PdfBuilder(TemplateService? templateService = null, FontService? fontService = null)
+    {
+        _templateService = templateService ?? new TemplateService();
+        _templateFonts = new PdfTemplateFonts(fontService);
     }
 
     public PdfExportResult Build(EbookProject project, string outputPath)
@@ -39,13 +50,16 @@ public class PdfBuilder
         var footer = new FrontMatterAwarePageNumberFooter(frontMatterPageCount);
         var wordCount = 0;
 
+        var templateCss = _templateService.GetTemplateCss(metadata.SelectedTemplate);
+        var fonts = _templateFonts.RegisterAndResolve(templateCss);
+
         Document.Create(container =>
         {
             container.Page(page =>
             {
                 page.Size(pageSize);
                 page.Margin(0.75f, Unit.Inch);
-                page.DefaultTextStyle(text => text.FontFamily("Times New Roman").FontSize(11));
+                page.DefaultTextStyle(text => text.FontFamily(fonts.BodyFontFamily).FontSize(11));
 
                 page.Content().Column(column =>
                 {
@@ -58,13 +72,13 @@ public class PdfBuilder
 
                         if (item.RelativePath.EndsWith(ProjectPaths.CopyrightPageFileName, StringComparison.Ordinal))
                         {
-                            RenderImprintPage(column, project, metadata);
+                            RenderImprintPage(column, project, metadata, fonts.HeadingFontFamily);
                             continue;
                         }
 
                         if (item.RelativePath.EndsWith(ProjectPaths.TocPageFileName, StringComparison.Ordinal))
                         {
-                            RenderTableOfContents(column, orderedSpine);
+                            RenderTableOfContents(column, orderedSpine, fonts.HeadingFontFamily);
                             continue;
                         }
 
@@ -73,7 +87,7 @@ public class PdfBuilder
                             wordCount += CountWords(body);
 
                         var sourceDir = Path.GetDirectoryName(project.ResolvePath(item));
-                        _renderer.RenderMarkdownBody(column, body, sourceDir, SectionName(item));
+                        _renderer.RenderMarkdownBody(column, body, sourceDir, SectionName(item), fonts.HeadingFontFamily);
                     }
                 });
 
@@ -84,7 +98,7 @@ public class PdfBuilder
         return new PdfExportResult(outputPath, footer.TotalPages, wordCount);
     }
 
-    private static void RenderImprintPage(ColumnDescriptor column, EbookProject project, BookMetadata metadata)
+    private static void RenderImprintPage(ColumnDescriptor column, EbookProject project, BookMetadata metadata, string headingFontFamily)
     {
         column.Item().Column(top =>
         {
@@ -95,7 +109,7 @@ public class PdfBuilder
             if (coverPath is not null && File.Exists(coverPath))
                 top.Item().AlignCenter().Width(120).Image(coverPath).FitWidth();
 
-            top.Item().PaddingTop(12).Text(metadata.Title).Bold().FontSize(14);
+            top.Item().PaddingTop(12).Text(metadata.Title).Bold().FontSize(14).FontFamily(headingFontFamily);
             if (!string.IsNullOrWhiteSpace(metadata.Subtitle))
                 top.Item().Text(metadata.Subtitle).Italic().FontSize(11);
 
@@ -134,9 +148,9 @@ public class PdfBuilder
         });
     }
 
-    private static void RenderTableOfContents(ColumnDescriptor column, IReadOnlyList<SpineItem> spine)
+    private static void RenderTableOfContents(ColumnDescriptor column, IReadOnlyList<SpineItem> spine, string headingFontFamily)
     {
-        column.Item().PaddingBottom(12).Text("Table of Contents").Bold().FontSize(16);
+        column.Item().PaddingBottom(12).Text("Table of Contents").Bold().FontSize(16).FontFamily(headingFontFamily);
 
         foreach (var item in spine)
         {

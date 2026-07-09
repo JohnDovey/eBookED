@@ -25,7 +25,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly OrphanChapterScanner _orphanScanner = new();
     private readonly TemplateService _templateService;
     private readonly EpubBuilder _epubBuilder;
-    private readonly PdfBuilder _pdfBuilder = new();
+    private readonly PdfBuilder _pdfBuilder;
     private readonly AppSettingsService _appSettingsService;
     private readonly FontInstallerService _fontInstallerService;
 
@@ -64,6 +64,7 @@ public partial class MainWindowViewModel : ViewModelBase
         _appSettingsService = appSettingsService ?? new AppSettingsService(new AppPaths());
         _templateService = templateService ?? new TemplateService();
         _epubBuilder = new EpubBuilder(_templateService);
+        _pdfBuilder = new PdfBuilder(_templateService);
         _fontInstallerService = fontInstallerService ?? new FontInstallerService();
         Metadata.LoadFrom(project.Metadata);
 

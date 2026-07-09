@@ -1,0 +1,40 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        mc:Ignorable="d"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        x:Class="eBookEditor.App.Views.InsertTableWindow"
+        Title="Insert Table"
+        Width="680" Height="560"
+        MinWidth="480" MinHeight="420"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid Margin="16" RowDefinitions="Auto,Auto,*,Auto,Auto">
+
+    <TextBlock Grid.Row="0" Margin="0,0,0,8" Opacity="0.7" TextWrapping="Wrap"
+               Text="Build a table below, then Insert to write it as Markdown at the cursor. The top row of dropdowns sets each column's alignment." />
+
+    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12">
+      <Button Content="+ Row" Click="OnAddRowClick" />
+      <Button Content="− Row" Click="OnRemoveRowClick" />
+      <Button Content="+ Column" Click="OnAddColumnClick" />
+      <Button Content="− Column" Click="OnRemoveColumnClick" />
+    </StackPanel>
+
+    <ScrollViewer Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+      <Grid x:Name="TableGrid" Margin="0,0,0,12" />
+    </ScrollViewer>
+
+    <StackPanel Grid.Row="3" Spacing="4" Margin="0,0,0,12">
+      <TextBlock Text="Markdown preview" FontWeight="Bold" FontSize="11" Opacity="0.7" />
+      <TextBox x:Name="PreviewText" IsReadOnly="True" AcceptsReturn="True" TextWrapping="NoWrap"
+               FontFamily="Cascadia Code,Menlo,Consolas,monospace" FontSize="11" Height="100" />
+    </StackPanel>
+
+    <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+      <Button Content="Discard" Click="OnDiscardClick" />
+      <Button Content="Insert" Classes="accent" Click="OnInsertClick" />
+    </StackPanel>
+
+  </Grid>
+
+</Window>

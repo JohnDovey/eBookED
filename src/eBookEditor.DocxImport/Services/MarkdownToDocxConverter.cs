@@ -21,10 +21,11 @@ namespace eBookEditor.DocxImport.Services;
 /// Handles headings (mapped to Word's built-in Heading1-3 styles, so a round-tripped export
 /// re-imports with the same chapter structure), paragraphs with bold/italic/link runs,
 /// bullet/numbered lists, tables, images (resolved against <paramref name="sourceDir"/> in
-/// ConvertToFile), and footnotes as real Word footnotes (FootnotesPart/FootnoteReference).
-/// List items are rendered as "•"/"1." prefixed paragraphs rather than native Word list
-/// numbering, which needs a full NumberingDefinitionsPart — a reasonable simplification since
-/// the visual result reads the same.
+/// ConvertToFile), fenced/indented code blocks (monospace, one Run per line since Word Text
+/// elements don't respect embedded newlines), and footnotes as real Word footnotes
+/// (FootnotesPart/FootnoteReference). List items are rendered as "•"/"1." prefixed paragraphs
+/// rather than native Word list numbering, which needs a full NumberingDefinitionsPart — a
+/// reasonable simplification since the visual result reads the same.
 /// </summary>
 public class MarkdownToDocxConverter
 {
@@ -77,6 +78,10 @@ public class MarkdownToDocxConverter
                 body.Append(BuildTable(table, mainPart));
                 break;
 
+            case CodeBlock codeBlock:
+                body.Append(BuildCodeParagraph(codeBlock));
+                break;
+
             case FootnoteGroup group:
                 AppendFootnotesPart(mainPart, group);
                 break;
@@ -111,6 +116,22 @@ public class MarkdownToDocxConverter
             paragraph.Append(new Run(new Text(prefix) { Space = SpaceProcessingModeValues.Preserve }));
 
         AppendInlines(paragraph, inline, mainPart, bold: false, italic: false);
+        return paragraph;
+    }
+
+    private static Paragraph BuildCodeParagraph(CodeBlock codeBlock)
+    {
+        var paragraph = new Paragraph();
+        for (var i = 0; i < codeBlock.Lines.Count; i++)
+        {
+            if (i > 0)
+                paragraph.Append(new Run(new Break()));
+
+            var line = codeBlock.Lines.Lines[i].Slice.ToString();
+            paragraph.Append(new Run(
+                new RunProperties(new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }),
+                new Text(line) { Space = SpaceProcessingModeValues.Preserve }));
+        }
         return paragraph;
     }
 

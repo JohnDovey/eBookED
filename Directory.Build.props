@@ -6,10 +6,12 @@
     <LangVersion>latest</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
     <!-- Bump the minor version for new features, patch for other code changes (see
-         feedback_version_bump_policy memory). This round adds footnote support across
-         EPUB/PDF/Word export (real Word FootnotesPart, QuestPDF endnotes-per-chapter,
-         EPUB CSS polish) and table/image rendering in PDF and Word export — all new
-         features, so a minor bump. -->
-    <Version>1.6.0</Version>
+         feedback_version_bump_policy memory). This round adds PDF export using (and
+         embedding) the book's selected CSS template's fonts, fenced code block rendering
+         in PDF/Word, an editor right-click Insert Table modal, a User Manual project
+         (manual/), and a fix for a blank-editor bug on Preview-to-Edit mode switches —
+         all new features (plus one bug fix bundled into the same release), so a minor
+         bump. -->
+    <Version>1.7.0</Version>
   </PropertyGroup>
 </Project>

@@ -3,6 +3,10 @@
   <ItemGroup>
     <ProjectReference Include="..\eBookEditor.Core\eBookEditor.Core.csproj" />
     <ProjectReference Include="..\eBookEditor.Markdown\eBookEditor.Markdown.csproj" />
+    <!-- Reuses TemplateService/FontService (the book's selected CSS template and the
+         @font-face fonts it references) so PDF export matches the EPUB's typography
+         instead of a fixed default typeface. -->
+    <ProjectReference Include="..\eBookEditor.Epub\eBookEditor.Epub.csproj" />
   </ItemGroup>
 
   <ItemGroup>

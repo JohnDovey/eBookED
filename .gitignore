@@ -7,3 +7,7 @@ obj/
 
 # Runtime artifacts from running the app locally (sample project + generated output)
 src/eBookEditor.App/sample-project-data/
+
+# Generated exports of the User Manual project (manual/ itself — the source content — is
+# tracked; regenerate these from the app via Export, don't commit binary build output).
+manual/output/
