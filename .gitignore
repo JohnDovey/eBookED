@@ -1,0 +1,9 @@
+bin/
+obj/
+.vs/
+.idea/
+*.user
+.DS_Store
+
+# Runtime artifacts from running the app locally (sample project + generated output)
+src/eBookEditor.App/sample-project-data/

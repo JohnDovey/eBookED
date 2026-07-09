@@ -1,0 +1,65 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:eBookEditor.App.ViewModels"
+        mc:Ignorable="d"
+        d:DesignWidth="520" d:DesignHeight="700"
+        x:Class="eBookEditor.App.Views.MetadataEditorWindow"
+        x:DataType="vm:MetadataViewModel"
+        Title="Book Metadata"
+        Width="560" Height="720"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid RowDefinitions="*,Auto">
+    <ScrollViewer Grid.Row="0" Padding="16">
+      <StackPanel Spacing="10">
+
+        <TextBlock Text="Front Matter" FontWeight="Bold" FontSize="16" />
+        <TextBox Watermark="Title" Text="{Binding Title}" />
+        <TextBox Watermark="Subtitle" Text="{Binding Subtitle}" />
+        <TextBox Watermark="Author(s), comma separated" Text="{Binding AuthorNames}" />
+        <TextBox Watermark="Editor(s), comma separated" Text="{Binding EditorNames}" />
+        <TextBox Watermark="Illustrator(s), comma separated" Text="{Binding IllustratorNames}" />
+        <TextBox Watermark="Language (BCP-47, e.g. en)" Text="{Binding Language}" />
+
+        <TextBlock Text="Copyright &amp; Publishing" FontWeight="Bold" FontSize="16" Margin="0,12,0,0" />
+        <TextBox Watermark="Copyright holder" Text="{Binding CopyrightHolder}" />
+        <TextBox Watermark="Copyright year" Text="{Binding CopyrightYear}" />
+        <TextBox Watermark="Publisher name" Text="{Binding PublisherName}" />
+        <TextBox Watermark="Publisher logo path (relative to project)" Text="{Binding PublisherLogoPath}" />
+        <TextBox Watermark="Cover image path (relative to project)" Text="{Binding CoverImagePath}" />
+        <TextBox Watermark="Publication date (yyyy-MM-dd)" Text="{Binding PublicationDate}" />
+        <TextBox Watermark="ISBN-13" Text="{Binding Isbn13}" />
+        <TextBox Watermark="ISBN-10" Text="{Binding Isbn10}" />
+        <TextBox Watermark="Copyright disclaimer" Text="{Binding CopyrightDisclaimer}"
+                 AcceptsReturn="True" TextWrapping="Wrap" Height="90" />
+
+        <TextBlock Text="Discovery" FontWeight="Bold" FontSize="16" Margin="0,12,0,0" />
+        <TextBox Watermark="Genre tags, comma separated" Text="{Binding GenreTags}" />
+        <TextBox Watermark="Other tags, comma separated" Text="{Binding FreeTags}" />
+        <TextBox Watermark="Blurb (back cover)" Text="{Binding Blurb}"
+                 AcceptsReturn="True" TextWrapping="Wrap" Height="90" />
+
+        <TextBlock Text="About the Author" FontWeight="Bold" FontSize="16" Margin="0,12,0,0" />
+        <TextBox Watermark="Author photo path (relative to project)" Text="{Binding AuthorPhotoPath}" />
+        <TextBox Watermark="Author bio" Text="{Binding AuthorBio}"
+                 AcceptsReturn="True" TextWrapping="Wrap" Height="90" />
+        <TextBox Watermark="Social links: one per line, Platform|Url" Text="{Binding SocialLinks}"
+                 AcceptsReturn="True" TextWrapping="Wrap" Height="70" />
+
+        <TextBlock Text="Where It's Sold" FontWeight="Bold" FontSize="16" Margin="0,12,0,0" />
+        <TextBox Watermark="Store links: one per line, StoreName|Url (e.g. KindleStore|https://...)"
+                 Text="{Binding StoreLinks}" AcceptsReturn="True" TextWrapping="Wrap" Height="70" />
+
+      </StackPanel>
+    </ScrollViewer>
+
+    <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right"
+                Spacing="8" Margin="16">
+      <Button Content="Cancel" Click="OnCancelClick" />
+      <Button Content="Save &amp; Regenerate" Classes="accent" Click="OnSaveClick" />
+    </StackPanel>
+  </Grid>
+
+</Window>

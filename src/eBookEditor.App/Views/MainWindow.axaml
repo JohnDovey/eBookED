@@ -1,0 +1,102 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:ae="using:AvaloniaEdit"
+        xmlns:md="https://github.com/whistyun/Markdown.Avalonia"
+        xmlns:vm="using:eBookEditor.App.ViewModels"
+        xmlns:models="using:eBookEditor.Core.Models"
+        mc:Ignorable="d"
+        d:DesignWidth="1100" d:DesignHeight="700"
+        x:Class="eBookEditor.App.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="eBook Editor"
+        Width="1100" Height="700">
+
+  <DockPanel>
+
+    <Border DockPanel.Dock="Bottom" Padding="8,4" BorderThickness="0,1,0,0" BorderBrush="Gray">
+      <TextBlock Text="{Binding StatusMessage}" Opacity="0.7" TextTrimming="CharacterEllipsis" />
+    </Border>
+
+    <Grid ColumnDefinitions="260,*">
+
+      <!-- Sidebar: chapters can be dragged to reorder; front/back matter are fixed -->
+      <Border Grid.Column="0" Background="{DynamicResource SystemAltHighColor}" BorderThickness="0,0,1,0" BorderBrush="Gray">
+        <DockPanel Margin="12">
+          <TextBlock DockPanel.Dock="Top" Text="{Binding CurrentProject.Metadata.Title}"
+                     FontWeight="Bold" FontSize="16" Margin="0,0,0,8" TextWrapping="Wrap" />
+
+          <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+            <Button Content="Metadata…" Click="OnEditMetadataClick" Margin="0,0,6,6" />
+            <Button Content="Regenerate" Command="{Binding RegenerateFrontMatterCommand}" Margin="0,0,6,6" />
+          </WrapPanel>
+
+          <Button DockPanel.Dock="Top" Content="Import DOCX…" Click="OnImportDocxClick"
+                  HorizontalAlignment="Stretch" Margin="0,0,0,6" />
+
+          <Button DockPanel.Dock="Top" Content="Export EPUB…" Command="{Binding ExportEpubCommand}"
+                  HorizontalAlignment="Stretch" Margin="0,0,0,6" />
+
+          <Button DockPanel.Dock="Top" Content="Export Markdown (Whole Book)…"
+                  Command="{Binding ExportMarkdownWholeBookCommand}"
+                  HorizontalAlignment="Stretch" Margin="0,0,0,6" />
+
+          <Button DockPanel.Dock="Top" Content="Export Markdown (This Chapter)…"
+                  Command="{Binding ExportMarkdownChapterCommand}" IsVisible="{Binding IsChapterSelected}"
+                  HorizontalAlignment="Stretch" Margin="0,0,0,6" />
+
+          <Button DockPanel.Dock="Top" Content="+ Add Chapter" Command="{Binding AddChapterCommand}"
+                  HorizontalAlignment="Stretch" Margin="0,0,0,8" />
+
+          <ListBox x:Name="SpineListBox" ItemsSource="{Binding SpineItems}"
+                   SelectionChanged="OnSpineItemSelectionChanged">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="models:SpineItem">
+                <Border Background="Transparent" Padding="4"
+                        PointerPressed="OnSpineItemPointerPressed"
+                        PointerMoved="OnSpineItemPointerMoved"
+                        DragDrop.AllowDrop="True"
+                        DragDrop.DragOver="OnSpineItemDragOver"
+                        DragDrop.Drop="OnSpineItemDrop">
+                  <TextBlock Text="{Binding Title}" TextWrapping="Wrap" />
+                </Border>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </DockPanel>
+      </Border>
+
+      <!-- Editor pane -->
+      <DockPanel Grid.Column="1" Margin="12">
+
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+          <Button Content="{Binding Editor.ModeLabel, StringFormat='Mode: {0}'}"
+                  Command="{Binding Editor.TogglePreviewCommand}" />
+          <TextBlock Text="{Binding Editor.FilePath}" VerticalAlignment="Center" Opacity="0.6" />
+        </StackPanel>
+
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="*,*,Auto" IsVisible="{Binding IsChapterSelected}" Margin="0,0,0,8">
+          <TextBox Grid.Column="0" Watermark="Chapter title" Text="{Binding ChapterTitleInput}" Margin="0,0,4,0" />
+          <TextBox Grid.Column="1" Watermark="Chapter subheading" Text="{Binding ChapterSubtitleInput}" Margin="4,0" />
+          <Button Grid.Column="2" Content="Apply" Command="{Binding SaveChapterHeaderCommand}" Margin="4,0,0,0" />
+        </Grid>
+
+        <Grid>
+          <ae:TextEditor x:Name="EditorTextBox"
+                         IsVisible="{Binding Editor.IsEditMode}"
+                         FontFamily="Cascadia Code,Menlo,Consolas,monospace"
+                         FontSize="14"
+                         ShowLineNumbers="True"
+                         WordWrap="True" />
+
+          <md:MarkdownScrollViewer IsVisible="{Binding Editor.IsPreviewMode}"
+                                    Markdown="{Binding Editor.PreviewSource}" />
+        </Grid>
+      </DockPanel>
+
+    </Grid>
+
+  </DockPanel>
+
+</Window>
