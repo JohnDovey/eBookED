@@ -6,9 +6,9 @@
     <LangVersion>latest</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
     <!-- Bump the minor version for new features, patch for other code changes (see
-         feedback_version_bump_policy memory). This round adds a Recent Projects menu,
-         restores last-session projects on launch, and switches the default theme to Light —
-         new features, so a minor bump. -->
-    <Version>1.2.0</Version>
+         feedback_version_bump_policy memory). This round vendors AvaloniaEdit's source
+         instead of consuming it as a NuGet package — an internal restructuring with no new
+         user-facing behavior, so a patch bump. -->
+    <Version>1.2.1</Version>
   </PropertyGroup>
 </Project>

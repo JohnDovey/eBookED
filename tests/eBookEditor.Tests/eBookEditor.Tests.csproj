@@ -12,6 +12,11 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <!-- Same exclusions as eBookEditor.App.csproj: this project re-resolves App's transitive
+         package graph independently, so the Markdown.Avalonia.SyntaxHigh -> Avalonia.AvaloniaEdit
+         collision with the vendored AvaloniaEdit project needs excluding here too. -->
+    <PackageReference Include="Markdown.Avalonia.SyntaxHigh" Version="11.0.3" ExcludeAssets="all" />
+    <PackageReference Include="Avalonia.AvaloniaEdit" Version="11.0.0" ExcludeAssets="all" />
   </ItemGroup>
 
   <ItemGroup>

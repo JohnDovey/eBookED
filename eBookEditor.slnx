@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/AvaloniaEdit/AvaloniaEdit.csproj" />
     <Project Path="src/eBookEditor.App/eBookEditor.App.csproj" />
     <Project Path="src/eBookEditor.Core/eBookEditor.Core.csproj" />
     <Project Path="src/eBookEditor.DocxImport/eBookEditor.DocxImport.csproj" />

@@ -21,6 +21,7 @@ On first run, the app scaffolds a demo project under `src/eBookEditor.App/sample
 
 | Project | Purpose |
 |---|---|
+| `AvaloniaEdit` | Vendored copy of the core [AvaloniaEdit](https://github.com/AvaloniaUI/AvaloniaEdit) text-editing library (MIT license, see its own README) instead of a NuGet package, so the editor's source lives in this repo. |
 | `eBookEditor.Core` | Domain models (`BookMetadata`, `SpineItem`, `EbookProject`, …) and services with no UI or format dependencies: `ProjectService` (create/load/save), `SpineService` (ordering/numbering), `ChapterFileService` (YAML front matter + body), `AppSettingsService` (cross-project autofill/MRU). |
 | `eBookEditor.Markdown` | Markdig pipeline, `PageGeneratorService` (title/copyright/TOC/about-the-author page generation), `BookIndexGenerator` (`book.md`), `MarkdownExportService` (whole-book / single-chapter export). |
 | `eBookEditor.Epub` | Hand-rolled EPUB 3.3 writer (`EpubBuilder`) — container.xml, package.opf, nav.xhtml, legacy toc.ncx, XHTML content docs, image and font bundling, selectable CSS `TemplateService`, `FontService`/`FontInstallerService` — plus a structural `EpubValidationHelper`. |
