@@ -204,4 +204,83 @@ public class MarkdownToDocxConverterTests : IDisposable
 
         Assert.NotNull(pageBreak);
     }
+
+    [Fact]
+    public void ConvertToFile_RendersEmphasisExtrasCorrectly_NotAsBoldOrItalic()
+    {
+        // Regression test: strikethrough (~~), highlight (==), subscript (~), superscript (^),
+        // and inserted (++) all parse as EmphasisInline distinguished only by DelimiterChar —
+        // a version of this code that checked only DelimiterCount misread every one of them
+        // as bold or italic instead.
+        const string markdown = "~~struck~~ ==marked== H~2~O E=mc^2^ ++inserted++";
+        var path = Path.Combine(_tempDir, "chapter-emphasis-extras.docx");
+
+        _converter.ConvertToFile(markdown, "Chapter", path);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        var runs = document.MainDocumentPart!.Document!.Body!.Descendants<Run>()
+            .Where(r => !string.IsNullOrEmpty(r.InnerText))
+            .ToList();
+
+        var struckRun = runs.Single(r => r.InnerText == "struck");
+        Assert.NotNull(struckRun.RunProperties!.Strike);
+        Assert.Null(struckRun.RunProperties.Bold);
+
+        var markedRun = runs.Single(r => r.InnerText == "marked");
+        Assert.Equal(HighlightColorValues.Yellow, markedRun.RunProperties!.Highlight!.Val!.Value);
+        Assert.Null(markedRun.RunProperties.Bold);
+
+        var twoRuns = runs.Where(r => r.InnerText == "2").ToList();
+        Assert.Contains(twoRuns, r => r.RunProperties?.VerticalTextAlignment?.Val?.Value == VerticalPositionValues.Subscript);
+        Assert.Contains(twoRuns, r => r.RunProperties?.VerticalTextAlignment?.Val?.Value == VerticalPositionValues.Superscript);
+        Assert.All(twoRuns, r => Assert.Null(r.RunProperties!.Italic));
+
+        var insertedRun = runs.Single(r => r.InnerText == "inserted");
+        Assert.Equal(UnderlineValues.Single, insertedRun.RunProperties!.Underline!.Val!.Value);
+        Assert.Null(insertedRun.RunProperties.Bold);
+    }
+
+    [Fact]
+    public void ConvertToFile_RendersDefinitionLists()
+    {
+        const string markdown = "Apple\n:   Pomaceous fruit\n:   Comes in many colors\n";
+        var path = Path.Combine(_tempDir, "chapter-definition-list.docx");
+
+        _converter.ConvertToFile(markdown, "Chapter", path);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        var paragraphs = document.MainDocumentPart!.Document!.Body!.Elements<Paragraph>().ToList();
+
+        var termParagraph = paragraphs.Single(p => p.InnerText == "Apple");
+        Assert.NotNull(termParagraph.Descendants<Run>().First().RunProperties?.Bold);
+        Assert.Contains(paragraphs, p => p.InnerText == "Pomaceous fruit");
+        Assert.Contains(paragraphs, p => p.InnerText == "Comes in many colors");
+    }
+
+    [Fact]
+    public void ConvertToFile_RendersTaskListCheckboxes()
+    {
+        const string markdown = "- [x] Done task\n- [ ] Not done\n";
+        var path = Path.Combine(_tempDir, "chapter-task-list.docx");
+
+        _converter.ConvertToFile(markdown, "Chapter", path);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        var bodyText = document.MainDocumentPart!.Document!.Body!.InnerText;
+
+        Assert.Contains("☑", bodyText);
+        Assert.Contains("☐", bodyText);
+    }
+
+    [Fact]
+    public void ConvertToFile_RendersCustomContainerContent()
+    {
+        const string markdown = "::: {.smallcaps}\nStyled paragraph text.\n:::\n";
+        var path = Path.Combine(_tempDir, "chapter-custom-container.docx");
+
+        _converter.ConvertToFile(markdown, "Chapter", path);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        Assert.Contains("Styled paragraph text.", document.MainDocumentPart!.Document!.Body!.InnerText);
+    }
 }

@@ -292,6 +292,54 @@ public class PdfBuilderTests : IDisposable
         Assert.DoesNotContain("Jane Author", tocPageText);
     }
 
+    [Fact]
+    public void Build_RendersExtendedSyntaxWithoutError_DefinitionListsAndTaskLists()
+    {
+        // Regression coverage for the DelimiterChar bug: a version of this code that checked
+        // only DelimiterCount on EmphasisInline rendered ~~strikethrough~~, ==highlight==,
+        // ~subscript~, ^superscript^, and ++inserted++ as plain bold/italic instead. There's
+        // no easy way to assert visual text-decoration from extracted PDF text, so this
+        // mainly guards against a real regression: the old code's bold/italic branches still
+        // ran on any DelimiterCount match regardless of char, so this wouldn't throw either
+        // way — the DOCX equivalent test is the one that actually catches a misrender.
+        var project = BuildSampleProject();
+
+        var chapterPath = _chapterFileService.CreateNewChapterFile(project.ChaptersDir, "Chapter Two");
+        var relativePath = Path.GetRelativePath(project.DirectoryPath, chapterPath).Replace('\\', '/');
+        _chapterFileService.WriteChapter(chapterPath,
+            new ChapterFrontMatter { Title = "Chapter Two" },
+            """
+            Some ~~struck~~ and ==marked== and H~2~O and E=mc^2^ text.
+
+            - [x] Done task
+            - [ ] Not done
+
+            Apple
+            :   Pomaceous fruit
+
+            ::: {.smallcaps}
+            A styled paragraph.
+            :::
+            """);
+        _spineService.AddChapter(project, "Chapter Two", relativePath);
+        _projectService.SaveProject(project);
+
+        var outputPath = Path.Combine(project.OutputDir, "book.pdf");
+
+        _pdfBuilder.Build(project, outputPath);
+
+        using var document = PdfDocument.Open(outputPath);
+        var pageTexts = Enumerable.Range(1, document.NumberOfPages).Select(i => document.GetPage(i).Text);
+        var allText = string.Join(" ", pageTexts);
+
+        Assert.Contains("struck", allText);
+        Assert.Contains("marked", allText);
+        Assert.Contains("Apple", allText);
+        Assert.Contains("Pomaceousfruit", allText.Replace(" ", ""));
+        Assert.Contains("Donetask", allText.Replace(" ", ""));
+        Assert.Contains("styledparagraph", allText.Replace(" ", ""));
+    }
+
     private static string FindRepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);

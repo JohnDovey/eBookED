@@ -73,8 +73,13 @@ internal static class EpubPackageDocumentWriter
         if (metadata.PublicationDate is { } pubDate)
             metadataElements.Add(new XElement(Dc + "date", pubDate.ToString("yyyy-MM-dd")));
 
+        // The EPUB3-native cover marker is the manifest item's own "properties=cover-image"
+        // attribute (added below); this <meta name="cover"> is the older, EPUB2-era
+        // convention some Kindle/KDP conversion paths still look for specifically, so it
+        // needs to reference that manifest item's real id, not the literal string
+        // "cover-image" (which isn't any item's id — it's the properties *value*).
         if (coverImageFileName is not null)
-            metadataElements.Add(new XElement(Opf + "meta", new XAttribute("name", "cover"), new XAttribute("content", "cover-image")));
+            metadataElements.Add(new XElement(Opf + "meta", new XAttribute("name", "cover"), new XAttribute("content", $"img-{SanitizeId(coverImageFileName)}")));
 
         var manifestItems = new List<XElement>
         {

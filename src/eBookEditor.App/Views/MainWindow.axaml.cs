@@ -134,6 +134,46 @@ public partial class MainWindow : Window
         EditorTextBox.Focus();
     }
 
+    private void OnEditorContextMenuOpened(object? sender, RoutedEventArgs e)
+    {
+        var hasSelection = EditorTextBox.SelectionLength > 0;
+        ApplyStyleMenuItem.IsEnabled = hasSelection;
+        if (!hasSelection)
+            return;
+
+        ApplyStyleMenuItem.Items.Clear();
+        foreach (var style in EditorStyleCatalog.Styles)
+        {
+            var item = new MenuItem { Header = style.Label, Tag = style.ClassName };
+            item.Click += OnApplyStyleClick;
+            ApplyStyleMenuItem.Items.Add(item);
+        }
+    }
+
+    /// <summary>
+    /// Wraps the current selection in a Markdown custom container ("::: {.class} ... :::"),
+    /// naming the CSS class the chosen style hooks to in DefaultStylesheet.cs/"Vellum
+    /// Serif.css". Markdig renders this as &lt;div class="…"&gt; in the EPUB; PDF/Word just
+    /// render the wrapped content plainly, since neither has a stylesheet to consult.
+    /// </summary>
+    private void OnApplyStyleClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { Tag: string className })
+            return;
+
+        var selectionStart = EditorTextBox.SelectionStart;
+        var selectionLength = EditorTextBox.SelectionLength;
+        if (selectionLength <= 0)
+            return;
+
+        var selectedText = EditorTextBox.Document.GetText(selectionStart, selectionLength);
+        var wrapped = $"::: {{.{className}}}\n{selectedText}\n:::";
+
+        EditorTextBox.Document.Replace(selectionStart, selectionLength, wrapped);
+        EditorTextBox.CaretOffset = selectionStart + wrapped.Length;
+        EditorTextBox.Focus();
+    }
+
     private void OnEditorTextBoxTextChanged(object? sender, EventArgs e)
     {
         if (_suppressTextChanged || ViewModel is null)

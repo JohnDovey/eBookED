@@ -6,11 +6,13 @@
     <LangVersion>latest</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
     <!-- Bump the minor version for new features, patch for other code changes (see
-         feedback_version_bump_policy memory). This round adds print-convention left/right
-         running headers/footers to PDF export, a whole-book Word export alongside the
-         existing per-chapter one, and fixes a bug where the imprint page could split across
-         two physical pages with a garbage TOC page number — all new features (plus one bug
-         fix bundled into the same release), so a minor bump. -->
-    <Version>1.8.0</Version>
+         feedback_version_bump_policy memory). This round adds Kindle/KDP support to EPUB
+         export (landmarks nav + fixed cover meta), fixes a Markdig delimiter-char bug that
+         made PDF/Word misread strikethrough/highlight/subscript/superscript/definition
+         lists as bold or italic, wires up Markdown Extra heading id/class attributes and
+         custom containers, and adds a right-click "Apply Style" editor menu backed by ten
+         curated CSS styles — all new features (plus one bug fix bundled into the same
+         release), so a minor bump. -->
+    <Version>1.9.0</Version>
   </PropertyGroup>
 </Project>

@@ -15,6 +15,8 @@ The **Export** menu turns your project into a finished file. Every export runs a
 
 Produces a standards-compliant EPUB 3.3 file — the format read by Apple Books, Kobo, most e-readers, and (via conversion) Kindle. Every chapter starts on a new page, styled using the book's selected CSS template (see *Book Metadata → Style*), with that template's fonts embedded directly into the file so it looks the same on any device. Tables, images, and footnotes all render natively as clickable, reflowable HTML.
 
+The file also includes the markers Kindle Direct Publishing looks for when you upload it: the cover image is correctly linked so it shows up as the book's cover (not just its first page), and the file tells the reading system exactly where the "real" first page of the book is — so readers land on Chapter 1, not the title page, when they open it or tap "Go to Beginning."
+
 ## PDF
 
 **Export → PDF…**

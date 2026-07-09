@@ -48,5 +48,64 @@ public static class DefaultStylesheet
         .footnote-back-ref {
             text-decoration: none;
         }
+
+        /* Styles selectable from the editor's right-click "Apply Style" menu — adapted from
+           a Vellum-generated reference EPUB's stylesheet (see EditorStyleCatalog). Applied
+           via a Markdown custom container, e.g. "::: {.smallcaps} ... :::". */
+        .smallcaps {
+            font-variant: small-caps;
+            letter-spacing: 0.04em;
+        }
+
+        .underline {
+            text-decoration: underline;
+        }
+
+        .strikethrough {
+            text-decoration: line-through;
+        }
+
+        .monospace {
+            font-family: Courier, monospace;
+        }
+
+        .sans-serif {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        }
+
+        .all-caps {
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .verse {
+            padding-left: 3em;
+            padding-right: 3em;
+            font-style: italic;
+        }
+
+        .inset {
+            margin-left: 1.5em;
+            margin-right: 1.5em;
+        }
+
+        .attribution {
+            text-align: right;
+            font-size: 90%;
+            letter-spacing: 0.05em;
+            margin-top: 0.5em;
+        }
+
+        .attribution p::before {
+            content: "— ";
+        }
+
+        .drop-cap p:first-letter {
+            float: left;
+            font-size: 3.2em;
+            line-height: 0.8;
+            padding-right: 0.08em;
+            padding-top: 0.05em;
+        }
         """;
 }

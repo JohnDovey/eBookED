@@ -34,8 +34,46 @@ internal static class EpubNavDocumentWriter
                         new XAttribute(Epub + "type", "toc"),
                         new XAttribute("id", "toc"),
                         new XElement(Xhtml + "h1", "Table of Contents"),
-                        new XElement(Xhtml + "ol", listItems)))));
+                        new XElement(Xhtml + "ol", listItems)),
+                    BuildLandmarksNav(contentDocs))));
 
         return XmlOutput.ToXmlString(doc);
     }
+
+    /// <summary>
+    /// A "nav epub:type=landmarks" pointing at the title page, the table of contents, and —
+    /// critically for Kindle/KDP — the first real chapter tagged "bodymatter", which reading
+    /// systems use to decide where a book should actually open (skipping front matter). This
+    /// is the modern EPUB3-native mechanism Vellum and Amazon's own guidance both use, in
+    /// place of the older/deprecated OPF &lt;guide&gt; element.
+    /// </summary>
+    private static XElement? BuildLandmarksNav(IReadOnlyList<EpubContentDoc> contentDocs)
+    {
+        var entries = new List<XElement>();
+
+        var titlePage = contentDocs.FirstOrDefault(d => d.EpubType == "titlepage");
+        if (titlePage is not null)
+            entries.Add(LandmarkItem(titlePage.FileName, "titlepage", "Title Page"));
+
+        var tocPage = contentDocs.FirstOrDefault(d => d.EpubType == "toc");
+        if (tocPage is not null)
+            entries.Add(LandmarkItem(tocPage.FileName, "toc", "Table of Contents"));
+
+        var firstChapter = contentDocs.FirstOrDefault(d => d.EpubType == "chapter");
+        if (firstChapter is not null)
+            entries.Add(LandmarkItem(firstChapter.FileName, "bodymatter", "Start of Content"));
+
+        if (entries.Count == 0)
+            return null;
+
+        return new XElement(Xhtml + "nav",
+            new XAttribute(Epub + "type", "landmarks"),
+            new XAttribute("id", "landmarks"),
+            new XAttribute("hidden", "hidden"),
+            new XElement(Xhtml + "ol", entries));
+    }
+
+    private static XElement LandmarkItem(string href, string epubType, string label) =>
+        new(Xhtml + "li",
+            new XElement(Xhtml + "a", new XAttribute("href", href), new XAttribute(Epub + "type", epubType), label));
 }

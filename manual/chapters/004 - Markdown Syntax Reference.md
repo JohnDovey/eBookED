@@ -19,6 +19,18 @@ Start a line with one to six `#` characters to make it a heading. eBook Editor m
 ### A Sub-section
 ```
 
+### Linking to a specific heading
+
+Give any heading its own ID by adding `{#your-id}` at the end of the line, then link to it from anywhere in the same file with `[link text](#your-id)`. This is how you'd build an in-chapter index or a "back to top" link.
+
+```
+## Further Reading {#further-reading}
+
+See the [Further Reading](#further-reading) section below.
+```
+
+You can add a CSS class the same way with a dot (`{.myclass}`), or combine several: `{.myclass #further-reading lang=fr}`. This same `{...}` attribute syntax also works on fenced code blocks, links, and images — right after the closing parenthesis for links/images, e.g. `[link](url){.myclass}`.
+
 ## Emphasis
 
 ```
@@ -26,6 +38,14 @@ Plain text, *italic text*, **bold text**, and ***bold italic text***.
 ```
 
 Plain text, *italic text*, **bold text**, and ***bold italic text***.
+
+### Strikethrough, highlight, subscript, and superscript
+
+```
+~~struck through~~, ==highlighted==, H~2~O, and E=mc^2^.
+```
+
+~~struck through~~, ==highlighted==, H~2~O, and E=mc^2^.
 
 ## Lists
 
@@ -40,6 +60,28 @@ Bullet lists start each line with `-` (or `*`); numbered lists start each line w
 2. Step two
 3. Step three
 ```
+
+### Task lists
+
+```
+- [x] Done task
+- [ ] Not done yet
+```
+
+- [x] Done task
+- [ ] Not done yet
+
+## Definition lists
+
+A term, then a colon and at least three spaces before its definition on the next line. Multiple `:` lines under the same term become multiple definitions.
+
+```
+Markdown
+:   A lightweight markup language for formatted plain text.
+```
+
+Markdown
+:   A lightweight markup language for formatted plain text.
 
 ## Links
 
@@ -128,6 +170,18 @@ def greet(name):
     return f"Hello, {name}!"
 ```
 ````
+
+## Styled blocks
+
+Wrap a paragraph (or several) in a fenced block of colons with a class name to apply a named style, hooked to a matching CSS rule in the book's template:
+
+```
+::: {.smallcaps}
+This paragraph renders in small caps.
+:::
+```
+
+You don't have to remember this syntax — right-click any selected text in the editor and choose **Apply Style** for a menu of the styles eBook Editor ships with (Small Caps, Underline, Strikethrough, Monospace, Sans-serif, All Caps, Verse, Inset, Attribution, Drop Cap), and it writes the `:::` block around your selection for you. See *Book Metadata → Style* for how the underlying CSS classes are defined.
 
 ## Line breaks
 

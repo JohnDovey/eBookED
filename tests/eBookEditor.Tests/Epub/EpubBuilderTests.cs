@@ -285,6 +285,13 @@ public class EpubBuilderTests : IDisposable
         return XDocument.Parse(reader.ReadToEnd());
     }
 
+    private static XDocument ReadEntry(string epubPath, string entryName)
+    {
+        using var archive = ZipFile.OpenRead(epubPath);
+        using var reader = new StreamReader(archive.GetEntry(entryName)!.Open());
+        return XDocument.Parse(reader.ReadToEnd());
+    }
+
     [Fact]
     public void Build_EmitsFileAsRefinementWhenContributorHasSortName()
     {
@@ -343,5 +350,57 @@ public class EpubBuilderTests : IDisposable
             .SingleOrDefault(m => (string?)m.Attribute("name") == "generator");
         Assert.NotNull(generator);
         Assert.StartsWith("eBook Editor", (string?)generator!.Attribute("content"));
+    }
+
+    [Fact]
+    public void Build_CoverMetaTag_ReferencesTheActualManifestItemId()
+    {
+        // Regression test: the legacy <meta name="cover"> tag (still read by some Kindle/KDP
+        // conversion paths) used to hard-code content="cover-image" — the manifest item's
+        // "properties" *value*, not any item's actual "id" — so it never resolved to
+        // anything real.
+        var project = BuildSampleProject();
+        File.WriteAllBytes(Path.Combine(project.ImagesDir, "cover.jpg"), [0xFF, 0xD8, 0xFF, 0xD9]);
+        project.ProjectFile.Metadata = project.Metadata with { CoverImagePath = "images/cover.jpg" };
+        _projectService.SaveProject(project);
+
+        var outputPath = Path.Combine(project.OutputDir, "book.epub");
+        _epubBuilder.Build(project, outputPath);
+
+        var opfXml = ReadPackageOpf(outputPath);
+        XNamespace opf = "http://www.idpf.org/2007/opf";
+
+        var coverMeta = opfXml.Descendants(opf + "meta").Single(m => (string?)m.Attribute("name") == "cover");
+        var referencedId = (string?)coverMeta.Attribute("content");
+
+        var coverItem = opfXml.Descendants(opf + "item")
+            .Single(i => (string?)i.Attribute("properties") == "cover-image");
+
+        Assert.Equal((string?)coverItem.Attribute("id"), referencedId);
+    }
+
+    [Fact]
+    public void Build_NavDocument_IncludesLandmarksWithBodymatterStartOfContent()
+    {
+        var project = BuildSampleProject();
+        var outputPath = Path.Combine(project.OutputDir, "book.epub");
+
+        _epubBuilder.Build(project, outputPath);
+
+        var navXml = ReadEntry(outputPath, "OEBPS/nav.xhtml");
+        XNamespace xhtml = "http://www.w3.org/1999/xhtml";
+        XNamespace epub = "http://www.idpf.org/2007/ops";
+
+        var landmarksNav = navXml.Descendants(xhtml + "nav")
+            .Single(n => (string?)n.Attribute(epub + "type") == "landmarks");
+
+        var bodymatterLink = landmarksNav.Descendants(xhtml + "a")
+            .Single(a => (string?)a.Attribute(epub + "type") == "bodymatter");
+
+        // The sample project's only chapter is content-004.xhtml (title, imprint, toc come
+        // first); the landmark must point at the real first chapter, not front matter.
+        Assert.EndsWith(".xhtml", (string?)bodymatterLink.Attribute("href"));
+        Assert.Contains(landmarksNav.Descendants(xhtml + "a"), a => (string?)a.Attribute(epub + "type") == "titlepage");
+        Assert.Contains(landmarksNav.Descendants(xhtml + "a"), a => (string?)a.Attribute(epub + "type") == "toc");
     }
 }

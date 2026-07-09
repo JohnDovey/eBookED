@@ -20,7 +20,10 @@ Generated pages — the title page, imprint, table of contents, and About the Au
 
 ## The right-click menu
 
-Right-click anywhere in the editor while in Edit mode for a context menu with **Insert Table…**, which opens a visual table builder — see *Inserting Tables the Easy Way*.
+Right-click anywhere in the editor while in Edit mode for a context menu with:
+
+- **Insert Table…** — opens a visual table builder. See *Inserting Tables the Easy Way*.
+- **Apply Style** — select some text first, then right-click and choose a style from the list (Small Caps, Underline, Strikethrough, Monospace, Sans-serif, All Caps, Verse, Inset, Attribution, Drop Cap). It wraps your selection in the Markdown needed to hook it to that style, with no syntax to remember. See *Markdown Syntax Reference → Styled blocks*, next.
 
 ## Formatting your text
 

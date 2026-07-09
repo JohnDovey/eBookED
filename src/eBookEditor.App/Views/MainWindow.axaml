@@ -126,8 +126,9 @@
                          ShowLineNumbers="True"
                          WordWrap="True">
             <ae:TextEditor.ContextMenu>
-              <ContextMenu>
+              <ContextMenu Opened="OnEditorContextMenuOpened">
                 <MenuItem Header="Insert Table…" Click="OnInsertTableClick" />
+                <MenuItem Header="Apply Style" x:Name="ApplyStyleMenuItem" />
               </ContextMenu>
             </ae:TextEditor.ContextMenu>
           </ae:TextEditor>

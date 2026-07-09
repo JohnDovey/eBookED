@@ -6,7 +6,10 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using eBookEditor.Markdown.Services;
 using MdFootnote = Markdig.Extensions.Footnotes.Footnote;
+using Markdig.Extensions.CustomContainers;
+using Markdig.Extensions.DefinitionLists;
 using Markdig.Extensions.Footnotes;
+using Markdig.Extensions.TaskLists;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
@@ -20,15 +23,17 @@ namespace eBookEditor.DocxImport.Services;
 /// Converts a chapter's (or, fed MarkdownExportService.ExportWholeBook's output, a whole
 /// book's) Markdown into a .docx file — the reverse of DocxImportService. Handles headings
 /// (mapped to Word's built-in Heading1-3 styles, so a round-tripped export re-imports with
-/// the same chapter structure), paragraphs with bold/italic/link runs, bullet/numbered
-/// lists, tables, images (resolved against <paramref name="sourceDir"/> in ConvertToFile),
-/// fenced/indented code blocks (monospace, one Run per line since Word Text elements don't
-/// respect embedded newlines), footnotes as real Word footnotes (FootnotesPart/
-/// FootnoteReference), and "---" thematic breaks as page breaks (matching how
-/// ExportWholeBook separates front matter/chapters/back matter). List items are rendered as
-/// "•"/"1." prefixed paragraphs rather than native Word list numbering, which needs a full
-/// NumberingDefinitionsPart — a reasonable simplification since the visual result reads the
-/// same.
+/// the same chapter structure), paragraphs with bold/italic/strikethrough/highlight/
+/// subscript/superscript/link runs, task lists, definition lists, bullet/numbered lists,
+/// tables, images (resolved against <paramref name="sourceDir"/> in ConvertToFile), fenced/
+/// indented code blocks (monospace, one Run per line since Word Text elements don't respect
+/// embedded newlines), custom containers (":::" fenced divs — rendered by recursing into
+/// their content; the CSS class they carry is EPUB-only, Word has no stylesheet to consult),
+/// footnotes as real Word footnotes (FootnotesPart/FootnoteReference), and "---" thematic
+/// breaks as page breaks (matching how ExportWholeBook separates front matter/chapters/back
+/// matter). List items are rendered as "•"/"1." prefixed paragraphs rather than native Word
+/// list numbering, which needs a full NumberingDefinitionsPart — a reasonable simplification
+/// since the visual result reads the same.
 /// </summary>
 public class MarkdownToDocxConverter
 {
@@ -89,6 +94,15 @@ public class MarkdownToDocxConverter
                 AppendFootnotesPart(mainPart, group);
                 break;
 
+            case DefinitionList definitionList:
+                AppendDefinitionList(body, definitionList, mainPart);
+                break;
+
+            case CustomContainer container:
+                foreach (var child in container)
+                    AppendBlock(body, child, mainPart, sourceDir);
+                break;
+
             // MarkdownExportService.ExportWholeBook separates front matter/chapters/back
             // matter with a "---" thematic break; rendering it as a page break here gives a
             // whole-book Word export the same "every section starts on a new page"
@@ -101,6 +115,28 @@ public class MarkdownToDocxConverter
                 foreach (var child in quote)
                     AppendBlock(body, child, mainPart, sourceDir);
                 break;
+        }
+    }
+
+    private static void AppendDefinitionList(Body body, DefinitionList definitionList, MainDocumentPart mainPart)
+    {
+        foreach (var item in definitionList.OfType<DefinitionItem>())
+        {
+            foreach (var child in item)
+            {
+                if (child is DefinitionTerm term)
+                {
+                    var paragraph = new Paragraph();
+                    AppendInlines(paragraph, term.Inline, mainPart, bold: true, italic: false);
+                    body.Append(paragraph);
+                }
+                else if (child is ParagraphBlock { Inline: not null } definition)
+                {
+                    var paragraph = new Paragraph(new ParagraphProperties(new Indentation { Left = "720" }));
+                    AppendInlines(paragraph, definition.Inline, mainPart, bold: false, italic: false);
+                    body.Append(paragraph);
+                }
+            }
         }
     }
 
@@ -292,7 +328,9 @@ public class MarkdownToDocxConverter
         footnotesPart.Footnotes = footnotesRoot;
     }
 
-    private static void AppendInlines(Paragraph parent, ContainerInline? container, MainDocumentPart mainPart, bool bold, bool italic)
+    private static void AppendInlines(
+        Paragraph parent, ContainerInline? container, MainDocumentPart mainPart, bool bold, bool italic,
+        bool strikethrough = false, bool underline = false, bool highlight = false, bool subscript = false, bool superscript = false)
     {
         if (container is null)
             return;
@@ -302,24 +340,33 @@ public class MarkdownToDocxConverter
             switch (inline)
             {
                 case LiteralInline literal:
-                    parent.Append(RunFor(literal.Content.ToString(), bold, italic));
+                    parent.Append(RunFor(literal.Content.ToString(), bold, italic, strikethrough, underline, highlight, subscript, superscript));
                     break;
 
                 case CodeInline code:
-                    parent.Append(RunFor(code.Content, bold, italic));
+                    parent.Append(RunFor(code.Content, bold, italic, strikethrough, underline, highlight, subscript, superscript));
                     break;
 
+                // EmphasisExtras (~~strikethrough~~, ==highlight==, ~subscript~, ^superscript^,
+                // ++inserted++) all parse as EmphasisInline too, distinguished only by
+                // DelimiterChar — checking just DelimiterCount (as this used to) misreads
+                // every one of them as bold/italic instead.
                 case EmphasisInline emphasis:
                     AppendInlines(
                         parent, emphasis, mainPart,
-                        bold: bold || emphasis.DelimiterCount is 2 or 3,
-                        italic: italic || emphasis.DelimiterCount is 1 or 3);
+                        bold: bold || (emphasis.DelimiterChar is '*' or '_' && emphasis.DelimiterCount is 2 or 3),
+                        italic: italic || (emphasis.DelimiterChar is '*' or '_' && emphasis.DelimiterCount is 1 or 3),
+                        strikethrough: strikethrough || emphasis.DelimiterChar == '~' && emphasis.DelimiterCount == 2,
+                        underline: underline || emphasis.DelimiterChar == '+',
+                        highlight: highlight || emphasis.DelimiterChar == '=',
+                        subscript: subscript || emphasis.DelimiterChar == '~' && emphasis.DelimiterCount == 1,
+                        superscript: superscript || emphasis.DelimiterChar == '^' && emphasis.DelimiterCount == 1);
                     break;
 
                 case LinkInline { IsImage: false } link:
                     var relationshipId = mainPart.AddHyperlinkRelationship(
                         new Uri(link.Url ?? string.Empty, UriKind.RelativeOrAbsolute), true).Id;
-                    parent.Append(new Hyperlink(RunFor(PlainText(link), bold, italic)) { Id = relationshipId });
+                    parent.Append(new Hyperlink(RunFor(PlainText(link), bold, italic, strikethrough, underline, highlight, subscript, superscript)) { Id = relationshipId });
                     break;
 
                 case FootnoteLink { IsBackLink: false } footnoteLink:
@@ -328,27 +375,36 @@ public class MarkdownToDocxConverter
                         new FootnoteReference { Id = footnoteLink.Footnote.Order }));
                     break;
 
+                case TaskList taskList:
+                    parent.Append(RunFor(taskList.Checked ? "☑ " : "☐ ", bold, italic, strikethrough, underline, highlight, subscript, superscript));
+                    break;
+
                 case LineBreakInline:
                     parent.Append(new Run(new Break()));
                     break;
 
                 case ContainerInline nested:
-                    AppendInlines(parent, nested, mainPart, bold, italic);
+                    AppendInlines(parent, nested, mainPart, bold, italic, strikethrough, underline, highlight, subscript, superscript);
                     break;
             }
         }
     }
 
-    private static Run RunFor(string text, bool bold, bool italic)
+    private static Run RunFor(
+        string text, bool bold, bool italic,
+        bool strikethrough = false, bool underline = false, bool highlight = false, bool subscript = false, bool superscript = false)
     {
         var run = new Run();
-        if (bold || italic)
-        {
-            var properties = new RunProperties();
-            if (bold) properties.Append(new Bold());
-            if (italic) properties.Append(new Italic());
+        var properties = new RunProperties();
+        if (bold) properties.Append(new Bold());
+        if (italic) properties.Append(new Italic());
+        if (strikethrough) properties.Append(new Strike());
+        if (underline) properties.Append(new Underline { Val = UnderlineValues.Single });
+        if (highlight) properties.Append(new Highlight { Val = HighlightColorValues.Yellow });
+        if (subscript) properties.Append(new VerticalTextAlignment { Val = VerticalPositionValues.Subscript });
+        if (superscript) properties.Append(new VerticalTextAlignment { Val = VerticalPositionValues.Superscript });
+        if (properties.HasChildren)
             run.Append(properties);
-        }
         run.Append(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
         return run;
     }

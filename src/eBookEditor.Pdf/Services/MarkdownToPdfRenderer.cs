@@ -1,5 +1,8 @@
 using eBookEditor.Markdown.Services;
+using Markdig.Extensions.CustomContainers;
+using Markdig.Extensions.DefinitionLists;
 using Markdig.Extensions.Footnotes;
+using Markdig.Extensions.TaskLists;
 using Markdig.Extensions.Tables;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
@@ -11,15 +14,17 @@ namespace eBookEditor.Pdf.Services;
 
 /// <summary>
 /// Renders a chapter/page's Markdown body into a QuestPDF column — headings, paragraphs with
-/// bold/italic/link runs, bullet/numbered lists (as prefixed paragraphs), tables, images
-/// (resolved against <paramref name="sourceDir"/>), fenced/indented code blocks, and
-/// footnotes. Markdig collects every footnote definition for a document into one
-/// FootnoteGroup block at the end — since each chapter is parsed independently, that
-/// naturally becomes a "Notes" section at the end of each chapter here, the same way the
-/// EPUB's HTML renderer places them. True page-bottom footnotes (reflowing exactly onto
-/// whichever physical page referenced them) would need a custom paginator; out of proportion
-/// for this app, so this is an endnotes-per-chapter rendering instead — a common, acceptable
-/// print convention.
+/// bold/italic/strikethrough/highlight/subscript/superscript/link runs, task lists,
+/// definition lists, bullet/numbered lists (as prefixed paragraphs), tables, images
+/// (resolved against <paramref name="sourceDir"/>), fenced/indented code blocks, custom
+/// containers (":::" fenced divs — rendered by recursing into their content; the CSS class
+/// they carry is EPUB-only since this renderer has no stylesheet to consult), and footnotes.
+/// Markdig collects every footnote definition for a document into one FootnoteGroup block at
+/// the end — since each chapter is parsed independently, that naturally becomes a "Notes"
+/// section at the end of each chapter here, the same way the EPUB's HTML renderer places
+/// them. True page-bottom footnotes (reflowing exactly onto whichever physical page
+/// referenced them) would need a custom paginator; out of proportion for this app, so this
+/// is an endnotes-per-chapter rendering instead — a common, acceptable print convention.
 /// </summary>
 internal class MarkdownToPdfRenderer
 {
@@ -92,10 +97,39 @@ internal class MarkdownToPdfRenderer
                 RenderFootnotes(column, group);
                 break;
 
+            case DefinitionList definitionList:
+                RenderDefinitionList(column, definitionList);
+                break;
+
+            case CustomContainer container:
+                foreach (var child in container)
+                    RenderBlock(column, child, null, sourceDir, headingFontFamily);
+                break;
+
             case QuoteBlock quote:
                 foreach (var child in quote)
                     RenderBlock(column, child, null, sourceDir, headingFontFamily);
                 break;
+        }
+    }
+
+    private static void RenderDefinitionList(ColumnDescriptor column, DefinitionList definitionList)
+    {
+        foreach (var item in definitionList.OfType<DefinitionItem>())
+        {
+            foreach (var child in item)
+            {
+                if (child is DefinitionTerm term)
+                {
+                    column.Item().PaddingTop(6).Text(text =>
+                        RenderInlines(text, term.Inline, bold: true, italic: false, fontSize: 11));
+                }
+                else if (child is ParagraphBlock { Inline: not null } definition)
+                {
+                    column.Item().PaddingLeft(16).PaddingBottom(2).Text(text =>
+                        RenderInlines(text, definition.Inline, bold: false, italic: false, fontSize: 11));
+                }
+            }
         }
     }
 
@@ -198,7 +232,9 @@ internal class MarkdownToPdfRenderer
         }
     }
 
-    private static void RenderInlines(TextDescriptor text, ContainerInline? container, bool bold, bool italic, float fontSize, string? fontFamily = null)
+    private static void RenderInlines(
+        TextDescriptor text, ContainerInline? container, bool bold, bool italic, float fontSize, string? fontFamily = null,
+        bool strikethrough = false, bool underline = false, bool highlight = false, bool subscript = false, bool superscript = false)
     {
         if (container is null)
             return;
@@ -208,27 +244,40 @@ internal class MarkdownToPdfRenderer
             switch (inline)
             {
                 case LiteralInline literal:
-                    Style(text.Span(literal.Content.ToString()), bold, italic, fontSize, fontFamily);
+                    Style(text.Span(literal.Content.ToString()), bold, italic, fontSize, fontFamily, strikethrough, underline, highlight, subscript, superscript);
                     break;
 
                 case CodeInline code:
-                    Style(text.Span(code.Content), bold, italic, fontSize, fontFamily);
+                    Style(text.Span(code.Content), bold, italic, fontSize, fontFamily, strikethrough, underline, highlight, subscript, superscript);
                     break;
 
+                // EmphasisExtras (~~strikethrough~~, ==highlight==, ~subscript~, ^superscript^,
+                // ++inserted++) all parse as EmphasisInline too, distinguished only by
+                // DelimiterChar — checking just DelimiterCount (as this used to) misreads
+                // every one of them as bold/italic instead.
                 case EmphasisInline emphasis:
                     RenderInlines(
                         text, emphasis,
-                        bold: bold || emphasis.DelimiterCount is 2 or 3,
-                        italic: italic || emphasis.DelimiterCount is 1 or 3,
-                        fontSize, fontFamily);
+                        bold: bold || (emphasis.DelimiterChar is '*' or '_' && emphasis.DelimiterCount is 2 or 3),
+                        italic: italic || (emphasis.DelimiterChar is '*' or '_' && emphasis.DelimiterCount is 1 or 3),
+                        fontSize, fontFamily,
+                        strikethrough: strikethrough || emphasis.DelimiterChar == '~' && emphasis.DelimiterCount == 2,
+                        underline: underline || emphasis.DelimiterChar == '+',
+                        highlight: highlight || emphasis.DelimiterChar == '=',
+                        subscript: subscript || emphasis.DelimiterChar == '~' && emphasis.DelimiterCount == 1,
+                        superscript: superscript || emphasis.DelimiterChar == '^' && emphasis.DelimiterCount == 1);
                     break;
 
                 case LinkInline { IsImage: false } link:
-                    Style(text.Hyperlink(PlainText(link), link.Url ?? string.Empty), bold, italic, fontSize, fontFamily);
+                    Style(text.Hyperlink(PlainText(link), link.Url ?? string.Empty), bold, italic, fontSize, fontFamily, strikethrough, underline, highlight, subscript, superscript);
                     break;
 
                 case FootnoteLink { IsBackLink: false } footnoteLink:
                     text.Span(footnoteLink.Footnote.Order.ToString()).FontSize(fontSize * 0.75f).Superscript();
+                    break;
+
+                case TaskList taskList:
+                    Style(text.Span(taskList.Checked ? "☑ " : "☐ "), bold, italic, fontSize, fontFamily, strikethrough, underline, highlight, subscript, superscript);
                     break;
 
                 case LineBreakInline:
@@ -236,18 +285,25 @@ internal class MarkdownToPdfRenderer
                     break;
 
                 case ContainerInline nested:
-                    RenderInlines(text, nested, bold, italic, fontSize, fontFamily);
+                    RenderInlines(text, nested, bold, italic, fontSize, fontFamily, strikethrough, underline, highlight, subscript, superscript);
                     break;
             }
         }
     }
 
-    private static void Style(TextSpanDescriptor span, bool bold, bool italic, float fontSize, string? fontFamily = null)
+    private static void Style(
+        TextSpanDescriptor span, bool bold, bool italic, float fontSize, string? fontFamily,
+        bool strikethrough, bool underline, bool highlight, bool subscript, bool superscript)
     {
         span.FontSize(fontSize);
         if (fontFamily is not null) span.FontFamily(fontFamily);
         if (bold) span.Bold();
         if (italic) span.Italic();
+        if (strikethrough) span.Strikethrough();
+        if (underline) span.Underline();
+        if (highlight) span.BackgroundColor(Colors.Yellow.Lighten2);
+        if (subscript) span.Subscript();
+        if (superscript) span.Superscript();
     }
 
     private static string PlainText(ContainerInline? container)
