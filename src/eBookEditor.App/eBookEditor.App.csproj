@@ -16,6 +16,10 @@
     <!-- Ships with the app so custom templates (e.g. "Vellum Serif") survive rebuilds;
          TemplateService still auto-seeds "Default" at runtime if the folder is ever empty. -->
     <None Include="templates\**" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Fonts referenced by @font-face rules in shipped templates (e.g. "Vellum Serif"),
+         embedded into exported EPUBs by FontService/EpubBuilder and installed on the host
+         system when the template is selected. -->
+    <None Include="fonts\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

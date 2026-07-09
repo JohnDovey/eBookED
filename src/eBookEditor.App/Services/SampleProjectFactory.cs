@@ -26,7 +26,7 @@ public static class SampleProjectFactory
         {
             Title = "My Sample Book",
             Subtitle = "An eBook Editor Demo",
-            Contributors = [new Contributor("Jane Author", ContributorRole.Author)],
+            Contributors = [new Contributor("Jane", "Author", ContributorRole.Author)],
             CopyrightHolder = "Jane Author",
             CopyrightYear = DateTime.UtcNow.Year,
             Language = "en",

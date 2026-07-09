@@ -29,8 +29,8 @@ public class PageGeneratorServiceTests : IDisposable
         Subtitle = "A Story",
         Contributors =
         [
-            new Contributor("Jane Doe", ContributorRole.Author),
-            new Contributor("John Smith", ContributorRole.Editor)
+            new Contributor("Jane", "Doe", ContributorRole.Author),
+            new Contributor("John", "Smith", ContributorRole.Editor)
         ],
         CopyrightHolder = "Jane Doe",
         CopyrightYear = 2026,

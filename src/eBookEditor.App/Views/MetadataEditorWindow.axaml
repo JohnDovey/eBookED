@@ -25,8 +25,8 @@
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:ContributorEntry">
               <Grid ColumnDefinitions="*,*,Auto" Margin="0,0,0,4">
-                <TextBox Grid.Column="0" Watermark="Name" Text="{Binding Name}" Margin="0,0,4,0" />
-                <TextBox Grid.Column="1" Watermark="Sort name (optional, e.g. Doe, Jane)" Text="{Binding SortName}" Margin="0,0,4,0" />
+                <TextBox Grid.Column="0" Watermark="First name" Text="{Binding FirstName}" Margin="0,0,4,0" />
+                <TextBox Grid.Column="1" Watermark="Last name" Text="{Binding LastName}" Margin="0,0,4,0" />
                 <Button Grid.Column="2" Content="✕" Click="OnRemoveAuthorClick" />
               </Grid>
             </DataTemplate>
@@ -39,8 +39,8 @@
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:ContributorEntry">
               <Grid ColumnDefinitions="*,*,Auto" Margin="0,0,0,4">
-                <TextBox Grid.Column="0" Watermark="Name" Text="{Binding Name}" Margin="0,0,4,0" />
-                <TextBox Grid.Column="1" Watermark="Sort name (optional)" Text="{Binding SortName}" Margin="0,0,4,0" />
+                <TextBox Grid.Column="0" Watermark="First name" Text="{Binding FirstName}" Margin="0,0,4,0" />
+                <TextBox Grid.Column="1" Watermark="Last name" Text="{Binding LastName}" Margin="0,0,4,0" />
                 <Button Grid.Column="2" Content="✕" Click="OnRemoveEditorClick" />
               </Grid>
             </DataTemplate>
@@ -53,8 +53,8 @@
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:ContributorEntry">
               <Grid ColumnDefinitions="*,*,Auto" Margin="0,0,0,4">
-                <TextBox Grid.Column="0" Watermark="Name" Text="{Binding Name}" Margin="0,0,4,0" />
-                <TextBox Grid.Column="1" Watermark="Sort name (optional)" Text="{Binding SortName}" Margin="0,0,4,0" />
+                <TextBox Grid.Column="0" Watermark="First name" Text="{Binding FirstName}" Margin="0,0,4,0" />
+                <TextBox Grid.Column="1" Watermark="Last name" Text="{Binding LastName}" Margin="0,0,4,0" />
                 <Button Grid.Column="2" Content="✕" Click="OnRemoveIllustratorClick" />
               </Grid>
             </DataTemplate>
@@ -64,7 +64,8 @@
 
         <TextBlock Text="Style" FontWeight="Bold" FontSize="16" Margin="0,12,0,0" />
         <ComboBox ItemsSource="{Binding AvailableTemplates}" SelectedItem="{Binding SelectedTemplate}"
-                  DropDownOpened="OnTemplateDropDownOpened" HorizontalAlignment="Stretch" />
+                  DropDownOpened="OnTemplateDropDownOpened" SelectionChanged="OnTemplateSelectionChanged"
+                  HorizontalAlignment="Stretch" />
 
         <TextBlock Text="Copyright &amp; Publishing" FontWeight="Bold" FontSize="16" Margin="0,12,0,0" />
         <TextBox Watermark="Copyright holder" Text="{Binding CopyrightHolder}" />

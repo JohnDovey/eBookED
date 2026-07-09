@@ -13,6 +13,7 @@ internal static class EpubPackageDocumentWriter
         BookMetadata metadata,
         IReadOnlyList<EpubContentDoc> contentDocs,
         IReadOnlyDictionary<string, string> imageFiles,
+        IReadOnlyList<string> fontFileNames,
         string? coverImageFileName,
         string uniqueIdentifier)
     {
@@ -44,7 +45,7 @@ internal static class EpubPackageDocumentWriter
                     relatorCode));
             }
 
-            if (!string.IsNullOrWhiteSpace(contributor.SortName))
+            if (!string.IsNullOrWhiteSpace(contributor.LastName))
             {
                 metadataElements.Add(new XElement(Opf + "meta",
                     new XAttribute("refines", $"#{id}"),
@@ -103,6 +104,14 @@ internal static class EpubPackageDocumentWriter
             if (isCover)
                 item.Add(new XAttribute("properties", "cover-image"));
             manifestItems.Add(item);
+        }
+
+        foreach (var fontFileName in fontFileNames)
+        {
+            manifestItems.Add(new XElement(Opf + "item",
+                new XAttribute("id", $"font-{SanitizeId(fontFileName)}"),
+                new XAttribute("href", $"fonts/{fontFileName}"),
+                new XAttribute("media-type", MediaTypeResolver.ForFont(fontFileName))));
         }
 
         var spineItems = contentDocs.Select(doc =>

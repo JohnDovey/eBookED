@@ -15,7 +15,10 @@
     <TextBlock Text="New eBook Project" FontWeight="Bold" FontSize="18" Margin="0,0,0,8" />
 
     <TextBox Watermark="Book title" Text="{Binding ProjectName}" />
-    <TextBox Watermark="Author name" Text="{Binding AuthorName}" />
+    <Grid ColumnDefinitions="*,*">
+      <TextBox Grid.Column="0" Watermark="Author first name" Text="{Binding AuthorFirstName}" Margin="0,0,6,0" />
+      <TextBox Grid.Column="1" Watermark="Author last name" Text="{Binding AuthorLastName}" />
+    </Grid>
 
     <Grid ColumnDefinitions="*,Auto">
       <TextBox Grid.Column="0" Watermark="Save location" Text="{Binding Location}" IsReadOnly="True" Margin="0,0,6,0" />

@@ -45,14 +45,16 @@ public partial class NewProjectWizardWindow : Window
 
         try
         {
-            var authorName = ViewModel.AuthorName.Trim();
+            var authorFirstName = ViewModel.AuthorFirstName.Trim();
+            var authorLastName = ViewModel.AuthorLastName.Trim();
+            var authorFullName = $"{authorFirstName} {authorLastName}".Trim();
             var metadata = new BookMetadata
             {
                 Title = ViewModel.ProjectName.Trim(),
-                Contributors = string.IsNullOrWhiteSpace(authorName)
+                Contributors = string.IsNullOrWhiteSpace(authorFullName)
                     ? []
-                    : [new Contributor(authorName, ContributorRole.Author)],
-                CopyrightHolder = authorName,
+                    : [new Contributor(authorFirstName, authorLastName, ContributorRole.Author)],
+                CopyrightHolder = authorFullName,
                 CopyrightYear = DateTime.UtcNow.Year,
                 Language = "en"
             };

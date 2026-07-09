@@ -20,6 +20,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly TemplateService _templateService;
     private readonly EpubBuilder _epubBuilder;
     private readonly AppSettingsService _appSettingsService;
+    private readonly FontInstallerService _fontInstallerService;
 
     public EditorViewModel Editor { get; } = new();
     public MetadataViewModel Metadata { get; } = new();
@@ -43,12 +44,17 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public IReadOnlyList<SpineItem> SpineItems => CurrentProject.Spine.OrderBy(i => i.Order).ToList();
 
-    public MainWindowViewModel(EbookProject project, AppSettingsService? appSettingsService = null, TemplateService? templateService = null)
+    public MainWindowViewModel(
+        EbookProject project,
+        AppSettingsService? appSettingsService = null,
+        TemplateService? templateService = null,
+        FontInstallerService? fontInstallerService = null)
     {
         _currentProject = project;
         _appSettingsService = appSettingsService ?? new AppSettingsService(new AppPaths());
         _templateService = templateService ?? new TemplateService();
         _epubBuilder = new EpubBuilder(_templateService);
+        _fontInstallerService = fontInstallerService ?? new FontInstallerService();
         Metadata.LoadFrom(project.Metadata);
 
         if (FindTitlePageItem(project) is { } titlePage)
@@ -68,6 +74,18 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     public void RefreshAvailableTemplates() => Metadata.RefreshAvailableTemplates(_templateService);
+
+    /// <summary>
+    /// Installs any fonts the given template's stylesheet requires onto the host system if
+    /// they aren't there yet. Called whenever the template picker's selection changes.
+    /// </summary>
+    public void EnsureTemplateFontsInstalled(string? templateName)
+    {
+        var css = _templateService.GetTemplateCss(templateName);
+        var installed = _fontInstallerService.EnsureFontsInstalled(css);
+        if (installed.Count > 0)
+            StatusMessage = $"Installed font(s): {string.Join(", ", installed)}";
+    }
 
     [RelayCommand]
     private void SaveProject()
@@ -103,13 +121,13 @@ public partial class MainWindowViewModel : ViewModelBase
         var settings = _appSettingsService.Load();
 
         if (Metadata.Authors.Count == 0 && settings.KnownAuthorNames.Count > 0)
-            Metadata.Authors.Add(new ContributorEntry { Name = settings.KnownAuthorNames[0] });
+            Metadata.Authors.Add(ContributorEntry.FromFullName(settings.KnownAuthorNames[0]));
 
         if (Metadata.Editors.Count == 0 && settings.KnownEditorNames.Count > 0)
-            Metadata.Editors.Add(new ContributorEntry { Name = settings.KnownEditorNames[0] });
+            Metadata.Editors.Add(ContributorEntry.FromFullName(settings.KnownEditorNames[0]));
 
         if (Metadata.Illustrators.Count == 0 && settings.KnownIllustratorNames.Count > 0)
-            Metadata.Illustrators.Add(new ContributorEntry { Name = settings.KnownIllustratorNames[0] });
+            Metadata.Illustrators.Add(ContributorEntry.FromFullName(settings.KnownIllustratorNames[0]));
 
         if (string.IsNullOrWhiteSpace(Metadata.PublisherName) && settings.KnownPublishers.Count > 0)
         {

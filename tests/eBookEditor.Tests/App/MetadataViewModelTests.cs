@@ -44,15 +44,15 @@ public class MetadataViewModelTests
     }
 
     [Fact]
-    public void LoadFromThenToMetadata_RoundTripsContributorSortNameAndAllLists()
+    public void LoadFromThenToMetadata_RoundTripsContributorNamesAndAllLists()
     {
         var original = new BookMetadata
         {
             Title = "Round Trip",
             Contributors =
             [
-                new Contributor("Jane Doe", ContributorRole.Author, "Doe, Jane"),
-                new Contributor("Ed Itor", ContributorRole.Editor)
+                new Contributor("Jane", "Doe", ContributorRole.Author),
+                new Contributor("Ed", "Itor", ContributorRole.Editor)
             ],
             GenreTags = ["Fantasy", "Adventure"],
             FreeTags = ["debut"],
@@ -67,9 +67,9 @@ public class MetadataViewModelTests
         var vm = new MetadataViewModel();
         vm.LoadFrom(original);
 
-        Assert.Equal("Jane Doe", vm.Authors.Single().Name);
-        Assert.Equal("Doe, Jane", vm.Authors.Single().SortName);
-        Assert.Equal("Ed Itor", vm.Editors.Single().Name);
+        Assert.Equal("Jane", vm.Authors.Single().FirstName);
+        Assert.Equal("Doe", vm.Authors.Single().LastName);
+        Assert.Equal("Ed", vm.Editors.Single().FirstName);
         Assert.Equal(["Fantasy", "Adventure"], vm.GenreTags.Select(t => t.Value));
 
         var roundTripped = vm.ToMetadata();
@@ -88,7 +88,7 @@ public class MetadataViewModelTests
     public void ToMetadata_SkipsBlankRows()
     {
         var vm = new MetadataViewModel { Title = "Blank Rows" };
-        vm.Authors.Add(new ContributorEntry { Name = "" });
+        vm.Authors.Add(new ContributorEntry());
         vm.GenreTags.Add(new TagEntry { Value = "  " });
         vm.SocialLinks.Add(new SocialLinkEntry { Platform = "Twitter", Url = "" });
 

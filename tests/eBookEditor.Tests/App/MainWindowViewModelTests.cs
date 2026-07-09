@@ -254,8 +254,8 @@ public class MainWindowViewModelTests : IDisposable
     public void SaveMetadataAndRegenerate_RecordsContributorsAndPublisherInAppSettings()
     {
         var vm = NewViewModel();
-        vm.Metadata.Authors.Add(new ContributorEntry { Name = "Jane Doe" });
-        vm.Metadata.Editors.Add(new ContributorEntry { Name = "Ed Itor" });
+        vm.Metadata.Authors.Add(new ContributorEntry { FirstName = "Jane", LastName = "Doe" });
+        vm.Metadata.Editors.Add(new ContributorEntry { FirstName = "Ed", LastName = "Itor" });
         vm.Metadata.PublisherName = "Acme Press";
 
         vm.SaveMetadataAndRegenerate();
@@ -270,18 +270,20 @@ public class MainWindowViewModelTests : IDisposable
     public void ApplyAutofillDefaultsIfEmpty_FillsOnlyEmptyFieldsFromKnownAppSettings()
     {
         var firstProject = NewViewModel("First Book");
-        firstProject.Metadata.Authors.Add(new ContributorEntry { Name = "Jane Doe" });
+        firstProject.Metadata.Authors.Add(new ContributorEntry { FirstName = "Jane", LastName = "Doe" });
         firstProject.Metadata.PublisherName = "Acme Press";
         firstProject.SaveMetadataAndRegenerate();
 
         var secondProject = NewViewModel("Second Book");
-        secondProject.Metadata.Editors.Add(new ContributorEntry { Name = "Already Set Editor" });
+        secondProject.Metadata.Editors.Add(new ContributorEntry { FirstName = "Already Set", LastName = "Editor" });
 
         secondProject.ApplyAutofillDefaultsIfEmpty();
 
-        Assert.Equal("Jane Doe", secondProject.Metadata.Authors.Single().Name);
+        Assert.Equal("Jane", secondProject.Metadata.Authors.Single().FirstName);
+        Assert.Equal("Doe", secondProject.Metadata.Authors.Single().LastName);
         Assert.Equal("Acme Press", secondProject.Metadata.PublisherName);
-        Assert.Equal("Already Set Editor", secondProject.Metadata.Editors.Single().Name);
+        Assert.Equal("Already Set", secondProject.Metadata.Editors.Single().FirstName);
+        Assert.Equal("Editor", secondProject.Metadata.Editors.Single().LastName);
     }
 
     [Fact]

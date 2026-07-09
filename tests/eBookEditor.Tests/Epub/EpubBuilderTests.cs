@@ -33,7 +33,7 @@ public class EpubBuilderTests : IDisposable
         var metadata = new BookMetadata
         {
             Title = name,
-            Contributors = [new Contributor("Jane Author", ContributorRole.Author)],
+            Contributors = [new Contributor("Jane", "Author", ContributorRole.Author)],
             CopyrightHolder = "Jane Author",
             CopyrightYear = 2026,
             Isbn13 = "9780306406157",
@@ -185,6 +185,56 @@ public class EpubBuilderTests : IDisposable
         Assert.Equal(DefaultStylesheet.Css, reader.ReadToEnd());
     }
 
+    [Fact]
+    public void Build_EmbedsFontsReferencedByTheSelectedTemplateAndAddsManifestEntries()
+    {
+        var templatesDir = Path.Combine(_tempDir, "templates");
+        var fontsDir = Path.Combine(_tempDir, "fonts");
+        Directory.CreateDirectory(templatesDir);
+        Directory.CreateDirectory(fontsDir);
+        File.WriteAllText(Path.Combine(templatesDir, "Fancy.css"),
+            "@font-face { font-family: Alegreya; src: url('fonts/Alegreya-Regular.ttf'); } body { font-family: Alegreya; }");
+        File.WriteAllText(Path.Combine(fontsDir, "Alegreya-Regular.ttf"), "fake font bytes");
+
+        var project = BuildSampleProject();
+        project.ProjectFile.Metadata = project.Metadata with { SelectedTemplate = "Fancy" };
+        var outputPath = Path.Combine(project.OutputDir, "book.epub");
+
+        new EpubBuilder(new TemplateService(templatesDir), new FontService(fontsDir)).Build(project, outputPath);
+
+        using var archive = ZipFile.OpenRead(outputPath);
+        var fontEntry = archive.GetEntry("OEBPS/fonts/Alegreya-Regular.ttf");
+        Assert.NotNull(fontEntry);
+        using var reader = new StreamReader(fontEntry!.Open());
+        Assert.Equal("fake font bytes", reader.ReadToEnd());
+
+        var opfXml = ReadPackageOpf(outputPath);
+        XNamespace opf = "http://www.idpf.org/2007/opf";
+        var fontItem = opfXml.Descendants(opf + "item")
+            .SingleOrDefault(i => (string?)i.Attribute("href") == "fonts/Alegreya-Regular.ttf");
+        Assert.NotNull(fontItem);
+        Assert.Equal("font/ttf", (string?)fontItem!.Attribute("media-type"));
+    }
+
+    [Fact]
+    public void Build_SkipsFontFacesWhoseFileIsNotShippedWithTheApp()
+    {
+        var templatesDir = Path.Combine(_tempDir, "templates");
+        Directory.CreateDirectory(templatesDir);
+        File.WriteAllText(Path.Combine(templatesDir, "Fancy.css"),
+            "@font-face { font-family: Alegreya; src: url('fonts/Alegreya-Regular.ttf'); }");
+
+        var project = BuildSampleProject();
+        project.ProjectFile.Metadata = project.Metadata with { SelectedTemplate = "Fancy" };
+        var outputPath = Path.Combine(project.OutputDir, "book.epub");
+
+        new EpubBuilder(new TemplateService(templatesDir), new FontService(Path.Combine(_tempDir, "no-fonts-here")))
+            .Build(project, outputPath);
+
+        using var archive = ZipFile.OpenRead(outputPath);
+        Assert.Null(archive.GetEntry("OEBPS/fonts/Alegreya-Regular.ttf"));
+    }
+
     private static XDocument ReadPackageOpf(string epubPath)
     {
         using var archive = ZipFile.OpenRead(epubPath);
@@ -198,7 +248,7 @@ public class EpubBuilderTests : IDisposable
         var metadata = new BookMetadata
         {
             Title = "Sort Name Book",
-            Contributors = [new Contributor("John Dovey", ContributorRole.Author, "Dovey, John")]
+            Contributors = [new Contributor("John", "Dovey", ContributorRole.Author)]
         };
         var project = _projectService.CreateProject(_tempDir, "Sort Name Book", metadata);
         _pageGenerator.RegenerateAllGeneratedPages(project);

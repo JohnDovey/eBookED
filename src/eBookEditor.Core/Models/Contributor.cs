@@ -11,8 +11,15 @@ public enum ContributorRole
 }
 
 /// <summary>
-/// <paramref name="SortName"/> is the EPUB "file-as" catalog/library sort form of the name
-/// (e.g. "Dovey, John" for "John Dovey") — optional, falls back to <paramref name="Name"/>
-/// when not set.
+/// Name is split into <paramref name="FirstName"/>/<paramref name="LastName"/> so the EPUB
+/// "file-as" catalog/library sort form ("Dovey, John") can be derived automatically instead
+/// of requiring a separately-maintained sort name.
 /// </summary>
-public record Contributor(string Name, ContributorRole Role, string? SortName = null);
+public record Contributor(string FirstName, string LastName, ContributorRole Role)
+{
+    public string Name => string.IsNullOrWhiteSpace(LastName) ? FirstName : $"{FirstName} {LastName}".Trim();
+
+    public string SortName => string.IsNullOrWhiteSpace(LastName)
+        ? FirstName
+        : string.IsNullOrWhiteSpace(FirstName) ? LastName : $"{LastName}, {FirstName}";
+}

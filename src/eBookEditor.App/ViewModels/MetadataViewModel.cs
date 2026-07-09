@@ -163,10 +163,10 @@ public partial class MetadataViewModel : ViewModelBase
     {
         target.Clear();
         foreach (var contributor in source)
-            target.Add(new ContributorEntry { Name = contributor.Name, SortName = contributor.SortName ?? "" });
+            target.Add(new ContributorEntry { FirstName = contributor.FirstName, LastName = contributor.LastName });
     }
 
     private static IEnumerable<Contributor> ToContributors(IEnumerable<ContributorEntry> entries, ContributorRole role) => entries
-        .Where(e => !string.IsNullOrWhiteSpace(e.Name))
-        .Select(e => new Contributor(e.Name.Trim(), role, string.IsNullOrWhiteSpace(e.SortName) ? null : e.SortName.Trim()));
+        .Where(e => !string.IsNullOrWhiteSpace(e.FirstName) || !string.IsNullOrWhiteSpace(e.LastName))
+        .Select(e => new Contributor(e.FirstName.Trim(), e.LastName.Trim(), role));
 }

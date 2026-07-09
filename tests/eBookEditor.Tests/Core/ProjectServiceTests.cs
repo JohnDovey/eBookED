@@ -66,7 +66,7 @@ public class ProjectServiceTests : IDisposable
         {
             Title = "Round Trip",
             Subtitle = "A Subtitle",
-            Contributors = [new Contributor("Jane Doe", ContributorRole.Author)],
+            Contributors = [new Contributor("Jane", "Doe", ContributorRole.Author)],
             CopyrightHolder = "Jane Doe",
             CopyrightYear = 2026,
             Publisher = new PublisherInfo("Acme Press", "images/logo.png"),

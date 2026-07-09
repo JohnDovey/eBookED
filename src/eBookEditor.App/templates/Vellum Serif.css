@@ -8,11 +8,16 @@
  * layout blocks, drop-cap first-letter styling, TOC item classes, heading-container
  * variants) were left out entirely since this app's chapters render as plain semantic
  * HTML, not Vellum's heavily class-annotated markup — those rules would never match
- * anything here. The source also declared four embedded custom fonts (Alegreya, Cinzel,
- * Cinzel Decorative, Great Vibes) via @font-face; those are omitted too, since the app
- * doesn't yet support bundling font files into the EPUB package, so the @font-face rules
- * would just point at missing files. See the chat conversation this was built from for
- * the full conflict list.
+ * anything here.
+ *
+ * The four @font-face declarations below are carried over from the source stylesheet.
+ * The source only ever applied them via the Vellum-specific class selectors that were
+ * dropped above, so here they're wired onto the plain elements that best fit each font's
+ * character (headings get the display faces, body text gets the text face) rather than
+ * left declared-but-unused. FontService/EpubBuilder embed the matching files from the
+ * app's "fonts" directory into the EPUB when this template is selected; the same files
+ * are installed to the host system's user font directory on template selection so this
+ * CSS renders correctly outside the EPUB too (e.g. in the editor preview).
  *
  * The img/table/th/td rules below aren't from the source stylesheet at all (Vellum's
  * table/image handling is class-based and wasn't present in the sample book) — they're
@@ -20,13 +25,48 @@
  * styling rather than none.
  */
 
+@font-face {
+    font-family: Alegreya;
+    font-weight: normal;
+    font-style: normal;
+    src: url('fonts/Alegreya-Regular.ttf');
+}
+
+@font-face {
+    font-family: "Great Vibes";
+    font-weight: normal;
+    font-style: normal;
+    src: url('fonts/GreatVibes-Regular.ttf');
+}
+
+@font-face {
+    font-family: "Cinzel Decorative";
+    font-weight: normal;
+    font-style: normal;
+    src: url('fonts/CinzelDecorative-Regular.ttf');
+}
+
+@font-face {
+    font-family: Cinzel;
+    font-weight: normal;
+    font-style: normal;
+    src: url('fonts/Cinzel-Regular.ttf');
+}
+
 body {
-    font-family: Palatino, serif;
+    font-family: Alegreya, Palatino, serif;
     font-weight: normal;
     font-style: normal;
 }
 
-h1, h2, h3, h4 {
+h1 {
+    font-family: "Cinzel Decorative", Cinzel, serif;
+    margin: 0;
+    page-break-inside: avoid;
+}
+
+h2, h3, h4 {
+    font-family: Cinzel, serif;
     margin: 0;
     page-break-inside: avoid;
 }
@@ -40,6 +80,7 @@ p {
 }
 
 blockquote {
+    font-family: "Great Vibes", cursive;
     margin: 1.4em 1.5em;
 }
 

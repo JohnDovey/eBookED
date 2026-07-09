@@ -36,6 +36,9 @@ public partial class MetadataEditorWindow : Window
 
     private void OnTemplateDropDownOpened(object? sender, EventArgs e) => _mainViewModel.RefreshAvailableTemplates();
 
+    private void OnTemplateSelectionChanged(object? sender, SelectionChangedEventArgs e) =>
+        _mainViewModel.EnsureTemplateFontsInstalled(Metadata.SelectedTemplate);
+
     private MetadataViewModel Metadata => _mainViewModel.Metadata;
 
     private void OnRemoveAuthorClick(object? sender, RoutedEventArgs e)

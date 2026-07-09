@@ -12,10 +12,12 @@ public class EpubBuilder
     private readonly MarkdownToHtmlConverter _htmlConverter = new();
     private readonly ChapterFileService _chapterFileService = new();
     private readonly TemplateService _templateService;
+    private readonly FontService _fontService;
 
-    public EpubBuilder(TemplateService? templateService = null)
+    public EpubBuilder(TemplateService? templateService = null, FontService? fontService = null)
     {
         _templateService = templateService ?? new TemplateService();
+        _fontService = fontService ?? new FontService();
     }
 
     public void Build(EbookProject project, string outputPath)
@@ -79,7 +81,23 @@ public class EpubBuilder
             fileStream.CopyTo(entryStream);
         }
 
-        WriteEntry(archive, "OEBPS/styles.css", _templateService.GetTemplateCss(metadata.SelectedTemplate));
+        var templateCss = _templateService.GetTemplateCss(metadata.SelectedTemplate);
+        WriteEntry(archive, "OEBPS/styles.css", templateCss);
+
+        var fontFileNames = _fontService.ParseFontFaces(templateCss)
+            .Select(f => f.FileName)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Where(fileName => _fontService.ResolveFontFilePath(fileName) is not null)
+            .ToList();
+
+        foreach (var fontFileName in fontFileNames)
+        {
+            var fontPath = _fontService.ResolveFontFilePath(fontFileName)!;
+            var entry = archive.CreateEntry($"OEBPS/fonts/{fontFileName}", CompressionLevel.Optimal);
+            using var entryStream = entry.Open();
+            using var fileStream = File.OpenRead(fontPath);
+            fileStream.CopyTo(entryStream);
+        }
 
         var docList = contentDocs.Select(c => c.Doc).ToList();
         WriteEntry(archive, "OEBPS/nav.xhtml", EpubNavDocumentWriter.Build(docList));
@@ -87,7 +105,7 @@ public class EpubBuilder
         var uniqueIdentifier = ResolveUniqueIdentifier(metadata);
         WriteEntry(archive, "OEBPS/toc.ncx", EpubNcxWriter.Build(metadata.Title, uniqueIdentifier, docList));
         WriteEntry(archive, "OEBPS/package.opf",
-            EpubPackageDocumentWriter.Build(metadata, docList, imagesToCopy, coverImageFileName, uniqueIdentifier));
+            EpubPackageDocumentWriter.Build(metadata, docList, imagesToCopy, fontFileNames, coverImageFileName, uniqueIdentifier));
     }
 
     private static string ResolveUniqueIdentifier(BookMetadata metadata)
