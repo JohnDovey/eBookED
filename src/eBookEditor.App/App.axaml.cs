@@ -5,6 +5,7 @@ using Avalonia.Markup.Xaml;
 using eBookEditor.App.Services;
 using eBookEditor.App.ViewModels;
 using eBookEditor.App.Views;
+using eBookEditor.Core.Services;
 #if DEBUG
 using Avalonia.Diagnostics;
 #endif
@@ -27,11 +28,12 @@ public partial class App : Application
             // one's project) — don't quit just because one of several windows closed.
             desktop.ShutdownMode = ShutdownMode.OnLastWindowClose;
 
-            var project = SampleProjectFactory.LoadOrCreate(AppContext.BaseDirectory);
-            desktop.MainWindow = new MainWindow
-            {
-                DataContext = new MainWindowViewModel(project)
-            };
+            var appSettingsService = new AppSettingsService(new AppPaths());
+            var windows = RestoreLastSessionWindows(appSettingsService);
+
+            desktop.MainWindow = windows[0];
+            foreach (var window in windows.Skip(1))
+                window.Show();
 
 #if DEBUG
             this.AttachDevTools();
@@ -39,5 +41,45 @@ public partial class App : Application
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    /// <summary>
+    /// Reopens whichever projects were still open when the app last closed. Falls back to
+    /// the most recently opened project if none were open (e.g. the user quit via each
+    /// window's own close button), and only bootstraps the auto-generated sample project if
+    /// there's no project history at all — first run only.
+    /// </summary>
+    private static IReadOnlyList<MainWindow> RestoreLastSessionWindows(AppSettingsService appSettingsService)
+    {
+        var projectService = new ProjectService();
+        var settings = appSettingsService.Load();
+        var pathsToRestore = settings.OpenProjectPaths.Count > 0
+            ? settings.OpenProjectPaths
+            : settings.RecentProjectPaths.Take(1).ToList();
+
+        var windows = new List<MainWindow>();
+        foreach (var path in pathsToRestore)
+        {
+            if (!Directory.Exists(path))
+                continue;
+
+            try
+            {
+                var project = projectService.LoadProject(path);
+                windows.Add(new MainWindow { DataContext = new MainWindowViewModel(project, appSettingsService) });
+            }
+            catch
+            {
+                // Skip projects that no longer load (moved/deleted/corrupted) rather than blocking startup.
+            }
+        }
+
+        if (windows.Count == 0)
+        {
+            var project = SampleProjectFactory.LoadOrCreate(AppContext.BaseDirectory);
+            windows.Add(new MainWindow { DataContext = new MainWindowViewModel(project, appSettingsService) });
+        }
+
+        return windows;
     }
 }

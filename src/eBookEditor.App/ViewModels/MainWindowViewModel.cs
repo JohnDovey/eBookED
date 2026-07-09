@@ -66,6 +66,11 @@ public partial class MainWindowViewModel : ViewModelBase
     private static SpineItem? FindTitlePageItem(EbookProject project) => project.Spine
         .FirstOrDefault(i => i.RelativePath.EndsWith(ProjectPaths.TitlePageFileName, StringComparison.Ordinal));
 
+    public IReadOnlyList<string> GetRecentProjectPaths() => _appSettingsService.Load().RecentProjectPaths;
+
+    /// <summary>Called when this window closes, so the next app launch doesn't try to restore it.</summary>
+    public void RecordProjectClosed() => _appSettingsService.RecordProjectClosed(CurrentProject.DirectoryPath);
+
     partial void OnSelectedSpineItemChanged(SpineItem? value)
     {
         OnPropertyChanged(nameof(IsChapterSelected));

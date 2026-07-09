@@ -25,6 +25,7 @@
         <MenuItem Header="_File">
           <MenuItem Header="New Project…" Click="OnNewProjectClick" />
           <MenuItem Header="Open Project…" Click="OnOpenProjectClick" />
+          <MenuItem Header="Recent Projects" x:Name="RecentProjectsMenuItem" SubmenuOpened="OnRecentProjectsSubmenuOpened" />
           <MenuItem Header="Save Project" Command="{Binding SaveProjectCommand}" InputGesture="Ctrl+S" />
           <Separator />
           <MenuItem Header="Import DOCX…" Click="OnImportDocxClick" />
@@ -68,15 +69,21 @@
 
           <ListBox x:Name="SpineListBox" ItemsSource="{Binding SpineItems}"
                    SelectionChanged="OnSpineItemSelectionChanged">
+            <ListBox.Styles>
+              <Style Selector="ListBoxItem">
+                <Setter Property="Padding" Value="2,0" />
+                <Setter Property="MinHeight" Value="0" />
+              </Style>
+            </ListBox.Styles>
             <ListBox.ItemTemplate>
               <DataTemplate x:DataType="models:SpineItem">
-                <Border Background="Transparent" Padding="4"
+                <Border Background="Transparent" Padding="2,1"
                         PointerPressed="OnSpineItemPointerPressed"
                         PointerMoved="OnSpineItemPointerMoved"
                         DragDrop.AllowDrop="True"
                         DragDrop.DragOver="OnSpineItemDragOver"
                         DragDrop.Drop="OnSpineItemDrop">
-                  <TextBlock Text="{Binding Title}" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding Title}" FontSize="11" TextWrapping="Wrap" />
                 </Border>
               </DataTemplate>
             </ListBox.ItemTemplate>

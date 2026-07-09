@@ -297,6 +297,27 @@ public class MainWindowViewModelTests : IDisposable
     }
 
     [Fact]
+    public void GetRecentProjectPaths_ReturnsPathsFromAppSettings()
+    {
+        var vm = NewViewModel();
+
+        var recent = vm.GetRecentProjectPaths();
+
+        Assert.Contains(vm.CurrentProject.DirectoryPath, recent);
+    }
+
+    [Fact]
+    public void RecordProjectClosed_RemovesProjectFromOpenProjectPaths()
+    {
+        var vm = NewViewModel();
+        Assert.Contains(vm.CurrentProject.DirectoryPath, _appSettingsService.Load().OpenProjectPaths);
+
+        vm.RecordProjectClosed();
+
+        Assert.DoesNotContain(vm.CurrentProject.DirectoryPath, _appSettingsService.Load().OpenProjectPaths);
+    }
+
+    [Fact]
     public void RefreshAvailableTemplates_SeedsDefaultAndPopulatesMetadataPickerList()
     {
         var vm = NewViewModel();

@@ -6,9 +6,9 @@
     <LangVersion>latest</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
     <!-- Bump the minor version for new features, patch for other code changes (see
-         feedback_version_bump_policy memory). This round splits the single metadata editor
-         into five focused windows under a top-level "Meta Data" menu, and fixes a bug where
-         typing into a newly created chapter's editor didn't work — both are patch-level. -->
-    <Version>1.1.3</Version>
+         feedback_version_bump_policy memory). This round adds a Recent Projects menu,
+         restores last-session projects on launch, and switches the default theme to Light —
+         new features, so a minor bump. -->
+    <Version>1.2.0</Version>
   </PropertyGroup>
 </Project>

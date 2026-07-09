@@ -26,7 +26,10 @@ public partial class MainWindow : Window
         DataContextChanged += OnDataContextChanged;
         EditorTextBox.TextChanged += OnEditorTextBoxTextChanged;
         Closing += OnWindowClosing;
+        Closed += OnWindowClosed;
     }
+
+    private void OnWindowClosed(object? sender, EventArgs e) => ViewModel?.RecordProjectClosed();
 
     private async void OnWindowClosing(object? sender, WindowClosingEventArgs e)
     {
@@ -142,6 +145,39 @@ public partial class MainWindow : Window
     {
         var window = new MainWindow { DataContext = new MainWindowViewModel(project) };
         window.Show();
+    }
+
+    private void OnRecentProjectsSubmenuOpened(object? sender, RoutedEventArgs e)
+    {
+        RecentProjectsMenuItem.Items.Clear();
+
+        var recentPaths = ViewModel?.GetRecentProjectPaths() ?? [];
+        if (recentPaths.Count == 0)
+        {
+            RecentProjectsMenuItem.Items.Add(new MenuItem { Header = "(No recent projects)", IsEnabled = false });
+            return;
+        }
+
+        foreach (var path in recentPaths)
+        {
+            var item = new MenuItem { Header = path };
+            item.Click += (_, _) => OpenRecentProject(path);
+            RecentProjectsMenuItem.Items.Add(item);
+        }
+    }
+
+    private void OpenRecentProject(string path)
+    {
+        try
+        {
+            var project = new ProjectService().LoadProject(path);
+            OpenProjectInNewWindow(project);
+        }
+        catch (Exception ex)
+        {
+            if (ViewModel is not null)
+                ViewModel.StatusMessage = $"Couldn't open recent project at {path}: {ex.Message}";
+        }
     }
 
     private async void OnEditFrontMatterClick(object? sender, RoutedEventArgs e)

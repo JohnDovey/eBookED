@@ -33,12 +33,25 @@ public class AppSettingsService
     public AppSettings RecordProjectOpened(string projectDir)
     {
         var settings = Load();
-        var paths = settings.RecentProjectPaths
+        var recentPaths = settings.RecentProjectPaths
             .Where(p => p != projectDir)
             .Prepend(projectDir)
-            .Take(20)
+            .Take(10)
             .ToList();
-        var updated = settings with { RecentProjectPaths = paths };
+        var openPaths = settings.OpenProjectPaths.Contains(projectDir)
+            ? settings.OpenProjectPaths
+            : settings.OpenProjectPaths.Append(projectDir).ToList();
+        var updated = settings with { RecentProjectPaths = recentPaths, OpenProjectPaths = openPaths };
+        Save(updated);
+        return updated;
+    }
+
+    /// <summary>Removes a project from the "currently open windows" list recorded on close,
+    /// so the next launch only restores windows that were actually still open.</summary>
+    public AppSettings RecordProjectClosed(string projectDir)
+    {
+        var settings = Load();
+        var updated = settings with { OpenProjectPaths = settings.OpenProjectPaths.Where(p => p != projectDir).ToList() };
         Save(updated);
         return updated;
     }
