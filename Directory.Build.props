@@ -75,6 +75,21 @@
          TOC/about-author) no longer force Preview on open since there's no mode to force
          anymore — their raw Markdown is just always visible like any other page's, same as
          everything else, with rendering available on demand via the same Open Preview button. -->
-    <Version>1.10.0</Version>
+    <!-- 1.10.1: THE actual fix for the editor-blank bug — a patch bump since it's a bug fix,
+         no new feature. Every attempt through 1.10.0 (redraw timing, dispatcher deferral,
+         removing the whole-pane Preview toggle) was chasing the wrong cause: the user reported
+         the editor was STILL empty even with the toggle gone entirely, which is what it took to
+         rule out visibility-toggling as the cause at all. The real bug: App.axaml never merged
+         AvaloniaEditCore's own theme resources (no StyleInclude anywhere referencing them), so
+         the vendored TextEditor control had no ControlTheme registered — meaning no
+         ControlTemplate, meaning it rendered as a completely empty, template-less area
+         regardless of Document content, regardless of visibility, regardless of any redraw
+         timing. Confirmed by reading the vendored source directly: TextEditor.xaml (its
+         ControlTheme) is merged into Themes/Base.xaml via MergeResourceInclude, which is in
+         turn merged into Themes/Fluent/AvaloniaEdit.xaml (a <Styles> file) — the one line
+         missing from App.axaml the whole time. Added
+         <StyleInclude Source="avares://AvaloniaEditCore/Themes/Fluent/AvaloniaEdit.xaml" />
+         to Application.Styles. -->
+    <Version>1.10.1</Version>
   </PropertyGroup>
 </Project>
