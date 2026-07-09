@@ -4,7 +4,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         x:Class="eBookEditor.App.Views.AboutWindow"
         Title="About eBook Editor"
-        Width="360" Height="240"
+        Width="360" Height="280"
         CanResize="False"
         WindowStartupLocation="CenterOwner">
 
@@ -15,6 +15,9 @@
                TextWrapping="Wrap" TextAlignment="Center" Margin="0,8,0,0" />
     <TextBlock Text="front/back matter, EPUB 3.3 and Markdown export."
                TextWrapping="Wrap" TextAlignment="Center" />
+    <TextBlock x:Name="ContactText" HorizontalAlignment="Center" Margin="0,12,0,0"
+               Foreground="{DynamicResource SystemAccentColor}" TextDecorations="Underline"
+               Cursor="Hand" PointerPressed="OnContactPressed" />
     <Button Content="Close" Click="OnCloseClick" HorizontalAlignment="Center" Margin="0,16,0,0" />
   </StackPanel>
 

@@ -48,6 +48,62 @@ internal static class DocxFixtureBuilder
         return path;
     }
 
+    public static string BuildDocxWithTable(string path)
+    {
+        using var document = WordprocessingDocument.Create(path, DocumentFormat.OpenXml.WordprocessingDocumentType.Document);
+        var mainPart = document.AddMainDocumentPart();
+        mainPart.Document = new Document();
+        var body = new Body();
+        mainPart.Document.Append(body);
+
+        body.Append(Heading("Chapter One", "Heading1"));
+        body.Append(Paragraph(Run("Before the table.")));
+        body.Append(BuildTable(
+            ["Name", "Role"],
+            [["Jane Doe", "Author"], ["Ed Itor", "Editor"]]));
+        body.Append(Paragraph(Run("After the table.")));
+
+        mainPart.Document.Save();
+        return path;
+    }
+
+    public static string BuildDocxWithHyperlink(string path)
+    {
+        using var document = WordprocessingDocument.Create(path, DocumentFormat.OpenXml.WordprocessingDocumentType.Document);
+        var mainPart = document.AddMainDocumentPart();
+        mainPart.Document = new Document();
+        var body = new Body();
+        mainPart.Document.Append(body);
+
+        var relationshipId = mainPart.AddHyperlinkRelationship(new Uri("https://example.com"), true).Id;
+
+        body.Append(Heading("Chapter One", "Heading1"));
+        body.Append(new Paragraph(
+            new Run(new Text("Visit ") { Space = SpaceProcessingModeValues.Preserve }),
+            new Hyperlink(new Run(new Text("our site"))) { Id = relationshipId },
+            new Run(new Text(" for more.") { Space = SpaceProcessingModeValues.Preserve })));
+
+        mainPart.Document.Save();
+        return path;
+    }
+
+    private static Table BuildTable(string[] header, string[][] rows)
+    {
+        var table = new Table();
+        table.Append(BuildTableRow(header));
+        foreach (var row in rows)
+            table.Append(BuildTableRow(row));
+        return table;
+    }
+
+    private static TableRow BuildTableRow(string[] cellTexts)
+    {
+        var row = new TableRow();
+        foreach (var text in cellTexts)
+            row.Append(new TableCell(new Paragraph(new Run(new Text(text)))));
+        return row;
+    }
+
     public static string BuildDocxWithPreamble(string path)
     {
         using var document = WordprocessingDocument.Create(path, DocumentFormat.OpenXml.WordprocessingDocumentType.Document);

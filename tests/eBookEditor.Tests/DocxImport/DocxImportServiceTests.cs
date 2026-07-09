@@ -90,4 +90,36 @@ public class DocxImportServiceTests : IDisposable
         Assert.Equal("image-1.jpg", image.FileName);
         Assert.Equal(imageBytes, image.Bytes);
     }
+
+    [Fact]
+    public void Import_ConvertsTableToMarkdownPipeTable()
+    {
+        var docxPath = DocxFixtureBuilder.BuildDocxWithTable(Path.Combine(_tempDir, "with-table.docx"));
+
+        var chapters = _importService.Import(docxPath);
+
+        var body = chapters[0].BodyMarkdown;
+        Assert.Contains("Before the table.", body);
+        Assert.Contains("| Name | Role |", body);
+        Assert.Contains("| --- | --- |", body);
+        Assert.Contains("| Jane Doe | Author |", body);
+        Assert.Contains("| Ed Itor | Editor |", body);
+        Assert.Contains("After the table.", body);
+
+        var tableIndex = body.IndexOf("| Name", StringComparison.Ordinal);
+        var beforeIndex = body.IndexOf("Before the table.", StringComparison.Ordinal);
+        var afterIndex = body.IndexOf("After the table.", StringComparison.Ordinal);
+        Assert.True(beforeIndex < tableIndex);
+        Assert.True(tableIndex < afterIndex);
+    }
+
+    [Fact]
+    public void Import_PreservesHyperlinkTargetAsMarkdownLink()
+    {
+        var docxPath = DocxFixtureBuilder.BuildDocxWithHyperlink(Path.Combine(_tempDir, "with-link.docx"));
+
+        var chapters = _importService.Import(docxPath);
+
+        Assert.Contains("[our site](https://example.com/)", chapters[0].BodyMarkdown);
+    }
 }

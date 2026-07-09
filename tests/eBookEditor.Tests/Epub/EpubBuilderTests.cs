@@ -184,4 +184,71 @@ public class EpubBuilderTests : IDisposable
         using var reader = new StreamReader(archive.GetEntry("OEBPS/styles.css")!.Open());
         Assert.Equal(DefaultStylesheet.Css, reader.ReadToEnd());
     }
+
+    private static XDocument ReadPackageOpf(string epubPath)
+    {
+        using var archive = ZipFile.OpenRead(epubPath);
+        using var reader = new StreamReader(archive.GetEntry("OEBPS/package.opf")!.Open());
+        return XDocument.Parse(reader.ReadToEnd());
+    }
+
+    [Fact]
+    public void Build_EmitsFileAsRefinementWhenContributorHasSortName()
+    {
+        var metadata = new BookMetadata
+        {
+            Title = "Sort Name Book",
+            Contributors = [new Contributor("John Dovey", ContributorRole.Author, "Dovey, John")]
+        };
+        var project = _projectService.CreateProject(_tempDir, "Sort Name Book", metadata);
+        _pageGenerator.RegenerateAllGeneratedPages(project);
+        File.WriteAllText(project.BookMdPath, new BookIndexGenerator().GenerateBookMd(project));
+        var outputPath = Path.Combine(project.OutputDir, "book.epub");
+
+        _epubBuilder.Build(project, outputPath);
+
+        var opfXml = ReadPackageOpf(outputPath);
+        XNamespace opf = "http://www.idpf.org/2007/opf";
+        var fileAs = opfXml.Descendants(opf + "meta")
+            .SingleOrDefault(m => (string?)m.Attribute("property") == "file-as");
+        Assert.NotNull(fileAs);
+        Assert.Equal("Dovey, John", fileAs!.Value);
+    }
+
+    [Fact]
+    public void Build_EmitsAccessibilityMetadataBlock()
+    {
+        var project = BuildSampleProject();
+        var outputPath = Path.Combine(project.OutputDir, "book.epub");
+
+        _epubBuilder.Build(project, outputPath);
+
+        var opfXml = ReadPackageOpf(outputPath);
+        XNamespace opf = "http://www.idpf.org/2007/opf";
+        var properties = opfXml.Descendants(opf + "meta")
+            .Select(m => (string?)m.Attribute("property"))
+            .Where(p => p is not null)
+            .ToList();
+
+        Assert.Contains("schema:accessMode", properties);
+        Assert.Contains("schema:accessibilityFeature", properties);
+        Assert.Contains("schema:accessibilityHazard", properties);
+        Assert.Equal("schema: http://schema.org/", opfXml.Root!.Attribute("prefix")?.Value);
+    }
+
+    [Fact]
+    public void Build_EmitsGeneratorMetaTag()
+    {
+        var project = BuildSampleProject();
+        var outputPath = Path.Combine(project.OutputDir, "book.epub");
+
+        _epubBuilder.Build(project, outputPath);
+
+        var opfXml = ReadPackageOpf(outputPath);
+        XNamespace opf = "http://www.idpf.org/2007/opf";
+        var generator = opfXml.Descendants(opf + "meta")
+            .SingleOrDefault(m => (string?)m.Attribute("name") == "generator");
+        Assert.NotNull(generator);
+        Assert.StartsWith("eBook Editor", (string?)generator!.Attribute("content"));
+    }
 }

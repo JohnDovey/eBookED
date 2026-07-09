@@ -35,4 +35,48 @@ public partial class MetadataEditorWindow : Window
     }
 
     private void OnTemplateDropDownOpened(object? sender, EventArgs e) => _mainViewModel.RefreshAvailableTemplates();
+
+    private MetadataViewModel Metadata => _mainViewModel.Metadata;
+
+    private void OnRemoveAuthorClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: ContributorEntry entry })
+            Metadata.Authors.Remove(entry);
+    }
+
+    private void OnRemoveEditorClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: ContributorEntry entry })
+            Metadata.Editors.Remove(entry);
+    }
+
+    private void OnRemoveIllustratorClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: ContributorEntry entry })
+            Metadata.Illustrators.Remove(entry);
+    }
+
+    private void OnRemoveGenreTagClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: TagEntry entry })
+            Metadata.GenreTags.Remove(entry);
+    }
+
+    private void OnRemoveFreeTagClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: TagEntry entry })
+            Metadata.FreeTags.Remove(entry);
+    }
+
+    private void OnRemoveSocialLinkClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: SocialLinkEntry entry })
+            Metadata.SocialLinks.Remove(entry);
+    }
+
+    private void OnRemoveStoreLinkClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is Control { DataContext: StoreLinkEntry entry })
+            Metadata.StoreLinks.Remove(entry);
+    }
 }

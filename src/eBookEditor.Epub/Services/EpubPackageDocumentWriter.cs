@@ -22,7 +22,8 @@ internal static class EpubPackageDocumentWriter
             new(Dc + "title", metadata.Title),
             new(Dc + "language", metadata.Language),
             new(Opf + "meta", new XAttribute("property", "dcterms:modified"),
-                DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"))
+                DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")),
+            new(Opf + "meta", new XAttribute("name", "generator"), new XAttribute("content", GeneratorTag()))
         };
 
         var contributorIndex = 0;
@@ -42,7 +43,25 @@ internal static class EpubPackageDocumentWriter
                     new XAttribute("scheme", "marc:relators"),
                     relatorCode));
             }
+
+            if (!string.IsNullOrWhiteSpace(contributor.SortName))
+            {
+                metadataElements.Add(new XElement(Opf + "meta",
+                    new XAttribute("refines", $"#{id}"),
+                    new XAttribute("property", "file-as"),
+                    contributor.SortName));
+            }
         }
+
+        // Fixed, always-true accessibility metadata: every book this app builds has a real
+        // nav document (structural navigation + TOC) and a linear reading order, and content
+        // is text-only (no non-text hazards to disclose).
+        metadataElements.Add(new XElement(Opf + "meta", new XAttribute("property", "schema:accessMode"), "textual"));
+        metadataElements.Add(new XElement(Opf + "meta", new XAttribute("property", "schema:accessModeSufficient"), "textual"));
+        metadataElements.Add(new XElement(Opf + "meta", new XAttribute("property", "schema:accessibilityFeature"), "structuralNavigation"));
+        metadataElements.Add(new XElement(Opf + "meta", new XAttribute("property", "schema:accessibilityFeature"), "tableOfContents"));
+        metadataElements.Add(new XElement(Opf + "meta", new XAttribute("property", "schema:accessibilityFeature"), "readingOrder"));
+        metadataElements.Add(new XElement(Opf + "meta", new XAttribute("property", "schema:accessibilityHazard"), "none"));
 
         if (!string.IsNullOrWhiteSpace(metadata.CopyrightDisclaimer))
             metadataElements.Add(new XElement(Dc + "rights", metadata.CopyrightDisclaimer));
@@ -94,6 +113,7 @@ internal static class EpubPackageDocumentWriter
             new XElement(Opf + "package",
                 new XAttribute("version", "3.0"),
                 new XAttribute("unique-identifier", "pub-id"),
+                new XAttribute("prefix", "schema: http://schema.org/"),
                 new XAttribute(XNamespace.Xml + "lang", metadata.Language),
                 new XElement(Opf + "metadata",
                     new XAttribute(XNamespace.Xmlns + "dc", Dc.NamespaceName),
@@ -102,6 +122,12 @@ internal static class EpubPackageDocumentWriter
                 new XElement(Opf + "spine", new XAttribute("toc", "ncx"), spineItems)));
 
         return XmlOutput.ToXmlString(packageDoc);
+    }
+
+    private static string GeneratorTag()
+    {
+        var version = typeof(EpubPackageDocumentWriter).Assembly.GetName().Version;
+        return version is null ? "eBook Editor" : $"eBook Editor {version.ToString(3)}";
     }
 
     private static string ManifestId(EpubContentDoc doc) => SanitizeId(doc.FileName);

@@ -8,12 +8,37 @@ namespace eBookEditor.DocxImport.Services;
 
 /// <summary>
 /// Covers the common manuscript formatting cases (bold/italic, H2/H3 subheadings, simple
-/// single-level bullet/numbered lists, inline images). Tables and hyperlink targets are
-/// intentionally out of scope for this first pass — hyperlink text still comes through as
-/// plain text, and table content is skipped rather than mis-rendered.
+/// single-level bullet/numbered lists, inline images, hyperlinks, and tables).
 /// </summary>
 internal class OpenXmlToMarkdownConverter
 {
+    public string ConvertTable(Table table)
+    {
+        var rows = table.Elements<TableRow>().ToList();
+        if (rows.Count == 0)
+            return string.Empty;
+
+        var sb = new StringBuilder();
+        var headerCells = ExtractCells(rows[0]);
+        sb.Append("| ").Append(string.Join(" | ", headerCells)).Append(" |").AppendLine();
+        sb.Append("| ").Append(string.Join(" | ", headerCells.Select(_ => "---"))).Append(" |").AppendLine();
+
+        foreach (var row in rows.Skip(1))
+        {
+            var cells = ExtractCells(row);
+            sb.Append("| ").Append(string.Join(" | ", cells)).Append(" |").AppendLine();
+        }
+
+        return sb.ToString().TrimEnd();
+    }
+
+    private static List<string> ExtractCells(TableRow row) => row.Elements<TableCell>()
+        .Select(cell => string.Join("<br>", cell.Elements<Paragraph>()
+                .Select(p => string.Concat(p.Descendants<Text>().Select(t => t.Text)).Trim())
+                .Where(text => text.Length > 0))
+            .Replace("|", "\\|"))
+        .ToList();
+
     public string ConvertParagraph(Paragraph paragraph, MainDocumentPart mainPart, List<ExtractedImage> images)
     {
         var runText = ConvertRuns(paragraph, mainPart, images);
@@ -41,27 +66,53 @@ internal class OpenXmlToMarkdownConverter
     {
         var sb = new StringBuilder();
 
-        foreach (var run in paragraph.Descendants<Run>())
+        foreach (var child in paragraph.ChildElements)
         {
-            var drawing = run.Elements<Drawing>().FirstOrDefault();
-            var imageMarkdown = drawing is not null ? TryExtractImage(drawing, mainPart, images) : null;
-            if (imageMarkdown is not null)
+            switch (child)
             {
-                sb.Append(imageMarkdown);
-                continue;
+                case Hyperlink hyperlink:
+                    sb.Append(ConvertHyperlink(hyperlink, mainPart, images));
+                    break;
+                case Run run:
+                    sb.Append(ConvertRun(run, mainPart, images));
+                    break;
             }
-
-            var text = string.Concat(run.Elements<Text>().Select(t => t.Text));
-            if (text.Length == 0)
-                continue;
-
-            var bold = run.RunProperties?.Bold is not null && run.RunProperties.Bold.Val?.Value != false;
-            var italic = run.RunProperties?.Italic is not null && run.RunProperties.Italic.Val?.Value != false;
-
-            sb.Append(bold && italic ? $"***{text}***" : bold ? $"**{text}**" : italic ? $"*{text}*" : text);
         }
 
         return sb.ToString();
+    }
+
+    private static string ConvertHyperlink(Hyperlink hyperlink, MainDocumentPart mainPart, List<ExtractedImage> images)
+    {
+        var text = string.Concat(hyperlink.Elements<Run>().Select(r => ConvertRun(r, mainPart, images)));
+        if (text.Length == 0)
+            return string.Empty;
+
+        // Internal bookmark links (Anchor, no relationship Id) have nowhere meaningful to
+        // point in a standalone Markdown/EPUB chapter, so only the link text is kept.
+        var relationshipId = hyperlink.Id?.Value;
+        var url = relationshipId is null
+            ? null
+            : mainPart.HyperlinkRelationships.FirstOrDefault(r => r.Id == relationshipId)?.Uri.ToString();
+
+        return url is null ? text : $"[{text}]({url})";
+    }
+
+    private static string ConvertRun(Run run, MainDocumentPart mainPart, List<ExtractedImage> images)
+    {
+        var drawing = run.Elements<Drawing>().FirstOrDefault();
+        var imageMarkdown = drawing is not null ? TryExtractImage(drawing, mainPart, images) : null;
+        if (imageMarkdown is not null)
+            return imageMarkdown;
+
+        var text = string.Concat(run.Elements<Text>().Select(t => t.Text));
+        if (text.Length == 0)
+            return string.Empty;
+
+        var bold = run.RunProperties?.Bold is not null && run.RunProperties.Bold.Val?.Value != false;
+        var italic = run.RunProperties?.Italic is not null && run.RunProperties.Italic.Val?.Value != false;
+
+        return bold && italic ? $"***{text}***" : bold ? $"**{text}**" : italic ? $"*{text}*" : text;
     }
 
     private static string? TryExtractImage(Drawing drawing, MainDocumentPart mainPart, List<ExtractedImage> images)

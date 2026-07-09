@@ -50,9 +50,15 @@ public partial class MainWindowViewModel : ViewModelBase
         _templateService = templateService ?? new TemplateService();
         _epubBuilder = new EpubBuilder(_templateService);
         Metadata.LoadFrom(project.Metadata);
-        Editor.LoadFile(Path.Combine(project.FrontMatterDir, ProjectPaths.TitlePageFileName));
+
+        if (FindTitlePageItem(project) is { } titlePage)
+            OpenSpineItem(titlePage);
+
         _appSettingsService.RecordProjectOpened(project.DirectoryPath);
     }
+
+    private static SpineItem? FindTitlePageItem(EbookProject project) => project.Spine
+        .FirstOrDefault(i => i.RelativePath.EndsWith(ProjectPaths.TitlePageFileName, StringComparison.Ordinal));
 
     partial void OnSelectedSpineItemChanged(SpineItem? value)
     {
@@ -63,17 +69,15 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public void RefreshAvailableTemplates() => Metadata.RefreshAvailableTemplates(_templateService);
 
-    public void SwitchToProject(EbookProject project)
+    [RelayCommand]
+    private void SaveProject()
     {
         if (Editor.IsDirty)
             Editor.Save();
 
-        CurrentProject = project;
-        SelectedSpineItem = null;
-        Metadata.LoadFrom(project.Metadata);
-        Editor.LoadFile(Path.Combine(project.FrontMatterDir, ProjectPaths.TitlePageFileName));
-        _appSettingsService.RecordProjectOpened(project.DirectoryPath);
-        OnPropertyChanged(nameof(SpineItems));
+        CurrentProject.ProjectFile.Metadata = Metadata.ToMetadata();
+        _projectService.SaveProject(CurrentProject);
+        StatusMessage = $"Saved project to {CurrentProject.DirectoryPath}";
     }
 
     public void SaveMetadataAndRegenerate()
@@ -98,14 +102,14 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         var settings = _appSettingsService.Load();
 
-        if (string.IsNullOrWhiteSpace(Metadata.AuthorNames) && settings.KnownAuthorNames.Count > 0)
-            Metadata.AuthorNames = settings.KnownAuthorNames[0];
+        if (Metadata.Authors.Count == 0 && settings.KnownAuthorNames.Count > 0)
+            Metadata.Authors.Add(new ContributorEntry { Name = settings.KnownAuthorNames[0] });
 
-        if (string.IsNullOrWhiteSpace(Metadata.EditorNames) && settings.KnownEditorNames.Count > 0)
-            Metadata.EditorNames = settings.KnownEditorNames[0];
+        if (Metadata.Editors.Count == 0 && settings.KnownEditorNames.Count > 0)
+            Metadata.Editors.Add(new ContributorEntry { Name = settings.KnownEditorNames[0] });
 
-        if (string.IsNullOrWhiteSpace(Metadata.IllustratorNames) && settings.KnownIllustratorNames.Count > 0)
-            Metadata.IllustratorNames = settings.KnownIllustratorNames[0];
+        if (Metadata.Illustrators.Count == 0 && settings.KnownIllustratorNames.Count > 0)
+            Metadata.Illustrators.Add(new ContributorEntry { Name = settings.KnownIllustratorNames[0] });
 
         if (string.IsNullOrWhiteSpace(Metadata.PublisherName) && settings.KnownPublishers.Count > 0)
         {
@@ -122,7 +126,7 @@ public partial class MainWindowViewModel : ViewModelBase
         SelectedSpineItem = item;
         var path = CurrentProject.ResolvePath(item);
         if (File.Exists(path))
-            Editor.LoadFile(path);
+            Editor.LoadFile(path, forcePreviewMode: item.IsGenerated);
     }
 
     [RelayCommand]
@@ -275,6 +279,6 @@ public partial class MainWindowViewModel : ViewModelBase
         OnPropertyChanged(nameof(SpineItems));
 
         if (Editor.FilePath is { } path && File.Exists(path))
-            Editor.LoadFile(path);
+            Editor.LoadFile(path, forcePreviewMode: SelectedSpineItem?.IsGenerated ?? false);
     }
 }

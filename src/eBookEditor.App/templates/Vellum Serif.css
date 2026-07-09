@@ -1,0 +1,81 @@
+/*
+ * "Vellum Serif" template
+ *
+ * Adapted from a Vellum-generated EPUB (Test-book-Generic-2026-07-09.epub) by extracting
+ * the typography/spacing rules that target plain HTML elements — the ones that actually
+ * apply to eBook Editor's generated markup (h1-h4, p, blockquote, ul/ol, li, sub/sup, a,
+ * hr). The source stylesheet's ~700 lines of Vellum-specific class selectors (title-page
+ * layout blocks, drop-cap first-letter styling, TOC item classes, heading-container
+ * variants) were left out entirely since this app's chapters render as plain semantic
+ * HTML, not Vellum's heavily class-annotated markup — those rules would never match
+ * anything here. The source also declared four embedded custom fonts (Alegreya, Cinzel,
+ * Cinzel Decorative, Great Vibes) via @font-face; those are omitted too, since the app
+ * doesn't yet support bundling font files into the EPUB package, so the @font-face rules
+ * would just point at missing files. See the chat conversation this was built from for
+ * the full conflict list.
+ *
+ * The img/table/th/td rules below aren't from the source stylesheet at all (Vellum's
+ * table/image handling is class-based and wasn't present in the sample book) — they're
+ * carried over from this app's own Default template so tables and images still get basic
+ * styling rather than none.
+ */
+
+body {
+    font-family: Palatino, serif;
+    font-weight: normal;
+    font-style: normal;
+}
+
+h1, h2, h3, h4 {
+    margin: 0;
+    page-break-inside: avoid;
+}
+
+p {
+    margin: 0;
+    text-indent: 0;
+    line-height: 1.4;
+    text-align: justify;
+    hyphens: auto;
+}
+
+blockquote {
+    margin: 1.4em 1.5em;
+}
+
+ul, ol {
+    padding-left: 1.5em;
+}
+
+li {
+    line-height: 1.4;
+    text-align: left;
+}
+
+sub, sup {
+    font-size: 0.75em;
+    line-height: 1;
+}
+
+a {
+    color: rgb(36, 39, 116);
+    text-decoration: underline;
+}
+
+hr {
+    border: none;
+}
+
+img {
+    max-width: 100%;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th, td {
+    border: 1px solid #888;
+    padding: 0.4em;
+}

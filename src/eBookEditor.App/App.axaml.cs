@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using eBookEditor.App.Services;
@@ -21,6 +22,11 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            // Each project window is independent (see MainWindow's New/Open Project
+            // handlers, which Show() additional windows rather than swapping the current
+            // one's project) — don't quit just because one of several windows closed.
+            desktop.ShutdownMode = ShutdownMode.OnLastWindowClose;
+
             var project = SampleProjectFactory.LoadOrCreate(AppContext.BaseDirectory);
             desktop.MainWindow = new MainWindow
             {

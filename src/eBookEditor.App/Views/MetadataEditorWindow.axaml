@@ -4,11 +4,11 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="using:eBookEditor.App.ViewModels"
         mc:Ignorable="d"
-        d:DesignWidth="520" d:DesignHeight="700"
+        d:DesignWidth="640" d:DesignHeight="760"
         x:Class="eBookEditor.App.Views.MetadataEditorWindow"
         x:DataType="vm:MetadataViewModel"
         Title="Book Metadata"
-        Width="560" Height="720"
+        Width="680" Height="780"
         WindowStartupLocation="CenterOwner">
 
   <Grid RowDefinitions="*,Auto">
@@ -18,10 +18,49 @@
         <TextBlock Text="Front Matter" FontWeight="Bold" FontSize="16" />
         <TextBox Watermark="Title" Text="{Binding Title}" />
         <TextBox Watermark="Subtitle" Text="{Binding Subtitle}" />
-        <TextBox Watermark="Author(s), comma separated" Text="{Binding AuthorNames}" />
-        <TextBox Watermark="Editor(s), comma separated" Text="{Binding EditorNames}" />
-        <TextBox Watermark="Illustrator(s), comma separated" Text="{Binding IllustratorNames}" />
         <TextBox Watermark="Language (BCP-47, e.g. en)" Text="{Binding Language}" />
+
+        <TextBlock Text="Authors" FontWeight="SemiBold" Margin="0,6,0,0" />
+        <ItemsControl ItemsSource="{Binding Authors}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ContributorEntry">
+              <Grid ColumnDefinitions="*,*,Auto" Margin="0,0,0,4">
+                <TextBox Grid.Column="0" Watermark="Name" Text="{Binding Name}" Margin="0,0,4,0" />
+                <TextBox Grid.Column="1" Watermark="Sort name (optional, e.g. Doe, Jane)" Text="{Binding SortName}" Margin="0,0,4,0" />
+                <Button Grid.Column="2" Content="✕" Click="OnRemoveAuthorClick" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Content="+ Add Author" Command="{Binding AddAuthorCommand}" />
+
+        <TextBlock Text="Editors" FontWeight="SemiBold" Margin="0,6,0,0" />
+        <ItemsControl ItemsSource="{Binding Editors}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ContributorEntry">
+              <Grid ColumnDefinitions="*,*,Auto" Margin="0,0,0,4">
+                <TextBox Grid.Column="0" Watermark="Name" Text="{Binding Name}" Margin="0,0,4,0" />
+                <TextBox Grid.Column="1" Watermark="Sort name (optional)" Text="{Binding SortName}" Margin="0,0,4,0" />
+                <Button Grid.Column="2" Content="✕" Click="OnRemoveEditorClick" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Content="+ Add Editor" Command="{Binding AddEditorCommand}" />
+
+        <TextBlock Text="Illustrators" FontWeight="SemiBold" Margin="0,6,0,0" />
+        <ItemsControl ItemsSource="{Binding Illustrators}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ContributorEntry">
+              <Grid ColumnDefinitions="*,*,Auto" Margin="0,0,0,4">
+                <TextBox Grid.Column="0" Watermark="Name" Text="{Binding Name}" Margin="0,0,4,0" />
+                <TextBox Grid.Column="1" Watermark="Sort name (optional)" Text="{Binding SortName}" Margin="0,0,4,0" />
+                <Button Grid.Column="2" Content="✕" Click="OnRemoveIllustratorClick" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Content="+ Add Illustrator" Command="{Binding AddIllustratorCommand}" />
 
         <TextBlock Text="Style" FontWeight="Bold" FontSize="16" Margin="0,12,0,0" />
         <ComboBox ItemsSource="{Binding AvailableTemplates}" SelectedItem="{Binding SelectedTemplate}"
@@ -39,22 +78,67 @@
         <TextBox Watermark="Copyright disclaimer" Text="{Binding CopyrightDisclaimer}"
                  AcceptsReturn="True" TextWrapping="Wrap" Height="90" />
 
-        <TextBlock Text="Discovery" FontWeight="Bold" FontSize="16" Margin="0,12,0,0" />
-        <TextBox Watermark="Genre tags, comma separated" Text="{Binding GenreTags}" />
-        <TextBox Watermark="Other tags, comma separated" Text="{Binding FreeTags}" />
+        <TextBlock Text="Genre Tags" FontWeight="Bold" FontSize="16" Margin="0,12,0,0" />
+        <ItemsControl ItemsSource="{Binding GenreTags}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:TagEntry">
+              <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+                <TextBox Grid.Column="0" Watermark="Genre" Text="{Binding Value}" Margin="0,0,4,0" />
+                <Button Grid.Column="1" Content="✕" Click="OnRemoveGenreTagClick" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Content="+ Add Genre Tag" Command="{Binding AddGenreTagCommand}" />
+
+        <TextBlock Text="Other Tags" FontWeight="SemiBold" Margin="0,6,0,0" />
+        <ItemsControl ItemsSource="{Binding FreeTags}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:TagEntry">
+              <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+                <TextBox Grid.Column="0" Watermark="Tag" Text="{Binding Value}" Margin="0,0,4,0" />
+                <Button Grid.Column="1" Content="✕" Click="OnRemoveFreeTagClick" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Content="+ Add Tag" Command="{Binding AddFreeTagCommand}" />
+
         <TextBox Watermark="Blurb (back cover)" Text="{Binding Blurb}"
-                 AcceptsReturn="True" TextWrapping="Wrap" Height="90" />
+                 AcceptsReturn="True" TextWrapping="Wrap" Height="90" Margin="0,8,0,0" />
 
         <TextBlock Text="About the Author" FontWeight="Bold" FontSize="16" Margin="0,12,0,0" />
         <TextBox Watermark="Author photo path (relative to project)" Text="{Binding AuthorPhotoPath}" />
         <TextBox Watermark="Author bio" Text="{Binding AuthorBio}"
                  AcceptsReturn="True" TextWrapping="Wrap" Height="90" />
-        <TextBox Watermark="Social links: one per line, Platform|Url" Text="{Binding SocialLinks}"
-                 AcceptsReturn="True" TextWrapping="Wrap" Height="70" />
+
+        <TextBlock Text="Social Links" FontWeight="SemiBold" Margin="0,6,0,0" />
+        <ItemsControl ItemsSource="{Binding SocialLinks}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:SocialLinkEntry">
+              <Grid ColumnDefinitions="*,2*,Auto" Margin="0,0,0,4">
+                <TextBox Grid.Column="0" Watermark="Platform" Text="{Binding Platform}" Margin="0,0,4,0" />
+                <TextBox Grid.Column="1" Watermark="URL" Text="{Binding Url}" Margin="0,0,4,0" />
+                <Button Grid.Column="2" Content="✕" Click="OnRemoveSocialLinkClick" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Content="+ Add Social Link" Command="{Binding AddSocialLinkCommand}" />
 
         <TextBlock Text="Where It's Sold" FontWeight="Bold" FontSize="16" Margin="0,12,0,0" />
-        <TextBox Watermark="Store links: one per line, StoreName|Url (e.g. KindleStore|https://...)"
-                 Text="{Binding StoreLinks}" AcceptsReturn="True" TextWrapping="Wrap" Height="70" />
+        <ItemsControl ItemsSource="{Binding StoreLinks}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:StoreLinkEntry">
+              <Grid ColumnDefinitions="*,2*,Auto" Margin="0,0,0,4">
+                <TextBox Grid.Column="0" Watermark="Store (e.g. KindleStore, AppleBooks)" Text="{Binding Store}" Margin="0,0,4,0" />
+                <TextBox Grid.Column="1" Watermark="URL" Text="{Binding Url}" Margin="0,0,4,0" />
+                <Button Grid.Column="2" Content="✕" Click="OnRemoveStoreLinkClick" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Content="+ Add Store Link" Command="{Binding AddStoreLinkCommand}" />
 
       </StackPanel>
     </ScrollViewer>

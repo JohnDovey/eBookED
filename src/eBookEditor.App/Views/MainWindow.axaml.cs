@@ -6,6 +6,7 @@ using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using eBookEditor.App.ViewModels;
 using eBookEditor.Core.Models;
+using eBookEditor.Core.Services;
 
 namespace eBookEditor.App.Views;
 
@@ -15,6 +16,7 @@ public partial class MainWindow : Window
     private const double DragThreshold = 6;
 
     private bool _suppressTextChanged;
+    private bool _forceClose;
     private SpineItem? _dragCandidate;
     private Point _dragStartPoint;
 
@@ -26,10 +28,30 @@ public partial class MainWindow : Window
         Closing += OnWindowClosing;
     }
 
-    private void OnWindowClosing(object? sender, WindowClosingEventArgs e)
+    private async void OnWindowClosing(object? sender, WindowClosingEventArgs e)
     {
-        if (ViewModel?.Editor.IsDirty == true)
-            ViewModel.Editor.Save();
+        if (_forceClose || ViewModel?.Editor.IsDirty != true)
+            return;
+
+        e.Cancel = true;
+
+        var dialog = new UnsavedChangesDialog();
+        var result = await dialog.ShowDialog<UnsavedChangesResult>(this);
+
+        switch (result)
+        {
+            case UnsavedChangesResult.Save:
+                ViewModel.SaveProjectCommand.Execute(null);
+                _forceClose = true;
+                Close();
+                break;
+            case UnsavedChangesResult.Discard:
+                _forceClose = true;
+                Close();
+                break;
+            case UnsavedChangesResult.Cancel:
+                break;
+        }
     }
 
     private MainWindowViewModel? ViewModel => DataContext as MainWindowViewModel;
@@ -69,14 +91,40 @@ public partial class MainWindow : Window
 
     private async void OnNewProjectClick(object? sender, RoutedEventArgs e)
     {
-        if (ViewModel is null)
-            return;
-
         var wizard = new NewProjectWizardWindow();
         await wizard.ShowDialog(this);
 
         if (wizard.CreatedProject is { } project)
-            ViewModel.SwitchToProject(project);
+            OpenProjectInNewWindow(project);
+    }
+
+    private async void OnOpenProjectClick(object? sender, RoutedEventArgs e)
+    {
+        var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "Open eBook Editor Project",
+            AllowMultiple = false
+        });
+
+        if (folders.FirstOrDefault()?.TryGetLocalPath() is not { } path)
+            return;
+
+        try
+        {
+            var project = new ProjectService().LoadProject(path);
+            OpenProjectInNewWindow(project);
+        }
+        catch (Exception ex)
+        {
+            if (ViewModel is not null)
+                ViewModel.StatusMessage = $"Couldn't open project at {path}: {ex.Message}";
+        }
+    }
+
+    private static void OpenProjectInNewWindow(EbookProject project)
+    {
+        var window = new MainWindow { DataContext = new MainWindowViewModel(project) };
+        window.Show();
     }
 
     private async void OnEditMetadataClick(object? sender, RoutedEventArgs e)

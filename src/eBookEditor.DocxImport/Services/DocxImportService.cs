@@ -30,16 +30,22 @@ public class DocxImportService
             currentImages = [];
         }
 
-        foreach (var paragraph in body.Elements<Paragraph>())
+        foreach (var element in body.ChildElements)
         {
-            if (ChapterBoundaryDetector.IsChapterBoundary(paragraph))
+            if (element is Paragraph paragraph && ChapterBoundaryDetector.IsChapterBoundary(paragraph))
             {
                 FlushCurrent();
                 currentTitle = ExtractChapterTitle(paragraph);
                 continue;
             }
 
-            var line = converter.ConvertParagraph(paragraph, mainPart, currentImages);
+            var line = element switch
+            {
+                Paragraph p => converter.ConvertParagraph(p, mainPart, currentImages),
+                Table table => converter.ConvertTable(table),
+                _ => null
+            };
+
             if (string.IsNullOrEmpty(line))
                 continue;
 

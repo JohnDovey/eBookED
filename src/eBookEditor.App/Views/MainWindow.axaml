@@ -13,12 +13,20 @@
         Title="eBook Editor"
         Width="1100" Height="700">
 
+  <Window.KeyBindings>
+    <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveProjectCommand}" />
+    <KeyBinding Gesture="Cmd+S" Command="{Binding SaveProjectCommand}" />
+  </Window.KeyBindings>
+
   <DockPanel>
 
     <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto">
       <Menu Grid.Column="0">
         <MenuItem Header="_File">
           <MenuItem Header="New Project…" Click="OnNewProjectClick" />
+          <MenuItem Header="Open Project…" Click="OnOpenProjectClick" />
+          <MenuItem Header="Save Project" Command="{Binding SaveProjectCommand}" InputGesture="Ctrl+S" />
+          <Separator />
           <MenuItem Header="Import DOCX…" Click="OnImportDocxClick" />
         </MenuItem>
         <MenuItem Header="_Project">

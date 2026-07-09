@@ -58,12 +58,24 @@ public partial class EditorViewModel : ViewModelBase
         }
     }
 
-    public void LoadFile(string path)
+    /// <summary>
+    /// Loading a new file preserves whatever Edit/Preview mode is currently active (so
+    /// switching between chapters doesn't keep resetting the user's toggle choice) unless
+    /// <paramref name="forcePreviewMode"/> is set — used for generated pages (title/copyright/
+    /// TOC/about-author), which always open in Preview since hand-editing them gets clobbered
+    /// by the next regenerate anyway.
+    /// </summary>
+    public void LoadFile(string path, bool forcePreviewMode = false)
     {
         FilePath = path;
         CurrentText = File.Exists(path) ? File.ReadAllText(path) : string.Empty;
         IsDirty = false;
-        Mode = EditorMode.Edit;
+
+        if (forcePreviewMode)
+            Mode = EditorMode.Preview;
+
+        if (Mode == EditorMode.Preview)
+            PreviewSource = CurrentText;
     }
 
     public void Save()

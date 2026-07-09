@@ -5,5 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- No explicit version existed before this (SDK default was 1.0.0); this bumps the
+         patch component for this round of fixes/features. -->
+    <Version>1.0.1</Version>
   </PropertyGroup>
 </Project>

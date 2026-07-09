@@ -46,6 +46,48 @@ public class MainWindowViewModelTests : IDisposable
     }
 
     [Fact]
+    public void Constructor_OpensTitlePageInPreviewModeSinceItIsGenerated()
+    {
+        var vm = NewViewModel();
+
+        Assert.True(vm.Editor.IsPreviewMode);
+        Assert.Contains("VM Test Book", vm.Editor.PreviewSource);
+    }
+
+    [Fact]
+    public void OpenSpineItem_ChapterRespectsCurrentlyActiveMode()
+    {
+        var vm = NewViewModel();
+        vm.AddChapterCommand.Execute(null);
+        var chapter = Assert.Single(vm.SpineItems, i => i.Type == SpineItemType.Chapter);
+
+        // Title page opened in Preview by construction; toggle to Edit before opening the chapter.
+        vm.Editor.TogglePreviewCommand.Execute(null);
+        Assert.True(vm.Editor.IsEditMode);
+
+        vm.OpenSpineItem(chapter);
+
+        Assert.True(vm.Editor.IsEditMode);
+    }
+
+    [Fact]
+    public void OpenSpineItem_GeneratedPageAlwaysOpensInPreviewRegardlessOfPriorMode()
+    {
+        var vm = NewViewModel();
+        vm.AddChapterCommand.Execute(null);
+        var chapter = Assert.Single(vm.SpineItems, i => i.Type == SpineItemType.Chapter);
+        vm.OpenSpineItem(chapter);
+        if (vm.Editor.IsPreviewMode)
+            vm.Editor.TogglePreviewCommand.Execute(null);
+        Assert.True(vm.Editor.IsEditMode);
+
+        var copyrightItem = vm.SpineItems.Single(i => i.RelativePath.EndsWith(ProjectPaths.CopyrightPageFileName, StringComparison.Ordinal));
+        vm.OpenSpineItem(copyrightItem);
+
+        Assert.True(vm.Editor.IsPreviewMode);
+    }
+
+    [Fact]
     public void AddChapter_AddsToSpineAndOpensInEditor()
     {
         var vm = NewViewModel();
@@ -212,8 +254,8 @@ public class MainWindowViewModelTests : IDisposable
     public void SaveMetadataAndRegenerate_RecordsContributorsAndPublisherInAppSettings()
     {
         var vm = NewViewModel();
-        vm.Metadata.AuthorNames = "Jane Doe";
-        vm.Metadata.EditorNames = "Ed Itor";
+        vm.Metadata.Authors.Add(new ContributorEntry { Name = "Jane Doe" });
+        vm.Metadata.Editors.Add(new ContributorEntry { Name = "Ed Itor" });
         vm.Metadata.PublisherName = "Acme Press";
 
         vm.SaveMetadataAndRegenerate();
@@ -228,18 +270,18 @@ public class MainWindowViewModelTests : IDisposable
     public void ApplyAutofillDefaultsIfEmpty_FillsOnlyEmptyFieldsFromKnownAppSettings()
     {
         var firstProject = NewViewModel("First Book");
-        firstProject.Metadata.AuthorNames = "Jane Doe";
+        firstProject.Metadata.Authors.Add(new ContributorEntry { Name = "Jane Doe" });
         firstProject.Metadata.PublisherName = "Acme Press";
         firstProject.SaveMetadataAndRegenerate();
 
         var secondProject = NewViewModel("Second Book");
-        secondProject.Metadata.EditorNames = "Already Set Editor";
+        secondProject.Metadata.Editors.Add(new ContributorEntry { Name = "Already Set Editor" });
 
         secondProject.ApplyAutofillDefaultsIfEmpty();
 
-        Assert.Equal("Jane Doe", secondProject.Metadata.AuthorNames);
+        Assert.Equal("Jane Doe", secondProject.Metadata.Authors.Single().Name);
         Assert.Equal("Acme Press", secondProject.Metadata.PublisherName);
-        Assert.Equal("Already Set Editor", secondProject.Metadata.EditorNames);
+        Assert.Equal("Already Set Editor", secondProject.Metadata.Editors.Single().Name);
     }
 
     [Fact]
@@ -284,27 +326,21 @@ public class MainWindowViewModelTests : IDisposable
     }
 
     [Fact]
-    public void SwitchToProject_SavesDirtyEditsAndLoadsNewProjectState()
+    public void SaveProjectCommand_PersistsMetadataAndFlushesDirtyEditorBuffer()
     {
         var vm = NewViewModel("First Book");
         vm.Editor.CurrentText = "Unsaved title page edits.";
-        var firstProjectPath = vm.CurrentProject.DirectoryPath;
+        vm.Metadata.Title = "Renamed Book";
 
-        var secondMetadata = new BookMetadata { Title = "Second Book", CopyrightHolder = "Someone Else" };
-        var secondProject = _projectService.CreateProject(_tempDir, "Second Book", secondMetadata);
-        _pageGenerator.RegenerateAllGeneratedPages(secondProject);
+        vm.SaveProjectCommand.Execute(null);
 
-        vm.SwitchToProject(secondProject);
-
-        Assert.Equal("Second Book", vm.CurrentProject.Metadata.Title);
-        Assert.Equal("Second Book", vm.Metadata.Title);
         Assert.False(vm.Editor.IsDirty);
-        Assert.Contains("Second Book", vm.Editor.CurrentText);
+        Assert.Equal("Renamed Book", vm.CurrentProject.Metadata.Title);
 
-        var firstTitlePage = File.ReadAllText(Path.Combine(firstProjectPath, "frontmatter", ProjectPaths.TitlePageFileName));
-        Assert.Contains("Unsaved title page edits.", firstTitlePage);
+        var reloaded = _projectService.LoadProject(vm.CurrentProject.DirectoryPath);
+        Assert.Equal("Renamed Book", reloaded.Metadata.Title);
 
-        var settings = _appSettingsService.Load();
-        Assert.Contains(secondProject.DirectoryPath, settings.RecentProjectPaths);
+        var titlePage = File.ReadAllText(vm.Editor.FilePath!);
+        Assert.Contains("Unsaved title page edits.", titlePage);
     }
 }

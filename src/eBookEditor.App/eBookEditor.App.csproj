@@ -13,6 +13,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Ships with the app so custom templates (e.g. "Vellum Serif") survive rebuilds;
+         TemplateService still auto-seeds "Default" at runtime if the folder is ever empty. -->
+    <None Include="templates\**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\eBookEditor.Core\eBookEditor.Core.csproj" />
     <ProjectReference Include="..\eBookEditor.Markdown\eBookEditor.Markdown.csproj" />
     <ProjectReference Include="..\eBookEditor.Epub\eBookEditor.Epub.csproj" />
