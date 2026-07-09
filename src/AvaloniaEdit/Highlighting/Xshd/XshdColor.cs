@@ -18,7 +18,7 @@
 
 using Avalonia.Media;
 
-namespace AvaloniaEdit.Highlighting.Xshd
+namespace AvaloniaEditCore.Highlighting.Xshd
 {
 	/// <summary>
 	/// A color in an Xshd file.

@@ -17,13 +17,13 @@
 // DEALINGS IN THE SOFTWARE.
 
 using Avalonia;
-using AvaloniaEdit.Rendering;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Rendering;
+using AvaloniaEditCore.Utils;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 
-namespace AvaloniaEdit.Folding
+namespace AvaloniaEditCore.Folding
 {
     internal sealed class FoldingMarginMarker : Control
     {

@@ -21,9 +21,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Avalonia.Media;
-using AvaloniaEdit.Document;
+using AvaloniaEditCore.Document;
 
-namespace AvaloniaEdit.Highlighting
+namespace AvaloniaEditCore.Highlighting
 {
     /// <summary>
     /// Stores rich-text formatting.

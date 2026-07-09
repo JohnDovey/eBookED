@@ -22,10 +22,10 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Highlighting
+namespace AvaloniaEditCore.Highlighting
 {
     /// <summary>
     /// Represents a highlighted document line.

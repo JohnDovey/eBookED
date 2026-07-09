@@ -29,9 +29,9 @@ using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml.Templates;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.CodeCompletion
+namespace AvaloniaEditCore.CodeCompletion
 {
     /// <summary>
     /// The listbox used inside the CompletionWindow, contains CompletionListBox.

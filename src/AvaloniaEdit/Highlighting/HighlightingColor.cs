@@ -21,9 +21,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 using Avalonia.Media;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Highlighting
+namespace AvaloniaEditCore.Highlighting
 {
     /// <summary>
     /// A highlighting color is a set of font properties and foreground and background color.

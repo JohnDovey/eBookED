@@ -20,11 +20,11 @@ using System;
 using System.Diagnostics;
 using Avalonia.Media.TextFormatting;
 using Avalonia.Utilities;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Utils;
 using ITextSource = Avalonia.Media.TextFormatting.ITextSource;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
 	/// <summary>
 	/// WPF TextSource implementation that creates TextRuns for a VisualLine.

@@ -18,10 +18,10 @@
 
 using System;
 using System.Collections.Generic;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Editing
+namespace AvaloniaEditCore.Editing
 {
     /// <summary>
     /// A simple selection.

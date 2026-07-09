@@ -20,7 +20,7 @@ using System;
 using System.Globalization;
 using System.ComponentModel;
 
-namespace AvaloniaEdit.Document
+namespace AvaloniaEditCore.Document
 {
     /// <summary>
     /// A line/column position.

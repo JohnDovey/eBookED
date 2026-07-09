@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace AvaloniaEdit.Document
+namespace AvaloniaEditCore.Document
 {
     public class DocumentChangedEventArgs : EventArgs
     {

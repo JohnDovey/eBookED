@@ -27,10 +27,10 @@ using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Indentation;
-using AvaloniaEdit.Rendering;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Indentation;
+using AvaloniaEditCore.Rendering;
+using AvaloniaEditCore.Utils;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -40,7 +40,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Linq;
 
-namespace AvaloniaEdit.Editing
+namespace AvaloniaEditCore.Editing
 {
     /// <summary>
     /// Control that wraps a TextView and adds support for user input and the caret.

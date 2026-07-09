@@ -18,7 +18,7 @@
 
 using System;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
 	/// <summary>
 	/// A VisualLinesInvalidException indicates that you accessed the <see cref="TextView.VisualLines"/> property

@@ -18,7 +18,7 @@
 
 using Avalonia.Media;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
 	/// <summary>
 	/// Background renderers draw in the background of a known layer.

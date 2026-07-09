@@ -27,12 +27,12 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Utils;
 
-using LogicalDirection = AvaloniaEdit.Document.LogicalDirection;
+using LogicalDirection = AvaloniaEditCore.Document.LogicalDirection;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
     /// <summary>
     /// Represents a visual line in the document.

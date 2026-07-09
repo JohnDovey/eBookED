@@ -20,12 +20,12 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Utils;
 using Avalonia.Threading;
-using SpanStack = System.Collections.Immutable.ImmutableStack<AvaloniaEdit.Highlighting.HighlightingSpan>;
+using SpanStack = System.Collections.Immutable.ImmutableStack<AvaloniaEditCore.Highlighting.HighlightingSpan>;
 
-namespace AvaloniaEdit.Highlighting
+namespace AvaloniaEditCore.Highlighting
 {
     /// <summary>
     /// This class can syntax-highlight a document.

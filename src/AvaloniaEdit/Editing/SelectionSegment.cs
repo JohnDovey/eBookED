@@ -17,9 +17,9 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using AvaloniaEdit.Document;
+using AvaloniaEditCore.Document;
 
-namespace AvaloniaEdit.Editing
+namespace AvaloniaEditCore.Editing
 {
     /// <summary>
     /// Represents a selected segment.

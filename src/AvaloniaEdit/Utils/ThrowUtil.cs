@@ -19,7 +19,7 @@
 using System;
 using System.Globalization;
 
-namespace AvaloniaEdit.Utils
+namespace AvaloniaEditCore.Utils
 {
 	/// <summary>
 	/// Contains exception-throwing helper methods.

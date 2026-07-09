@@ -20,10 +20,10 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
    /// <summary>
 	/// Red-black tree similar to DocumentLineTree, augmented with collapsing and height data.

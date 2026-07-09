@@ -1,7 +1,7 @@
 ﻿using Avalonia.Metadata;
 
-[assembly: XmlnsDefinition("https://github.com/avaloniaui/avaloniaedit", "AvaloniaEdit")]
-[assembly: XmlnsDefinition("https://github.com/avaloniaui/avaloniaedit", "AvaloniaEdit.Editing")]
-[assembly: XmlnsDefinition("https://github.com/avaloniaui/avaloniaedit", "AvaloniaEdit.Rendering")]
-[assembly: XmlnsDefinition("https://github.com/avaloniaui/avaloniaedit", "AvaloniaEdit.Highlighting")]
-[assembly: XmlnsDefinition("https://github.com/avaloniaui/avaloniaedit", "AvaloniaEdit.Search")]
+[assembly: XmlnsDefinition("https://github.com/avaloniaui/avaloniaedit", "AvaloniaEditCore")]
+[assembly: XmlnsDefinition("https://github.com/avaloniaui/avaloniaedit", "AvaloniaEditCore.Editing")]
+[assembly: XmlnsDefinition("https://github.com/avaloniaui/avaloniaedit", "AvaloniaEditCore.Rendering")]
+[assembly: XmlnsDefinition("https://github.com/avaloniaui/avaloniaedit", "AvaloniaEditCore.Highlighting")]
+[assembly: XmlnsDefinition("https://github.com/avaloniaui/avaloniaedit", "AvaloniaEditCore.Search")]

@@ -21,10 +21,10 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
-using AvaloniaEdit.Rendering;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Rendering;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Editing
+namespace AvaloniaEditCore.Editing
 {
     internal sealed class CaretLayer : Layer
     {

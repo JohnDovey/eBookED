@@ -23,7 +23,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using Avalonia.Threading;
 
-namespace AvaloniaEdit.Document
+namespace AvaloniaEditCore.Document
 {
     /// <summary>
     /// Data structure for efficient management of the document lines (most operations are O(lg n)).

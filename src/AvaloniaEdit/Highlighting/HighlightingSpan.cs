@@ -18,7 +18,7 @@
 
 using System.Text.RegularExpressions;
 
-namespace AvaloniaEdit.Highlighting
+namespace AvaloniaEditCore.Highlighting
 {
 	/// <summary>
 	/// A highlighting span is a region with start+end expression that has a different RuleSet inside

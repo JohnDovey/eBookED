@@ -16,11 +16,11 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using AvaloniaEdit.Rendering;
+using AvaloniaEditCore.Rendering;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 
-namespace AvaloniaEdit.Highlighting
+namespace AvaloniaEditCore.Highlighting
 {
 	/// <summary>
 	/// A brush used for syntax highlighting. Can retrieve a real brush on-demand.

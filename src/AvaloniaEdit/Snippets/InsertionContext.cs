@@ -19,10 +19,10 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Editing;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Editing;
 
-namespace AvaloniaEdit.Snippets
+namespace AvaloniaEditCore.Snippets
 {
     /// <summary>
     /// Represents the context of a snippet insertion.

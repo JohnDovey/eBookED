@@ -22,11 +22,11 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Avalonia;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Editing;
-using AvaloniaEdit.Highlighting;
-using AvaloniaEdit.Rendering;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Editing;
+using AvaloniaEditCore.Highlighting;
+using AvaloniaEditCore.Rendering;
+using AvaloniaEditCore.Utils;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Shapes;
@@ -35,9 +35,9 @@ using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Data;
-using AvaloniaEdit.Search;
+using AvaloniaEditCore.Search;
 
-namespace AvaloniaEdit
+namespace AvaloniaEditCore
 {
     /// <summary>
     /// The text editor control.

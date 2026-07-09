@@ -20,7 +20,7 @@ using System;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace AvaloniaEdit.Search
+namespace AvaloniaEditCore.Search
 {
     /// <summary>
     /// Provides factory methods for ISearchStrategies.

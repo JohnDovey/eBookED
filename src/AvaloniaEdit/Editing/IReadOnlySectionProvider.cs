@@ -17,9 +17,9 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System.Collections.Generic;
-using AvaloniaEdit.Document;
+using AvaloniaEditCore.Document;
 
-namespace AvaloniaEdit.Editing
+namespace AvaloniaEditCore.Editing
 {
 	/// <summary>
 	/// Determines whether the document can be modified.

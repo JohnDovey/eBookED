@@ -21,9 +21,9 @@ using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 using Avalonia.Utilities;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
 	/// <summary>
 	/// Formatted text (not normal document text).

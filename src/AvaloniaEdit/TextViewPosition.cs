@@ -19,9 +19,9 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using AvaloniaEdit.Document;
+using AvaloniaEditCore.Document;
 
-namespace AvaloniaEdit
+namespace AvaloniaEditCore
 {
     /// <summary>
     /// Represents a text location with a visual column.

@@ -20,9 +20,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using AvaloniaEdit.Document;
+using AvaloniaEditCore.Document;
 
-namespace AvaloniaEdit.Search
+namespace AvaloniaEditCore.Search
 {
     internal class RegexSearchStrategy : ISearchStrategy
 	{

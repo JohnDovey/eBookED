@@ -18,7 +18,7 @@
 
 using System.Text;
 
-namespace AvaloniaEdit.Snippets
+namespace AvaloniaEditCore.Snippets
 {
     /// <summary>
     /// Inserts the previously selected text at the selection marker.

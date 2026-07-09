@@ -19,9 +19,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using AvaloniaEdit.Document;
+using AvaloniaEditCore.Document;
 
-namespace AvaloniaEdit.Editing
+namespace AvaloniaEditCore.Editing
 {
     /// <summary>
     /// Implementation for <see cref="IReadOnlySectionProvider"/> that stores the segments

@@ -18,9 +18,9 @@
 
 using System;
 using System.Collections.Generic;
-using AvaloniaEdit.Document;
+using AvaloniaEditCore.Document;
 
-namespace AvaloniaEdit.Search
+namespace AvaloniaEditCore.Search
 {
 	/// <summary>
 	/// Basic interface for search algorithms.

@@ -18,12 +18,12 @@
 
 using System;
 using Avalonia;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Editing;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Editing;
 using Avalonia.Controls;
 using Avalonia.Input;
 
-namespace AvaloniaEdit.CodeCompletion
+namespace AvaloniaEditCore.CodeCompletion
 {
     /// <summary>
     /// The code completion window.

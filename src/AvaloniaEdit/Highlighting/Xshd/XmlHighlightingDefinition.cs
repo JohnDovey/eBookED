@@ -22,9 +22,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Highlighting.Xshd
+namespace AvaloniaEditCore.Highlighting.Xshd
 {
     internal sealed class XmlHighlightingDefinition : IHighlightingDefinition
     {

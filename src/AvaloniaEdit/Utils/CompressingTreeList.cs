@@ -23,7 +23,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
-namespace AvaloniaEdit.Utils
+namespace AvaloniaEditCore.Utils
 {
     /// <summary>
     /// A IList{T} implementation that has efficient insertion and removal (in O(lg n) time)

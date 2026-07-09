@@ -18,7 +18,7 @@
 
 using System.ComponentModel;
 
-namespace AvaloniaEdit.Utils
+namespace AvaloniaEditCore.Utils
 {
 	/// <summary>
 	/// WeakEventManager for INotifyPropertyChanged.PropertyChanged.

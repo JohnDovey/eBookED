@@ -17,12 +17,12 @@
 // DEALINGS IN THE SOFTWARE.
 
 using Avalonia.Media.TextFormatting;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Utils;
 
 #nullable enable
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
 	/// <summary>
 	/// Contains information relevant for text run creation.

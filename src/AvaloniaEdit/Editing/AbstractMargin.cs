@@ -19,12 +19,12 @@
 using System;
 using System.Diagnostics;
 using Avalonia;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Rendering;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Rendering;
 using Avalonia.Controls;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Editing
+namespace AvaloniaEditCore.Editing
 {
     /// <summary>
     /// Base class for margins.

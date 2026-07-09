@@ -18,11 +18,11 @@
 
 using System;
 using System.ComponentModel;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Editing;
-using AvaloniaEdit.Rendering;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Editing;
+using AvaloniaEditCore.Rendering;
 
-namespace AvaloniaEdit
+namespace AvaloniaEditCore
 {
 	/// <summary>
 	/// Represents a text editor control (<see cref="TextEditor"/>, <see cref="TextArea"/>

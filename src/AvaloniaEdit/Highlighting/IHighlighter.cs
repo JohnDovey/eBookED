@@ -18,9 +18,9 @@
 
 using System;
 using System.Collections.Generic;
-using AvaloniaEdit.Document;
+using AvaloniaEditCore.Document;
 
-namespace AvaloniaEdit.Highlighting
+namespace AvaloniaEditCore.Highlighting
 {
 	/// <summary>
 	/// Represents a highlighted document.

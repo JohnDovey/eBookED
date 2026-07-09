@@ -23,9 +23,9 @@ using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
     /// <summary>
     /// Renders a ruler at a certain column.

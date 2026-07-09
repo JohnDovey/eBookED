@@ -17,9 +17,9 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using AvaloniaEdit.Document;
+using AvaloniaEditCore.Document;
 
-namespace AvaloniaEdit.Indentation.CSharp
+namespace AvaloniaEditCore.Indentation.CSharp
 {
     /// <summary>
     /// Smart indentation for C#.

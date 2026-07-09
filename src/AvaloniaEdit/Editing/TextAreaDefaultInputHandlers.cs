@@ -18,10 +18,10 @@
 
 using System;
 using System.Windows.Input;
-using AvaloniaEdit.Document;
+using AvaloniaEditCore.Document;
 using Avalonia.Input;
 
-namespace AvaloniaEdit.Editing
+namespace AvaloniaEditCore.Editing
 {
     /// <summary>
     /// Contains the predefined input handlers.

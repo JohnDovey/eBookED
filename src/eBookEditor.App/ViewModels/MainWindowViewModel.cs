@@ -1,5 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using eBookEditor.ChapterImport.Models;
+using eBookEditor.ChapterImport.Services;
 using eBookEditor.Core.Models;
 using eBookEditor.Core.Services;
 using eBookEditor.DocxImport.Services;
@@ -17,6 +19,8 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly BookIndexGenerator _bookIndexGenerator = new();
     private readonly MarkdownExportService _markdownExportService = new();
     private readonly DocxImportService _docxImportService = new();
+    private readonly ChapterImportService _chapterImportService = new();
+    private readonly OrphanChapterScanner _orphanScanner = new();
     private readonly TemplateService _templateService;
     private readonly EpubBuilder _epubBuilder;
     private readonly AppSettingsService _appSettingsService;
@@ -60,11 +64,60 @@ public partial class MainWindowViewModel : ViewModelBase
         if (FindTitlePageItem(project) is { } titlePage)
             OpenSpineItem(titlePage);
 
+        ImportOrphanedChapterFiles();
         _appSettingsService.RecordProjectOpened(project.DirectoryPath);
     }
 
     private static SpineItem? FindTitlePageItem(EbookProject project) => project.Spine
         .FirstOrDefault(i => i.RelativePath.EndsWith(ProjectPaths.TitlePageFileName, StringComparison.Ordinal));
+
+    /// <summary>
+    /// Renames chapter files on disk to match their resolved position (see
+    /// ChapterFileService.SyncChapterFileNames), then refreshes SelectedSpineItem/Editor's
+    /// notion of the current file if the selected chapter was one of the ones renamed —
+    /// SpineItem.RelativePath is replaced via `with`, so any previously-held reference goes
+    /// stale the moment a rename happens.
+    /// </summary>
+    private void SyncChapterFileNamesAndRefreshSelection()
+    {
+        _chapterFileService.SyncChapterFileNames(CurrentProject);
+
+        if (SelectedSpineItem is not { } selected)
+            return;
+
+        var refreshed = CurrentProject.Spine.FirstOrDefault(i => i.Id == selected.Id);
+        if (refreshed is null || ReferenceEquals(refreshed, selected))
+            return;
+
+        SelectedSpineItem = refreshed;
+        Editor.FilePath = CurrentProject.ResolvePath(refreshed);
+    }
+
+    /// <summary>
+    /// Picks up .md files sitting in chapters/ that aren't referenced by any spine item —
+    /// e.g. dropped into the folder directly via Finder/Explorer — and adds them to the
+    /// book. Filename hints (see ChapterFileNaming.ParseHint) determine where they land.
+    /// </summary>
+    private void ImportOrphanedChapterFiles()
+    {
+        var orphanPaths = _orphanScanner.FindOrphanedChapterFiles(CurrentProject);
+        if (orphanPaths.Count == 0)
+            return;
+
+        foreach (var filePath in orphanPaths)
+        {
+            foreach (var draft in _chapterImportService.ImportFile(filePath))
+            {
+                var relativePath = Path.GetRelativePath(CurrentProject.DirectoryPath, filePath).Replace('\\', '/');
+                _spineService.AddChapter(CurrentProject, draft.Title, relativePath, draft.PositionHint);
+            }
+        }
+
+        SyncChapterFileNamesAndRefreshSelection();
+        _projectService.SaveProject(CurrentProject);
+        RegenerateGeneratedContent();
+        StatusMessage = $"Found and added {orphanPaths.Count} chapter file(s) not previously in the book.";
+    }
 
     public IReadOnlyList<string> GetRecentProjectPaths() => _appSettingsService.Load().RecentProjectPaths;
 
@@ -160,9 +213,71 @@ public partial class MainWindowViewModel : ViewModelBase
         var relativePath = Path.GetRelativePath(CurrentProject.DirectoryPath, path).Replace('\\', '/');
 
         var item = _spineService.AddChapter(CurrentProject, title, relativePath);
+        _chapterFileService.SyncChapterFileNames(CurrentProject);
+        item = CurrentProject.Spine.First(i => i.Id == item.Id);
+
         _projectService.SaveProject(CurrentProject);
         RegenerateGeneratedContent();
         OpenSpineItem(item);
+    }
+
+    /// <summary>
+    /// Imports one or more dropped/picked files as new chapters: .md is used as-is, .docx
+    /// reuses the whole-manuscript importer's chapter-boundary detection, and .html/.htm is
+    /// converted to Markdown. Each file's name supplies both a title and an optional spine
+    /// position hint (e.g. "23. What Now.md" -> chapter 23) — see ChapterFileNaming.ParseHint.
+    /// Files with an unsupported extension are silently skipped, so dropping a folder's worth
+    /// of mixed chapter/image files doesn't need pre-filtering by the caller.
+    /// </summary>
+    public void ImportChapterFiles(IReadOnlyList<string> filePaths)
+    {
+        try
+        {
+            if (Editor.IsDirty)
+                Editor.Save();
+
+            var importedCount = 0;
+            foreach (var filePath in filePaths)
+            {
+                IReadOnlyList<ChapterImportDraft> drafts;
+                try
+                {
+                    drafts = _chapterImportService.ImportFile(filePath);
+                }
+                catch (NotSupportedException)
+                {
+                    continue;
+                }
+
+                foreach (var draft in drafts)
+                {
+                    var path = _chapterFileService.CreateNewChapterFile(CurrentProject.ChaptersDir, draft.Title);
+                    _chapterFileService.WriteChapter(path, new ChapterFrontMatter { Title = draft.Title }, draft.BodyMarkdown);
+                    var relativePath = Path.GetRelativePath(CurrentProject.DirectoryPath, path).Replace('\\', '/');
+                    _spineService.AddChapter(CurrentProject, draft.Title, relativePath, draft.PositionHint);
+
+                    foreach (var image in draft.Images)
+                        File.WriteAllBytes(Path.Combine(CurrentProject.ImagesDir, image.FileName), image.Bytes);
+
+                    importedCount++;
+                }
+            }
+
+            if (importedCount == 0)
+            {
+                StatusMessage = "No supported chapter files (.md, .docx, .html) were found to import.";
+                return;
+            }
+
+            SyncChapterFileNamesAndRefreshSelection();
+            _projectService.SaveProject(CurrentProject);
+            RegenerateGeneratedContent();
+            StatusMessage = $"Imported {importedCount} chapter(s).";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Chapter import failed: {ex.Message}";
+        }
     }
 
     [RelayCommand]
@@ -185,6 +300,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public void ReorderChapters(IReadOnlyList<Guid> newChapterOrderIds)
     {
         _spineService.ReorderChapters(CurrentProject, newChapterOrderIds);
+        SyncChapterFileNamesAndRefreshSelection();
         _projectService.SaveProject(CurrentProject);
         RegenerateGeneratedContent();
     }

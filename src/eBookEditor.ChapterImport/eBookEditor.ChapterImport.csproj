@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\eBookEditor.Core\eBookEditor.Core.csproj" />
+    <ProjectReference Include="..\eBookEditor.DocxImport\eBookEditor.DocxImport.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ReverseMarkdown" Version="6.1.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

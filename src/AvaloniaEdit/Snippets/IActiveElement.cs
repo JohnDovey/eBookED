@@ -16,9 +16,9 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using AvaloniaEdit.Document;
+using AvaloniaEditCore.Document;
 
-namespace AvaloniaEdit.Snippets
+namespace AvaloniaEditCore.Snippets
 {
 	/// <summary>
 	/// Represents an active element that allows the snippet to stay interactive after insertion.

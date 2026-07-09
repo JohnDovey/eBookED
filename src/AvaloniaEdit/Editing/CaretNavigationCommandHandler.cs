@@ -20,15 +20,15 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Avalonia;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Rendering;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Rendering;
+using AvaloniaEditCore.Utils;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Media.TextFormatting;
-using LogicalDirection = AvaloniaEdit.Document.LogicalDirection;
+using LogicalDirection = AvaloniaEditCore.Document.LogicalDirection;
 
-namespace AvaloniaEdit.Editing
+namespace AvaloniaEditCore.Editing
 {
     internal enum CaretMovementType
     {

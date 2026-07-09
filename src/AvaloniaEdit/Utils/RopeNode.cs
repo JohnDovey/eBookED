@@ -20,7 +20,7 @@ using System;
 using System.Diagnostics;
 using System.Text;
 
-namespace AvaloniaEdit.Utils
+namespace AvaloniaEditCore.Utils
 {
     /// <summary>
     /// Class used to represent a node in the tree.

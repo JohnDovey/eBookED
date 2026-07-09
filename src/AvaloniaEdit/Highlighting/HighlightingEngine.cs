@@ -21,11 +21,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text.RegularExpressions;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Utils;
-using SpanStack = System.Collections.Immutable.ImmutableStack<AvaloniaEdit.Highlighting.HighlightingSpan>;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Utils;
+using SpanStack = System.Collections.Immutable.ImmutableStack<AvaloniaEditCore.Highlighting.HighlightingSpan>;
 
-namespace AvaloniaEdit.Highlighting
+namespace AvaloniaEditCore.Highlighting
 {
     /// <summary>
     /// Regex-based highlighting engine.

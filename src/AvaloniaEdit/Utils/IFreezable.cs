@@ -21,7 +21,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 
-namespace AvaloniaEdit.Utils
+namespace AvaloniaEditCore.Utils
 {
     internal interface IFreezable
 	{

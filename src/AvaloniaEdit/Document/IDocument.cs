@@ -18,7 +18,7 @@
 
 using System;
 
-namespace AvaloniaEdit.Document
+namespace AvaloniaEditCore.Document
 {
     /// <summary>
     /// A document representing a source code file for refactoring.

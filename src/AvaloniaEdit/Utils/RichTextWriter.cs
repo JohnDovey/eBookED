@@ -21,9 +21,9 @@ using System.IO;
 
 using Avalonia.Media;
 
-using AvaloniaEdit.Highlighting;
+using AvaloniaEditCore.Highlighting;
 
-namespace AvaloniaEdit.Utils
+namespace AvaloniaEditCore.Utils
 {
 	// TODO: This class (and derived classes) is currently unused; decide whether to keep it.
 	// (until this is decided, keep the class internal)

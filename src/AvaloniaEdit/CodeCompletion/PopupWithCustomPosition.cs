@@ -1,7 +1,7 @@
 ﻿using Avalonia;
 using Avalonia.Controls.Primitives;
 
-namespace AvaloniaEdit.CodeCompletion
+namespace AvaloniaEditCore.CodeCompletion
 {
     internal class PopupWithCustomPosition : Popup
     {

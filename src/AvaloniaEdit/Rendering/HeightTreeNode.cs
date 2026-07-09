@@ -18,9 +18,9 @@
 
 using System.Collections.Generic;
 using System.Diagnostics;
-using AvaloniaEdit.Document;
+using AvaloniaEditCore.Document;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
 	/// <summary>
 	/// A node in the text view's height tree.

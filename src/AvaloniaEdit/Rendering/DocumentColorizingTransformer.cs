@@ -18,9 +18,9 @@
 
 using System;
 using System.Linq;
-using AvaloniaEdit.Document;
+using AvaloniaEditCore.Document;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
     /// <summary>
 	/// Base class for <see cref="IVisualLineTransformer"/> that helps

@@ -18,7 +18,7 @@
 
 using System;
 
-namespace AvaloniaEdit.Document
+namespace AvaloniaEditCore.Document
 {
 	/// <summary>
 	/// A TextAnchorNode is placed in the TextAnchorTree.

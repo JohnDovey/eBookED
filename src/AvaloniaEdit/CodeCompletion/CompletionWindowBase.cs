@@ -21,9 +21,9 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Avalonia;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Editing;
-using AvaloniaEdit.Rendering;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Editing;
+using AvaloniaEditCore.Rendering;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
@@ -32,7 +32,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-namespace AvaloniaEdit.CodeCompletion
+namespace AvaloniaEditCore.CodeCompletion
 {
     /// <summary>
     /// Base class for completion windows. Handles positioning the window at the caret.

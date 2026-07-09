@@ -23,10 +23,10 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Utils;
 using Avalonia.Threading;
 
-namespace AvaloniaEdit.Document
+namespace AvaloniaEditCore.Document
 {
     /// <summary>
     /// Interface to allow TextSegments to access the TextSegmentCollection - we cannot use a direct reference

@@ -27,8 +27,11 @@
     <ProjectReference Include="..\eBookEditor.Markdown\eBookEditor.Markdown.csproj" />
     <ProjectReference Include="..\eBookEditor.Epub\eBookEditor.Epub.csproj" />
     <ProjectReference Include="..\eBookEditor.DocxImport\eBookEditor.DocxImport.csproj" />
-    <!-- Vendored source (see src/AvaloniaEdit/AvaloniaEdit.csproj) instead of the
-         Avalonia.AvaloniaEdit NuGet package, so the text editor's source lives in this repo. -->
+    <ProjectReference Include="..\eBookEditor.ChapterImport\eBookEditor.ChapterImport.csproj" />
+    <!-- Vendored source (see src/AvaloniaEdit/AvaloniaEdit.csproj), assembly/namespace
+         renamed to AvaloniaEditCore so it can coexist with the real Avalonia.AvaloniaEdit
+         NuGet package that Markdown.Avalonia.SyntaxHigh (a Markdown.Avalonia dependency)
+         pulls in for its own, unrelated use — see the vendored project's own comment. -->
     <ProjectReference Include="..\AvaloniaEdit\AvaloniaEdit.csproj" />
   </ItemGroup>
 
@@ -43,14 +46,6 @@
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.18" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="Markdown.Avalonia" Version="11.0.3" />
-    <!-- Markdown.Avalonia.SyntaxHigh (code-block syntax highlighting in the preview pane) is
-         a mandatory dependency of Markdown.Avalonia but itself pulls in the
-         Avalonia.AvaloniaEdit NuGet package, which collides with the vendored AvaloniaEdit
-         project above (same assembly/type names). Both excluded rather than worked around,
-         since we don't rely on syntax-highlighted code blocks in the markdown preview; fenced
-         code blocks still render, just without coloring. -->
-    <PackageReference Include="Markdown.Avalonia.SyntaxHigh" Version="11.0.3" ExcludeAssets="all" />
-    <PackageReference Include="Avalonia.AvaloniaEdit" Version="11.0.0" ExcludeAssets="all" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
   </ItemGroup>
 

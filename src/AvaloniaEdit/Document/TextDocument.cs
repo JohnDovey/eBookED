@@ -24,10 +24,10 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Utils;
 using System.Threading;
 
-namespace AvaloniaEdit.Document
+namespace AvaloniaEditCore.Document
 {
     /// <summary>
     /// This class is the main class of the text model. Basically, it is a <see cref="System.Text.StringBuilder"/> with events.

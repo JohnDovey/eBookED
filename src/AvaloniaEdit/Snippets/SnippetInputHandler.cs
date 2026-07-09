@@ -18,10 +18,10 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using AvaloniaEdit.Editing;
+using AvaloniaEditCore.Editing;
 using Avalonia.Input;
 
-namespace AvaloniaEdit.Snippets
+namespace AvaloniaEditCore.Snippets
 {
     internal sealed class SnippetInputHandler : TextAreaStackedInputHandler
     {

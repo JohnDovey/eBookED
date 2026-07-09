@@ -101,4 +101,30 @@ public class SpineServiceTests : IDisposable
 
         Assert.Throws<ArgumentException>(() => _spineService.ReorderChapters(project, [Guid.NewGuid()]));
     }
+
+    [Fact]
+    public void AddChapter_WithPositionHint_InsertsAtThatChapterPosition()
+    {
+        var project = NewProject();
+        _spineService.AddChapter(project, "One", "chapters/one.md");
+        _spineService.AddChapter(project, "Two", "chapters/two.md");
+
+        var inserted = _spineService.AddChapter(project, "New First", "chapters/three.md", positionHint: 1);
+
+        var chapters = project.Spine.Where(i => i.Type == SpineItemType.Chapter).OrderBy(i => i.Order).ToList();
+        Assert.Equal(["New First", "One", "Two"], chapters.Select(c => c.Title));
+        Assert.Equal(1, inserted.ResolvedNumber);
+    }
+
+    [Fact]
+    public void AddChapter_WithPositionHintBeyondCurrentCount_AppendsAtEnd()
+    {
+        var project = NewProject();
+        _spineService.AddChapter(project, "One", "chapters/one.md");
+
+        _spineService.AddChapter(project, "Way Later", "chapters/two.md", positionHint: 99);
+
+        var chapters = project.Spine.Where(i => i.Type == SpineItemType.Chapter).OrderBy(i => i.Order).ToList();
+        Assert.Equal(["One", "Way Later"], chapters.Select(c => c.Title));
+    }
 }

@@ -18,7 +18,7 @@
 
 using System;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
 	/// <summary>
 	/// Abstract base class for generators that produce new visual line elements.

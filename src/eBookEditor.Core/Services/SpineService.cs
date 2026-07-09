@@ -6,7 +6,13 @@ public class SpineService
 {
     public event Action<EbookProject>? SpineChanged;
 
-    public SpineItem AddChapter(EbookProject project, string title, string relativePath)
+    /// <summary>
+    /// Adds a new chapter. When <paramref name="positionHint"/> is given (e.g. parsed from a
+    /// dropped file's name like "23. What Now.md" via ChapterFileNaming.ParseHint), the
+    /// chapter is inserted so that hint-1 chapters precede it, clamped to the current chapter
+    /// count; otherwise it's appended after the last chapter, as before.
+    /// </summary>
+    public SpineItem AddChapter(EbookProject project, string title, string relativePath, int? positionHint = null)
     {
         var item = new SpineItem
         {
@@ -15,7 +21,26 @@ public class SpineService
             Title = title,
             NumberMode = ChapterNumberMode.Auto
         };
-        project.Spine.Add(item);
+
+        if (positionHint is { } hint)
+        {
+            var chapters = project.Spine.Where(i => i.Type == SpineItemType.Chapter).OrderBy(i => i.Order).ToList();
+            var insertBeforeIndex = Math.Clamp(hint - 1, 0, chapters.Count);
+            if (insertBeforeIndex >= chapters.Count)
+            {
+                project.Spine.Add(item);
+            }
+            else
+            {
+                var spineIndex = project.Spine.FindIndex(i => i.Id == chapters[insertBeforeIndex].Id);
+                project.Spine.Insert(spineIndex, item);
+            }
+        }
+        else
+        {
+            project.Spine.Add(item);
+        }
+
         NormalizeOrder(project);
         RenumberChapters(project);
         RaiseSpineChanged(project);

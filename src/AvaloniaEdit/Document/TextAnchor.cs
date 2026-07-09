@@ -17,9 +17,9 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Document
+namespace AvaloniaEditCore.Document
 {
 	/// <summary>
 	/// The TextAnchor class references an offset (a position between two characters).

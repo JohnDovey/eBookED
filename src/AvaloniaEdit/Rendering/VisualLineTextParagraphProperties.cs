@@ -20,7 +20,7 @@
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
 	sealed class VisualLineTextParagraphProperties : TextParagraphProperties
 	{

@@ -23,7 +23,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Data.Converters;
 
-namespace AvaloniaEdit.CodeCompletion
+namespace AvaloniaEditCore.CodeCompletion
 {
     /// <summary>
     /// Represents a text between "Up" and "Down" buttons.

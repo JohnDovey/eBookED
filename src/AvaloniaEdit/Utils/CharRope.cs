@@ -19,7 +19,7 @@
 using System;
 using System.IO;
 
-namespace AvaloniaEdit.Utils
+namespace AvaloniaEditCore.Utils
 {
 	/// <summary>
 	/// Poor man's template specialization: extension methods for Rope&lt;char&gt;.

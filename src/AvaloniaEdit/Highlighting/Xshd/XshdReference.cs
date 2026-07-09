@@ -18,7 +18,7 @@
 
 using System;
 
-namespace AvaloniaEdit.Highlighting.Xshd
+namespace AvaloniaEditCore.Highlighting.Xshd
 {
 	/// <summary>
 	/// A reference to an xshd color, or an inline xshd color.

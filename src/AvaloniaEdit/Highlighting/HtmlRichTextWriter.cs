@@ -24,9 +24,9 @@ using System.Web;
 
 using Avalonia.Media;
 
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Highlighting
+namespace AvaloniaEditCore.Highlighting
 {
 	/// <summary>
 	/// RichTextWriter implementation that produces HTML.

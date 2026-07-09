@@ -20,10 +20,10 @@ using System;
 using System.Collections.Generic;
 using Avalonia.Media.TextFormatting;
 using Avalonia.Utilities;
-using AvaloniaEdit.Document;
-using LogicalDirection = AvaloniaEdit.Document.LogicalDirection;
+using AvaloniaEditCore.Document;
+using LogicalDirection = AvaloniaEditCore.Document.LogicalDirection;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
 	/// <summary>
 	/// VisualLineElement that represents a piece of text.

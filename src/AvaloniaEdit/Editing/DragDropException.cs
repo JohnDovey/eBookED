@@ -18,12 +18,12 @@
 
 using System;
 
-namespace AvaloniaEdit.Editing
+namespace AvaloniaEditCore.Editing
 {
 	/// <summary>
 	/// Wraps exceptions that occur during drag'n'drop.
 	/// Exceptions during drag'n'drop might
-	/// get swallowed, so AvaloniaEdit catches them and re-throws them later
+	/// get swallowed, so AvaloniaEditCore catches them and re-throws them later
 	/// wrapped in a DragDropException.
 	/// </summary>
 	public class DragDropException : Exception

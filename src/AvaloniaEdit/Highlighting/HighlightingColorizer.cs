@@ -19,11 +19,11 @@
 using System;
 using System.Diagnostics;
 using Avalonia.Media;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Rendering;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Rendering;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Highlighting
+namespace AvaloniaEditCore.Highlighting
 {
     /// <summary>
     /// A colorizes that interprets a highlighting rule set and colors the document accordingly.

@@ -20,11 +20,11 @@ using System.IO;
 using System.Reflection;
 
 // ReSharper disable once CheckNamespace
-namespace AvaloniaEdit.Highlighting
+namespace AvaloniaEditCore.Highlighting
 {
     internal static class Resources
 	{
-	    private const string Prefix = "AvaloniaEdit.Highlighting.Resources.";
+	    private const string Prefix = "AvaloniaEditCore.Highlighting.Resources.";
 
 	    public static Stream OpenStream(string name)
 		{

@@ -21,7 +21,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Xml;
 
-namespace AvaloniaEdit.Highlighting.Xshd
+namespace AvaloniaEditCore.Highlighting.Xshd
 {
 	/// <summary>
 	/// Xshd visitor implementation that saves an .xshd file as XML.

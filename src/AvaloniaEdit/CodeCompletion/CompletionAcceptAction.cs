@@ -1,4 +1,4 @@
-﻿namespace AvaloniaEdit.CodeCompletion;
+﻿namespace AvaloniaEditCore.CodeCompletion;
 
 /// <summary>
 /// Defines the pointer action used to request the insertion of a completion item.

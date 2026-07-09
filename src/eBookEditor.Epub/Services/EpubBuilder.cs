@@ -34,19 +34,31 @@ public class EpubBuilder
         var contentDocs = new List<(EpubContentDoc Doc, string Html)>();
 
         var orderedSpine = project.Spine.OrderBy(i => i.Order).ToList();
-        var index = 0;
+
+        // Assigned in a pass of its own (before any markdown->HTML conversion) so that
+        // GenerateTocPage's links — written against each item's project-relative source path,
+        // e.g. "chapters/foo-abc123.md" — can be rewritten to the matching EPUB content
+        // document filename regardless of where in the spine order that target falls.
+        var contentFileNamesByRelativePath = new Dictionary<string, string>(StringComparer.Ordinal);
+        var fileNameIndex = 0;
         foreach (var item in orderedSpine)
         {
-            index++;
+            fileNameIndex++;
+            contentFileNamesByRelativePath[item.RelativePath] = $"content-{fileNameIndex:D3}.xhtml";
+        }
+
+        foreach (var item in orderedSpine)
+        {
             var sourcePath = project.ResolvePath(item);
             var rawText = File.ReadAllText(sourcePath);
             var (_, body) = _chapterFileService.ParseChapter(rawText);
 
+            var rewrittenLinks = EpubInternalLinkResolver.RewriteChapterLinks(body, contentFileNamesByRelativePath);
             var sourceDir = Path.GetDirectoryName(sourcePath)!;
-            var rewrittenMarkdown = EpubImageResolver.RewriteAndCollectImages(body, sourceDir, imagesToCopy);
+            var rewrittenMarkdown = EpubImageResolver.RewriteAndCollectImages(rewrittenLinks, sourceDir, imagesToCopy);
             var html = _htmlConverter.ToHtml(rewrittenMarkdown);
 
-            var fileName = $"content-{index:D3}.xhtml";
+            var fileName = contentFileNamesByRelativePath[item.RelativePath];
             var title = item.Title ?? metadata.Title;
             var epubType = DetermineEpubType(item);
 

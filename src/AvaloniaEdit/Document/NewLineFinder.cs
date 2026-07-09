@@ -19,7 +19,7 @@
 using System;
 using System.Text;
 
-namespace AvaloniaEdit.Document
+namespace AvaloniaEditCore.Document
 {
     internal static class NewLineFinder
     {

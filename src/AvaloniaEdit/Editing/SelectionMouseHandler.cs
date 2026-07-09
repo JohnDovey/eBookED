@@ -23,10 +23,10 @@ using System.Linq;
 using Avalonia;
 using Avalonia.Input;
 using Avalonia.Threading;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Editing
+namespace AvaloniaEditCore.Editing
 {
     /// <summary>
     /// Handles selection of text using the mouse.

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace eBookEditor.Core.Models;
 
 public enum SpineItemType
@@ -26,4 +28,12 @@ public record SpineItem
     public ChapterNumberMode NumberMode { get; set; } = ChapterNumberMode.Auto;
     public int? NumberOverride { get; set; }
     public int? ResolvedNumber { get; set; }
+
+    /// <summary>"1. Chapter Title" for numbered chapters, otherwise just the title — used by
+    /// the sidebar to render the spine as an ordered list without duplicating this logic in
+    /// the view layer. Not persisted; always recomputed from the other properties.</summary>
+    [JsonIgnore]
+    public string DisplayTitle => Type == SpineItemType.Chapter && ResolvedNumber is { } number
+        ? $"{number}. {Title}"
+        : Title ?? RelativePath;
 }

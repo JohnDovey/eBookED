@@ -19,7 +19,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
     internal struct HeightTreeLineNode
     {

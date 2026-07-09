@@ -20,9 +20,9 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Reflection;
-using AvaloniaEdit.CodeCompletion;
+using AvaloniaEditCore.CodeCompletion;
 
-namespace AvaloniaEdit
+namespace AvaloniaEditCore
 {
     /// <summary>
     /// A container for the text editor options.

@@ -1,7 +1,7 @@
 ﻿using Avalonia.Interactivity;
-using AvaloniaEdit.Document;
+using AvaloniaEditCore.Document;
 
-namespace AvaloniaEdit.Utils;
+namespace AvaloniaEditCore.Utils;
 
 public static class DataObjectEx
 {

@@ -17,11 +17,11 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System.Diagnostics;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Rendering;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Rendering;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Folding
+namespace AvaloniaEditCore.Folding
 {
     /// <summary>
     /// A section that can be folded.

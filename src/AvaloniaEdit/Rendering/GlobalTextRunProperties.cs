@@ -22,7 +22,7 @@ using Avalonia.Media.TextFormatting;
 
 #nullable enable
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
 	internal sealed class GlobalTextRunProperties : TextRunProperties
 	{

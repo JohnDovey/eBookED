@@ -5,7 +5,7 @@ using System.Windows.Input;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 
-namespace AvaloniaEdit
+namespace AvaloniaEditCore
 {
     public class RoutedCommand : ICommand
     {

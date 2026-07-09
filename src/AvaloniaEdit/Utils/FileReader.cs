@@ -20,7 +20,7 @@ using System;
 using System.IO;
 using System.Text;
 
-namespace AvaloniaEdit.Utils
+namespace AvaloniaEditCore.Utils
 {
     /// <summary>
     /// Class that can open text files with auto-detection of the encoding.

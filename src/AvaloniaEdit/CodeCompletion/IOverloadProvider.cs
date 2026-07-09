@@ -18,7 +18,7 @@
 
 using System.ComponentModel;
 
-namespace AvaloniaEdit.CodeCompletion
+namespace AvaloniaEditCore.CodeCompletion
 {
 	/// <summary>
 	/// Provides the items for the OverloadViewer.

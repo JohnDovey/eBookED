@@ -18,7 +18,7 @@
 
 using System;
 
-namespace AvaloniaEdit.Utils
+namespace AvaloniaEditCore.Utils
 {
 	/// <summary>
 	/// Represents a string with a segment.

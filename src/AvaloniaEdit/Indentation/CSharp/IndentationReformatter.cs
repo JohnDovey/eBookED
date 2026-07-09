@@ -21,7 +21,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 
-namespace AvaloniaEdit.Indentation.CSharp
+namespace AvaloniaEditCore.Indentation.CSharp
 {
     internal sealed class IndentationSettings
     {

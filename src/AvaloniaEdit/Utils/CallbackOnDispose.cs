@@ -19,7 +19,7 @@
 using System;
 using System.Threading;
 
-namespace AvaloniaEdit.Utils
+namespace AvaloniaEditCore.Utils
 {
 	/// <summary>
 	/// Invokes an action when it is disposed.

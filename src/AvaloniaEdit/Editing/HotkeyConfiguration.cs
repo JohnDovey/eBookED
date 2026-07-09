@@ -3,7 +3,7 @@ using Avalonia;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 
-namespace AvaloniaEdit.Editing;
+namespace AvaloniaEditCore.Editing;
 
 public static class HotkeyConfiguration
 {

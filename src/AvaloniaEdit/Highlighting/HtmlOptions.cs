@@ -20,7 +20,7 @@ using System;
 using System.IO;
 using System.Net;
 
-namespace AvaloniaEdit.Highlighting
+namespace AvaloniaEditCore.Highlighting
 {
 	/// <summary>
 	/// Holds options for converting text to HTML.

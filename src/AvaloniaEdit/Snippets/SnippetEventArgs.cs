@@ -18,7 +18,7 @@
 
 using System;
 
-namespace AvaloniaEdit.Snippets
+namespace AvaloniaEditCore.Snippets
 {
 	/// <summary>
 	/// Provides information about the event that occured during use of snippets.

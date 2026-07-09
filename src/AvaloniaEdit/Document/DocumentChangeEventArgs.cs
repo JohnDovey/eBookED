@@ -18,7 +18,7 @@
 
 using System;
 
-namespace AvaloniaEdit.Document
+namespace AvaloniaEditCore.Document
 {
     /// <summary>
     /// Describes a change of the document text.

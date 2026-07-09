@@ -20,7 +20,7 @@ using System.Diagnostics;
 using Avalonia.Controls;
 using Avalonia.Media;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
 	/// <summary>
 	/// Base class for known layers.

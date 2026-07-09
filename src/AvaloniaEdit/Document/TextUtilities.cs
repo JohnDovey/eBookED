@@ -20,7 +20,7 @@ using System;
 using System.Globalization;
 using System.Reflection;
 
-namespace AvaloniaEdit.Document
+namespace AvaloniaEditCore.Document
 {
     public enum LogicalDirection
     {

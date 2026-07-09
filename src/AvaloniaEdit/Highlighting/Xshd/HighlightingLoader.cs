@@ -19,7 +19,7 @@
 using System;
 using System.Xml;
 
-namespace AvaloniaEdit.Highlighting.Xshd
+namespace AvaloniaEditCore.Highlighting.Xshd
 {
     /// <summary>
     /// Static class with helper methods to load XSHD highlighting files.

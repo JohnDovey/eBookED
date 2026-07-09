@@ -18,7 +18,7 @@
 
 using System.Text.RegularExpressions;
 
-namespace AvaloniaEdit.Highlighting
+namespace AvaloniaEditCore.Highlighting
 {
 	/// <summary>
 	/// A highlighting rule.

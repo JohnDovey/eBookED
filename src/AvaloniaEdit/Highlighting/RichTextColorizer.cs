@@ -17,10 +17,10 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Rendering;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Rendering;
 
-namespace AvaloniaEdit.Highlighting
+namespace AvaloniaEditCore.Highlighting
 {
     /// <summary>
     /// A colorizer that applies the highlighting from a <see cref="RichTextModel"/> to the editor.

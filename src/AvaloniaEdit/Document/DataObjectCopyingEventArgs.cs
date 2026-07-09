@@ -1,8 +1,8 @@
 ﻿using Avalonia.Input;
 using Avalonia.Interactivity;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Document;
+namespace AvaloniaEditCore.Document;
 
 public class DataObjectCopyingEventArgs : RoutedEventArgs
 {

@@ -17,10 +17,10 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Editing;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Editing;
 
-namespace AvaloniaEdit.Snippets
+namespace AvaloniaEditCore.Snippets
 {
     /// <summary>
     /// A code snippet that can be inserted into the text editor.

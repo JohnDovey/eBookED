@@ -19,9 +19,9 @@
 using System;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.CodeCompletion
+namespace AvaloniaEditCore.CodeCompletion
 {
     /// <summary>
     /// The list box used inside the CompletionList.

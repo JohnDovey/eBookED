@@ -18,7 +18,7 @@
 
 using System;
 
-namespace AvaloniaEdit.Highlighting
+namespace AvaloniaEditCore.Highlighting
 {
 	/// <summary>
 	/// Indicates that the highlighting definition that was tried to load was invalid.

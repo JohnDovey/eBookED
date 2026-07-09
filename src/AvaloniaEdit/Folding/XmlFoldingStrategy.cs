@@ -21,9 +21,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Xml;
-using AvaloniaEdit.Document;
+using AvaloniaEditCore.Document;
 
-namespace AvaloniaEdit.Folding
+namespace AvaloniaEditCore.Folding
 {
     /// <summary>
     /// Holds information about the start of a fold in an xml string.

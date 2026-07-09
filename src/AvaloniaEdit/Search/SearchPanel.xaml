@@ -1,7 +1,7 @@
 ﻿<ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:ae="using:AvaloniaEdit"
-                    xmlns:search="using:AvaloniaEdit.Search"
+                    xmlns:ae="using:AvaloniaEditCore"
+                    xmlns:search="using:AvaloniaEditCore.Search"
                     x:ClassModifier="internal">
 
   <Design.PreviewWith>

@@ -24,7 +24,7 @@ using System.Diagnostics;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
     /// <summary>
     /// VisualLineElement that represents a piece of text and is a clickable link.

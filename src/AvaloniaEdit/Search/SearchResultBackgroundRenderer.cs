@@ -19,10 +19,10 @@
 using System;
 using System.Linq;
 using Avalonia.Media;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Rendering;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Rendering;
 
-namespace AvaloniaEdit.Search
+namespace AvaloniaEditCore.Search
 {
     using Avalonia.Media.Immutable;
 

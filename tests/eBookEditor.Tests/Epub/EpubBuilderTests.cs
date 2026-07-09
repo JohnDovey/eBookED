@@ -98,6 +98,49 @@ public class EpubBuilderTests : IDisposable
     }
 
     [Fact]
+    public void Build_TocPageLinksResolveToTheChaptersActualContentDocument()
+    {
+        var project = BuildSampleProject();
+        // BuildSampleProject regenerates the TOC before adding the chapter, so regenerate
+        // again now that the chapter is in the spine — mirrors what
+        // MainWindowViewModel.AddChapter does for real in the app.
+        _pageGenerator.RegenerateAllGeneratedPages(project);
+        var outputPath = Path.Combine(project.OutputDir, "book.epub");
+        _epubBuilder.Build(project, outputPath);
+
+        using var archive = ZipFile.OpenRead(outputPath);
+        var tocEntry = archive.Entries
+            .Where(e => e.FullName.StartsWith("OEBPS/content-", StringComparison.Ordinal))
+            .Single(e =>
+            {
+                using var reader = new StreamReader(e.Open());
+                return reader.ReadToEnd().Contains("Table of Contents", StringComparison.Ordinal);
+            });
+
+        using var tocReader = new StreamReader(tocEntry.Open());
+        var tocHtml = tocReader.ReadToEnd();
+
+        var anchorHrefs = System.Text.RegularExpressions.Regex.Matches(tocHtml, "<a[^>]*href=\"([^\"]+)\"")
+            .Select(m => m.Groups[1].Value)
+            .ToList();
+
+        Assert.NotEmpty(anchorHrefs);
+        Assert.DoesNotContain(anchorHrefs, href => href.Contains(".md", StringComparison.Ordinal));
+
+        var linkedEntries = anchorHrefs
+            .Select(href => archive.GetEntry($"OEBPS/{href}"))
+            .ToList();
+
+        Assert.DoesNotContain(linkedEntries, e => e is null);
+
+        Assert.Contains(linkedEntries, entry =>
+        {
+            using var reader = new StreamReader(entry!.Open());
+            return reader.ReadToEnd().Contains("Hello", StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
     public void Build_UsesIsbn13AsPackageIdentifier()
     {
         var project = BuildSampleProject();

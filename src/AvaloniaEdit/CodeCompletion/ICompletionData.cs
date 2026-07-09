@@ -18,10 +18,10 @@
 
 using System;
 using Avalonia.Media;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Editing;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Editing;
 
-namespace AvaloniaEdit.CodeCompletion
+namespace AvaloniaEditCore.CodeCompletion
 {
 	/// <summary>
 	/// Describes an entry in the <see cref="CompletionList"/>.

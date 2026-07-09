@@ -20,12 +20,12 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Editing;
-using AvaloniaEdit.Rendering;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Editing;
+using AvaloniaEditCore.Rendering;
 using Avalonia.Threading;
 
-namespace AvaloniaEdit.Folding
+namespace AvaloniaEditCore.Folding
 {
     /// <summary>
     /// Stores a list of foldings for a specific TextView and TextDocument.

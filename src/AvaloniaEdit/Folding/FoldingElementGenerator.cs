@@ -19,14 +19,14 @@
 using System;
 using System.Collections.Generic;
 using Avalonia;
-using AvaloniaEdit.Rendering;
+using AvaloniaEditCore.Rendering;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Avalonia.Media.TextFormatting;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Folding
+namespace AvaloniaEditCore.Folding
 {
     /// <summary>
     /// A <see cref="VisualLineElementGenerator"/> that produces line elements for folded <see cref="FoldingSection"/>s.

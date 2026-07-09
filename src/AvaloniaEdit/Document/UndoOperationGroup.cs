@@ -18,9 +18,9 @@
 
 using System;
 using System.Diagnostics;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Document
+namespace AvaloniaEditCore.Document
 {
 	/// <summary>
 	/// This class stacks the last x operations from the undostack and makes

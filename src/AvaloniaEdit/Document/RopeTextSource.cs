@@ -19,9 +19,9 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Document
+namespace AvaloniaEditCore.Document
 {
 	/// <summary>
 	/// Implements the ITextSource interface using a rope.

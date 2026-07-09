@@ -19,10 +19,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Editing
+namespace AvaloniaEditCore.Editing
 {
 	/// <summary>
 	/// <see cref="IReadOnlySectionProvider"/> that has no read-only sections; all text is editable.

@@ -17,10 +17,10 @@
 // DEALINGS IN THE SOFTWARE.
 
 using Avalonia;
-using AvaloniaEdit.Editing;
+using AvaloniaEditCore.Editing;
 using Avalonia.Input;
 
-namespace AvaloniaEdit.CodeCompletion
+namespace AvaloniaEditCore.CodeCompletion
 {
     /// <summary>
     /// Insight window that shows an OverloadViewer.

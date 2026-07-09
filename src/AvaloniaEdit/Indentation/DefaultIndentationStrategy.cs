@@ -17,9 +17,9 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using AvaloniaEdit.Document;
+using AvaloniaEditCore.Document;
 
-namespace AvaloniaEdit.Indentation
+namespace AvaloniaEditCore.Indentation
 {
     /// <summary>
     /// Handles indentation by copying the indentation from the previous line.

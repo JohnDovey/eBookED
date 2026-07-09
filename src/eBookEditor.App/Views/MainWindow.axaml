@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:ae="using:AvaloniaEdit"
+        xmlns:ae="using:AvaloniaEditCore"
         xmlns:md="https://github.com/whistyun/Markdown.Avalonia"
         xmlns:vm="using:eBookEditor.App.ViewModels"
         xmlns:models="using:eBookEditor.Core.Models"
@@ -29,6 +29,7 @@
           <MenuItem Header="Save Project" Command="{Binding SaveProjectCommand}" InputGesture="Ctrl+S" />
           <Separator />
           <MenuItem Header="Import DOCX…" Click="OnImportDocxClick" />
+          <MenuItem Header="Import Chapters…" Click="OnImportChaptersClick" />
         </MenuItem>
         <MenuItem Header="_Project">
           <MenuItem Header="Regenerate Front Matter" Command="{Binding RegenerateFrontMatterCommand}" />
@@ -58,8 +59,10 @@
 
     <Grid ColumnDefinitions="260,*">
 
-      <!-- Sidebar: chapters can be dragged to reorder; front/back matter are fixed -->
-      <Border Grid.Column="0" Background="{DynamicResource SystemAltHighColor}" BorderThickness="0,0,1,0" BorderBrush="Gray">
+      <!-- Sidebar: chapters can be dragged to reorder; front/back matter are fixed.
+           Also accepts external file drops (.md/.docx/.html) to import as new chapters. -->
+      <Border Grid.Column="0" Background="{DynamicResource SystemAltHighColor}" BorderThickness="0,0,1,0" BorderBrush="Gray"
+              DragDrop.AllowDrop="True" DragDrop.DragOver="OnSidebarDragOver" DragDrop.Drop="OnSidebarDrop">
         <DockPanel Margin="12">
           <TextBlock DockPanel.Dock="Top" Text="{Binding CurrentProject.Metadata.Title}"
                      FontWeight="Bold" FontSize="16" Margin="0,0,0,8" TextWrapping="Wrap" />
@@ -83,7 +86,7 @@
                         DragDrop.AllowDrop="True"
                         DragDrop.DragOver="OnSpineItemDragOver"
                         DragDrop.Drop="OnSpineItemDrop">
-                  <TextBlock Text="{Binding Title}" FontSize="11" TextWrapping="Wrap" />
+                  <TextBlock Text="{Binding DisplayTitle}" FontSize="11" TextWrapping="Wrap" />
                 </Border>
               </DataTemplate>
             </ListBox.ItemTemplate>

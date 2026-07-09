@@ -17,9 +17,9 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using AvaloniaEdit.Rendering;
+using AvaloniaEditCore.Rendering;
 
-namespace AvaloniaEdit.Editing
+namespace AvaloniaEditCore.Editing
 {
     internal sealed class SelectionColorizer : ColorizingTransformer
     {

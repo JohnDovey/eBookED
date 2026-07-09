@@ -17,9 +17,9 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using AvaloniaEdit.Document;
+using AvaloniaEditCore.Document;
 
-namespace AvaloniaEdit.Folding
+namespace AvaloniaEditCore.Folding
 {
 	/// <summary>
 	/// Helper class used for <see cref="FoldingManager.UpdateFoldings"/>.

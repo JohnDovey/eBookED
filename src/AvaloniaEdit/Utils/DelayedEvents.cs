@@ -19,7 +19,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace AvaloniaEdit.Utils
+namespace AvaloniaEditCore.Utils
 {
     /// <summary>
     /// Maintains a list of delayed events to raise.

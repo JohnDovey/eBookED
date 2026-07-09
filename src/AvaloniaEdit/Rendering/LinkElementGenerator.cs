@@ -19,7 +19,7 @@
 using System;
 using System.Text.RegularExpressions;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
 	// This class is public because it can be used as a base class for custom links.
 

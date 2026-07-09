@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace AvaloniaEdit.Utils
+namespace AvaloniaEditCore.Utils
 {
     /// <summary>
     /// WeakEventManager base class. Inspired by the WPF WeakEventManager class and the code in 

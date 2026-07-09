@@ -21,10 +21,10 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Xml;
-using AvaloniaEdit.Highlighting.Xshd;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Highlighting.Xshd;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Highlighting
+namespace AvaloniaEditCore.Highlighting
 {
     /// <summary>
     /// Manages a list of syntax highlighting definitions.

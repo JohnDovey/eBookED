@@ -366,4 +366,61 @@ public class MainWindowViewModelTests : IDisposable
         var titlePage = File.ReadAllText(vm.Editor.FilePath!);
         Assert.Contains("Unsaved title page edits.", titlePage);
     }
+
+    [Fact]
+    public void ImportChapterFiles_AddsChapterAtItsFileNamesHintedPosition()
+    {
+        var vm = NewViewModel();
+        vm.AddChapterCommand.Execute(null);
+        vm.AddChapterCommand.Execute(null);
+
+        var importPath = Path.Combine(_tempDir, "1. Imported First.md");
+        File.WriteAllText(importPath, "Imported body text.");
+
+        vm.ImportChapterFiles([importPath]);
+
+        var chapters = vm.CurrentProject.Spine
+            .Where(i => i.Type == SpineItemType.Chapter)
+            .OrderBy(i => i.Order)
+            .ToList();
+
+        Assert.Equal(3, chapters.Count);
+        Assert.Equal("Imported First", chapters[0].Title);
+        Assert.Equal("chapters/001 - Imported First.md", chapters[0].RelativePath);
+        Assert.Contains("Imported body text.", File.ReadAllText(vm.CurrentProject.ResolvePath(chapters[0])));
+    }
+
+    [Fact]
+    public void ImportChapterFiles_SkipsFilesWithUnsupportedExtensions()
+    {
+        var vm = NewViewModel();
+        var imagePath = Path.Combine(_tempDir, "cover.jpg");
+        File.WriteAllBytes(imagePath, [0xFF, 0xD8, 0xFF, 0xD9]);
+
+        vm.ImportChapterFiles([imagePath]);
+
+        Assert.DoesNotContain(vm.CurrentProject.Spine, i => i.Type == SpineItemType.Chapter);
+        Assert.Contains("No supported chapter files", vm.StatusMessage);
+    }
+
+    [Fact]
+    public void Constructor_PicksUpOrphanedMarkdownFilesInChaptersDirectoryAtTheirHintedPosition()
+    {
+        var metadata = new BookMetadata { Title = "Orphan Scan Book" };
+        var project = _projectService.CreateProject(_tempDir, "Orphan Scan Book", metadata);
+        _pageGenerator.RegenerateAllGeneratedPages(project);
+
+        // A tracked chapter already in the spine, plus an untracked ("orphan") file dropped
+        // directly into chapters/ via Finder/Explorer, named to hint it belongs before it.
+        File.WriteAllText(Path.Combine(project.ChaptersDir, "existing.md"), "Existing content.");
+        new SpineService().AddChapter(project, "Existing Chapter", "chapters/existing.md");
+        _projectService.SaveProject(project);
+
+        File.WriteAllText(Path.Combine(project.ChaptersDir, "1. Found Chapter.md"), "Found content.");
+
+        var vm = new MainWindowViewModel(project, _appSettingsService, _templateService);
+
+        var chapters = vm.CurrentProject.Spine.Where(i => i.Type == SpineItemType.Chapter).OrderBy(i => i.Order).ToList();
+        Assert.Equal(["Found Chapter", "Existing Chapter"], chapters.Select(c => c.Title));
+    }
 }

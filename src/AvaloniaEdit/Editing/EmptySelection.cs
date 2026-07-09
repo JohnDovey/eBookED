@@ -19,10 +19,10 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Editing
+namespace AvaloniaEditCore.Editing
 {
     sealed class EmptySelection : Selection
     {

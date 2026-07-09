@@ -20,7 +20,7 @@ using System;
 using Avalonia.Media.TextFormatting;
 using Avalonia.Utilities;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
 	internal sealed class SimpleTextSource : ITextSource
 	{

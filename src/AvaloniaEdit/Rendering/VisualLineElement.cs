@@ -19,14 +19,14 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using AvaloniaEdit.Document;
+using AvaloniaEditCore.Document;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 using Avalonia.Utilities;
-using LogicalDirection = AvaloniaEdit.Document.LogicalDirection;
+using LogicalDirection = AvaloniaEditCore.Document.LogicalDirection;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
 	/// <summary>
 	/// Represents a visual element in the document.

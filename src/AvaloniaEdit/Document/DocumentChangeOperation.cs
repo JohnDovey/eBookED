@@ -18,7 +18,7 @@
 
 using System.Diagnostics;
 
-namespace AvaloniaEdit.Document
+namespace AvaloniaEditCore.Document
 {
 	/// <summary>
 	/// Describes a change to a TextDocument.

@@ -9,6 +9,17 @@
     inheriting the repo-wide Directory.Build.props enable-by-default) since this source was
     written without those on upstream; TargetFramework is pinned to net10.0 instead of their
     netstandard2.0;net6.0 multi-target since this project is only ever consumed in-repo.
+
+    Assembly/namespace renamed from "AvaloniaEdit" to "AvaloniaEditCore" throughout (source
+    included): Markdown.Avalonia.SyntaxHigh — a mandatory dependency of Markdown.Avalonia,
+    used for the preview pane — itself depends on the real Avalonia.AvaloniaEdit NuGet
+    package, and Markdown.Avalonia's plugin loader reflection-loads it by assembly name at
+    runtime. Excluding that NuGet package (an earlier attempt at fixing the assembly-name
+    collision) made the app crash on startup with FileNotFoundException the moment any
+    MarkdownScrollViewer was constructed — Markdown.Avalonia has no graceful fallback when a
+    plugin assembly it expects is missing. Renaming the vendored copy instead lets both
+    assemblies coexist: ours as "AvaloniaEditCore" for our own editor pane, theirs as
+    "Avalonia.AvaloniaEdit" for Markdown.Avalonia's internal syntax highlighting.
   -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -17,8 +28,8 @@
     <LangVersion>latest</LangVersion>
     <WarningsNotAsErrors>0612,0618</WarningsNotAsErrors>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
-    <RootNamespace>AvaloniaEdit</RootNamespace>
-    <AssemblyName>AvaloniaEdit</AssemblyName>
+    <RootNamespace>AvaloniaEditCore</RootNamespace>
+    <AssemblyName>AvaloniaEditCore</AssemblyName>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 

@@ -19,7 +19,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
    /// <summary>
 	/// Base class for <see cref="IVisualLineTransformer"/> that helps

@@ -20,14 +20,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
-using AvaloniaEdit.Editing;
-using AvaloniaEdit.Rendering;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Editing;
+using AvaloniaEditCore.Rendering;
+using AvaloniaEditCore.Utils;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 
-namespace AvaloniaEdit.Folding
+namespace AvaloniaEditCore.Folding
 {
     /// <summary>
     /// A margin that shows markers for foldings and allows to expand/collapse the foldings.

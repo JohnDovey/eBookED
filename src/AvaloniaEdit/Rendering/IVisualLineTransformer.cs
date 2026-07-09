@@ -18,7 +18,7 @@
 
 using System.Collections.Generic;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
 	/// <summary>
 	/// Allows transforming visual line elements.

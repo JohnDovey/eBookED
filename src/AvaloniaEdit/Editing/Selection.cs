@@ -21,10 +21,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Avalonia.Input;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Editing
+namespace AvaloniaEditCore.Editing
 {
     /// <summary>
     /// Base class for selections.

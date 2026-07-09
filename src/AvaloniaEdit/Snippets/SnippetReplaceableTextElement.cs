@@ -20,10 +20,10 @@ using System;
 using System.Linq;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Rendering;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Rendering;
 
-namespace AvaloniaEdit.Snippets
+namespace AvaloniaEditCore.Snippets
 {
     /// <summary>
     /// Text element that is supposed to be replaced by the user.

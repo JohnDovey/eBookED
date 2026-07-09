@@ -21,7 +21,7 @@ using Avalonia;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
     internal sealed class CurrentLineHighlightRenderer : IBackgroundRenderer
     {

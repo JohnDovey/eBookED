@@ -28,7 +28,7 @@ using Avalonia.Media;
 using Avalonia.Reactive;
 using Avalonia.VisualTree;
 
-namespace AvaloniaEdit.Utils
+namespace AvaloniaEditCore.Utils
 {
     public static class ExtensionMethods
     {

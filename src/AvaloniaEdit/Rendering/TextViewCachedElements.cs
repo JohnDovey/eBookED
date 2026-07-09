@@ -19,7 +19,7 @@
 using System.Collections.Generic;
 using Avalonia.Media.TextFormatting;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
     internal sealed class TextViewCachedElements
     {

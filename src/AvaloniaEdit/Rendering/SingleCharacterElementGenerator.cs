@@ -23,11 +23,11 @@ using Avalonia.Media;
 using Avalonia.Media.Immutable;
 using Avalonia.Media.TextFormatting;
 using Avalonia.Utilities;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Utils;
-using LogicalDirection = AvaloniaEdit.Document.LogicalDirection;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Utils;
+using LogicalDirection = AvaloniaEditCore.Document.LogicalDirection;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
     // This class is internal because it does not need to be accessed by the user - it can be configured using TextEditorOptions.
 

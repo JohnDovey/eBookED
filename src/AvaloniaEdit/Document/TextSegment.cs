@@ -19,7 +19,7 @@
 using System;
 using System.Diagnostics;
 
-namespace AvaloniaEdit.Document
+namespace AvaloniaEditCore.Document
 {
     /// <summary>
     /// A segment that can be put into a <see cref="TextSegmentCollection{T}"/>.

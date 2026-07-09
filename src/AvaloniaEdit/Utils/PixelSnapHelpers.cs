@@ -20,7 +20,7 @@ using System;
 using Avalonia;
 using Avalonia.Controls;
 
-namespace AvaloniaEdit.Utils
+namespace AvaloniaEditCore.Utils
 {
 	/// <summary>
 	/// Contains static helper methods for aligning stuff on a whole number of pixels.

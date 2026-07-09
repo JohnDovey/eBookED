@@ -17,9 +17,9 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using AvaloniaEdit.Document;
+using AvaloniaEditCore.Document;
 
-namespace AvaloniaEdit.Indentation.CSharp
+namespace AvaloniaEditCore.Indentation.CSharp
 {
 	/// <summary>
 	/// Interface used for the indentation class to access the document.

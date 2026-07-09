@@ -18,10 +18,10 @@
 
 using System;
 using System.Collections.Generic;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Utils;
 using Avalonia.Input;
 
-namespace AvaloniaEdit.Editing
+namespace AvaloniaEditCore.Editing
 {
     /// <summary>
     /// A set of input bindings and event handlers for the text area.

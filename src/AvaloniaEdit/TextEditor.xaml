@@ -1,6 +1,6 @@
 ﻿<ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:avaloniaedit="using:AvaloniaEdit"
+                    xmlns:avaloniaedit="using:AvaloniaEditCore"
                     x:ClassModifier="internal">
   <ControlTheme x:Key="{x:Type avaloniaedit:TextEditor}" TargetType="avaloniaedit:TextEditor">
     <Setter Property="Template">

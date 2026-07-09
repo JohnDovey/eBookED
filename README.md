@@ -1,6 +1,6 @@
 # eBook Editor
 
-A cross-platform .NET desktop application for authoring, organizing, and publishing eBooks. Each book lives in its own project directory of plain Markdown files plus a metadata file, with title page, copyright page, table of contents, and about-the-author page generated automatically from that metadata. Chapters can be reordered by drag-and-drop, imported from `.docx` manuscripts, and exported as EPUB 3.3 or Markdown.
+A cross-platform .NET desktop application for authoring, organizing, and publishing eBooks. Each book lives in its own project directory of plain Markdown files plus a metadata file, with title page, copyright page, table of contents, and about-the-author page generated automatically from that metadata. Chapters can be reordered by drag-and-drop, imported by dragging or picking `.md`/`.docx`/`.html` files, and exported as EPUB 3.3 or Markdown.
 
 ## Requirements
 
@@ -21,12 +21,13 @@ On first run, the app scaffolds a demo project under `src/eBookEditor.App/sample
 
 | Project | Purpose |
 |---|---|
-| `AvaloniaEdit` | Vendored copy of the core [AvaloniaEdit](https://github.com/AvaloniaUI/AvaloniaEdit) text-editing library (MIT license, see its own README) instead of a NuGet package, so the editor's source lives in this repo. |
-| `eBookEditor.Core` | Domain models (`BookMetadata`, `SpineItem`, `EbookProject`, …) and services with no UI or format dependencies: `ProjectService` (create/load/save), `SpineService` (ordering/numbering), `ChapterFileService` (YAML front matter + body), `AppSettingsService` (cross-project autofill/MRU). |
+| `AvaloniaEdit` | Vendored copy of the core [AvaloniaEdit](https://github.com/AvaloniaUI/AvaloniaEdit) text-editing library (MIT license, see its own README) instead of a NuGet package, so the editor's source lives in this repo. Built as assembly/namespace `AvaloniaEditCore` (renamed from upstream's `AvaloniaEdit`) so it doesn't collide with the real `Avalonia.AvaloniaEdit` NuGet package that Markdown.Avalonia's syntax-highlighting extension depends on internally. |
+| `eBookEditor.Core` | Domain models (`BookMetadata`, `SpineItem`, `EbookProject`, …) and services with no UI or format dependencies: `ProjectService` (create/load/save), `SpineService` (ordering/numbering), `ChapterFileService` (YAML front matter + body, chapter file renumbering), `ChapterFileNaming` (chapter filename ↔ number/title parsing), `AppSettingsService` (cross-project autofill/MRU). |
 | `eBookEditor.Markdown` | Markdig pipeline, `PageGeneratorService` (title/copyright/TOC/about-the-author page generation), `BookIndexGenerator` (`book.md`), `MarkdownExportService` (whole-book / single-chapter export). |
-| `eBookEditor.Epub` | Hand-rolled EPUB 3.3 writer (`EpubBuilder`) — container.xml, package.opf, nav.xhtml, legacy toc.ncx, XHTML content docs, image and font bundling, selectable CSS `TemplateService`, `FontService`/`FontInstallerService` — plus a structural `EpubValidationHelper`. |
+| `eBookEditor.Epub` | Hand-rolled EPUB 3.3 writer (`EpubBuilder`) — container.xml, package.opf, nav.xhtml, legacy toc.ncx, XHTML content docs (with internal chapter links rewritten so the in-book TOC page is clickable), image and font bundling, selectable CSS `TemplateService`, `FontService`/`FontInstallerService` — plus a structural `EpubValidationHelper`. |
 | `eBookEditor.DocxImport` | `.docx` → chapters importer built on `DocumentFormat.OpenXml`: detects chapter boundaries (Heading 1 style or "Chapter N" text), converts bold/italic/headings/lists/images/tables/hyperlinks to Markdown. |
-| `eBookEditor.App` | The Avalonia desktop shell (MVVM via CommunityToolkit.Mvvm): a title bar menu (File/Project/Meta Data/Export/About), New Project wizard, sidebar with drag-to-reorder chapters, Markdown editor (AvaloniaEdit) with a whole-pane edit/preview toggle (Markdown.Avalonia), five metadata forms under the Meta Data menu (Front Matter, Style, Copyright & Publishing, Genre Tags, About the Author), and the EPUB/Markdown export and DOCX import actions. Projects open in independent windows, so several books can be open simultaneously. |
+| `eBookEditor.ChapterImport` | Imports a dropped or picked file as one or more chapters: `.md` used as-is, `.docx` via `eBookEditor.DocxImport`, `.html`/`.htm` via `HtmlToMarkdownConverter` (wraps the `ReverseMarkdown` package). `OrphanChapterScanner` finds `.md` files sitting in a project's `chapters/` folder that aren't in the spine yet (e.g. dropped in via Finder/Explorer) so they get picked up automatically. |
+| `eBookEditor.App` | The Avalonia desktop shell (MVVM via CommunityToolkit.Mvvm): a title bar menu (File/Project/Meta Data/Export/About), New Project wizard, sidebar with drag-to-reorder chapters rendered as an ordered list, Markdown editor (AvaloniaEdit) with a whole-pane edit/preview toggle (Markdown.Avalonia), five metadata forms under the Meta Data menu (Front Matter, Style, Copyright & Publishing, Genre Tags, About the Author), and the EPUB/Markdown export and DOCX/chapter import actions. Also accepts dragged-in chapter files directly onto the sidebar. Projects open in independent windows, so several books can be open simultaneously. |
 | `tests/eBookEditor.Tests` | xUnit coverage across all of the above, including `.docx` fixtures built programmatically with the OpenXml SDK (no binary test fixtures needed) and generated EPUBs validated both by `EpubValidationHelper` and, during development, `unzip`/`xmllint`. |
 
 ## Project directory layout
@@ -38,14 +39,18 @@ Each book is a directory, not a single file:
   project.ebookproj.json   metadata + ordered "spine" (front matter / chapters / back matter)
   book.md                  auto-regenerated master index linking every file in spine order
   frontmatter/             title-page.md, copyright.md, toc.md — auto-generated from metadata
-  chapters/                <slug>-<id>.md, each with a small YAML front-matter block
-                            (title, subtitle, number: auto|override|none)
+  chapters/                "NNN - Chapter Title.md" (e.g. "023 - What Now.md"), each with a
+                            small YAML front-matter block (title, subtitle, number: auto|override|none)
   backmatter/               about-the-author.md (auto-generated) plus free-form pages
   images/                   cover, author photo, publisher logo, chapter images
   output/                   generated .epub / exported .md land here
 ```
 
-Chapter filenames are stable once created — reordering only changes `Spine[].Order` in `project.ebookproj.json`, never the filesystem, so image references and git history stay intact.
+Chapter files are renamed to match their resolved position after any add/import/reorder, so they sort correctly in Finder/Explorer the same way they're ordered in the book — this is a rename, not a content rewrite, so a chapter's own body content and images are unaffected.
+
+## Importing chapters
+
+New chapters can come from three places, all producing the same result: **File → Import Chapters…** (a file picker), dragging files directly onto the sidebar, or files already sitting in a project's `chapters/` folder that the app doesn't know about yet (picked up automatically on open). `.md` files are used as-is, `.docx` files go through the same chapter-boundary detection as the whole-manuscript DOCX import, and `.html`/`.htm` files are converted to Markdown. A file's name supplies its title and, if it starts with a number (`"23. What Now.md"`, `"007 - Foo.md"`), a hint for where it belongs in the chapter order.
 
 ## CSS templates
 
@@ -60,7 +65,8 @@ A `fonts/` directory ships next to `templates/` and holds the font files a templ
 This is a working first pass covering the full pipeline end to end (author → organize → import → export), not a finished product. Notable simplifications:
 
 - Font-installation only checks whether a same-named font *file* already exists in the user's font directory — it doesn't query the OS font registry by family name, which would need a different native API per platform (CoreText/DirectWrite/Fontconfig).
-- No automated visual/UI testing was possible in the environment this was built in (a sandboxed session without a real windowing session for the Avalonia/macOS native render timer) — correctness was verified through the full xUnit suite plus running real builds and inspecting generated output, not through interactive UI testing.
+- No automated visual/UI testing was possible in the environment this was built in (a sandboxed session without a real windowing session for the Avalonia/macOS native render timer) — correctness was verified through the full xUnit suite plus running real builds and inspecting generated output, not through interactive UI testing. Drag-and-drop file import in particular could only be verified at the service-logic level (unit tests), not by actually dragging a file onto the running app.
+- A dropped/imported `.docx` file may still split into multiple chapters if it contains internal "Chapter N" headings or Heading-1-styled text — same detection as the whole-manuscript DOCX import. If it does, any position hint from the file's own name is dropped (it wouldn't make sense across several resulting chapters).
 
 ## Contact
 

@@ -7,7 +7,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace AvaloniaEdit {
+namespace AvaloniaEditCore {
     using System;
     
     
@@ -38,7 +38,7 @@ namespace AvaloniaEdit {
         public static global::System.Resources.ResourceManager ResourceManager {
             get {
                 if (object.ReferenceEquals(resourceMan, null)) {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("AvaloniaEdit.SR", typeof(SR).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("AvaloniaEditCore.SR", typeof(SR).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;

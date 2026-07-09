@@ -24,7 +24,7 @@ using Avalonia.Media.TextFormatting;
 
 #nullable enable
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
     /// <summary>
 	/// A inline UIElement in the document.

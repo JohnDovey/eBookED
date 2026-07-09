@@ -19,9 +19,9 @@
 using System;
 using System.Diagnostics;
 using System.Globalization;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Document
+namespace AvaloniaEditCore.Document
 {
     /// <summary>
     /// Represents a simple segment (Offset,Length pair) that is not automatically updated

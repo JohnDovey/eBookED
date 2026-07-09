@@ -19,13 +19,13 @@
 using System;
 using System.Diagnostics;
 using Avalonia;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Rendering;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Rendering;
+using AvaloniaEditCore.Utils;
 using Avalonia.Media;
 using Avalonia.Threading;
 
-namespace AvaloniaEdit.Editing
+namespace AvaloniaEditCore.Editing
 {
     /// <summary>
     /// Helper class with caret-related methods.

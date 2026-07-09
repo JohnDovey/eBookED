@@ -19,7 +19,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 
-namespace AvaloniaEdit.Highlighting
+namespace AvaloniaEditCore.Highlighting
 {
 	/// <summary>
 	/// A highlighting definition.

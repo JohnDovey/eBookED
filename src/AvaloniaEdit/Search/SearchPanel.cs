@@ -25,12 +25,12 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Media;
 
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Editing;
-using AvaloniaEdit.Rendering;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Editing;
+using AvaloniaEditCore.Rendering;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Search
+namespace AvaloniaEditCore.Search
 {
     /// <summary>
     /// Provides search functionality for AvalonEdit. It is displayed in the top-right corner of the TextArea.

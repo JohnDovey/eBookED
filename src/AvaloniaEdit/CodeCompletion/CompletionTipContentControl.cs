@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 
-namespace AvaloniaEdit.CodeCompletion;
+namespace AvaloniaEditCore.CodeCompletion;
 
 public class CompletionTipContentControl : ContentControl
 {

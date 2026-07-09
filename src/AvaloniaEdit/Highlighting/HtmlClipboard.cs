@@ -19,9 +19,9 @@
 using System;
 using System.Globalization;
 using System.Text;
-using AvaloniaEdit.Document;
+using AvaloniaEditCore.Document;
 
-namespace AvaloniaEdit.Highlighting
+namespace AvaloniaEditCore.Highlighting
 {
     /// <summary>
     /// Allows copying HTML text to the clipboard.

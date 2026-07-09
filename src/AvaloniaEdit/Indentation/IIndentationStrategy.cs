@@ -16,9 +16,9 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 // DEALINGS IN THE SOFTWARE.
 
-using AvaloniaEdit.Document;
+using AvaloniaEditCore.Document;
 
-namespace AvaloniaEdit.Indentation
+namespace AvaloniaEditCore.Indentation
 {
 	/// <summary>
 	/// Strategy how the text editor handles indentation when new lines are inserted.

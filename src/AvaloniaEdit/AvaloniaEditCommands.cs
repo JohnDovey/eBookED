@@ -22,12 +22,12 @@ using Avalonia;
 using Avalonia.Input;
 using Avalonia.Platform;
 
-namespace AvaloniaEdit
+namespace AvaloniaEditCore
 {
     /// <summary>
     /// Custom commands for AvalonEdit.
     /// </summary>
-    public static class AvaloniaEditCommands
+    public static class AvaloniaEditCoreCommands
     {
         /// <summary>
         /// Toggles Overstrike mode

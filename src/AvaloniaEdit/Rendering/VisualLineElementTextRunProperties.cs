@@ -21,9 +21,9 @@ using System.Globalization;
 using System.Linq;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
 	/// <summary>
 	/// <see cref="TextRunProperties"/> implementation that allows changing the properties.

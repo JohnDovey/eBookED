@@ -22,10 +22,10 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using Avalonia;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Document;
+using AvaloniaEditCore.Utils;
 
-namespace AvaloniaEdit.Editing
+namespace AvaloniaEditCore.Editing
 {
     /// <summary>
     /// Rectangular selection ("box selection").

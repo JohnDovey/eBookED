@@ -19,9 +19,9 @@
 using System;
 using Avalonia;
 using Avalonia.Controls;
-using AvaloniaEdit.Editing;
+using AvaloniaEditCore.Editing;
 
-namespace AvaloniaEdit.CodeCompletion
+namespace AvaloniaEditCore.CodeCompletion
 {
     /// <summary>
     /// A popup-like window that is attached to a text segment.

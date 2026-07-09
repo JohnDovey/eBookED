@@ -17,10 +17,10 @@
 // DEALINGS IN THE SOFTWARE.
 
 using System;
-using AvaloniaEdit.Rendering;
+using AvaloniaEditCore.Rendering;
 using Avalonia.Media;
 
-namespace AvaloniaEdit.Editing
+namespace AvaloniaEditCore.Editing
 {
     internal sealed class SelectionLayer : Layer
     {

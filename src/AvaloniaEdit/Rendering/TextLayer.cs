@@ -19,7 +19,7 @@
 using System.Collections.Generic;
 using Avalonia;
 
-namespace AvaloniaEdit.Rendering
+namespace AvaloniaEditCore.Rendering
 {
     /// <summary>
     /// The control that contains the text.

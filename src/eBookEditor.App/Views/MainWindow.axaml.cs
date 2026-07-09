@@ -246,6 +246,62 @@ public partial class MainWindow : Window
             ViewModel.ImportDocx(localPath);
     }
 
+    private async void OnImportChaptersClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null)
+            return;
+
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Import Chapters",
+            AllowMultiple = true,
+            FileTypeFilter =
+            [
+                new FilePickerFileType("Chapter files") { Patterns = ["*.md", "*.docx", "*.html", "*.htm"] }
+            ]
+        });
+
+        var paths = files
+            .Select(f => f.TryGetLocalPath())
+            .Where(p => p is not null)
+            .Select(p => p!)
+            .ToList();
+
+        if (paths.Count > 0)
+            ViewModel.ImportChapterFiles(paths);
+    }
+
+    // Same rationale as the internal spine-reorder drag above for using the classic
+    // IDataObject API rather than the newer typed DataTransfer one.
+#pragma warning disable CS0618
+    private void OnSidebarDragOver(object? sender, DragEventArgs e)
+    {
+        if (GetDroppedFilePaths(e.Data).Count > 0)
+            e.DragEffects = DragDropEffects.Copy;
+    }
+
+    private void OnSidebarDrop(object? sender, DragEventArgs e)
+    {
+        if (ViewModel is null)
+            return;
+
+        var filePaths = GetDroppedFilePaths(e.Data);
+        if (filePaths.Count > 0)
+            ViewModel.ImportChapterFiles(filePaths);
+    }
+
+    private static IReadOnlyList<string> GetDroppedFilePaths(IDataObject data)
+    {
+        if (data.Get(DataFormats.Files) is IEnumerable<IStorageItem> items)
+            return items.Select(i => i.TryGetLocalPath()).Where(p => p is not null).Select(p => p!).ToList();
+
+        if (data.Get(DataFormats.FileNames) is IEnumerable<string> fileNames)
+            return fileNames.ToList();
+
+        return [];
+    }
+#pragma warning restore CS0618
+
     private void OnSpineItemSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (ViewModel is null || SpineListBox.SelectedItem is not SpineItem item)

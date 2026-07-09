@@ -21,13 +21,13 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using Avalonia;
-using AvaloniaEdit.Document;
+using AvaloniaEditCore.Document;
 using Avalonia.Input;
-using AvaloniaEdit.Utils;
+using AvaloniaEditCore.Utils;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 
-namespace AvaloniaEdit.Editing
+namespace AvaloniaEditCore.Editing
 {
     /// <summary>
     /// We re-use the CommandBinding and InputBinding instances between multiple text areas,
@@ -80,20 +80,20 @@ namespace AvaloniaEdit.Editing
             AddBinding(ApplicationCommands.Cut, OnCut, CanCut);
             AddBinding(ApplicationCommands.Paste, OnPaste, CanPaste);
 
-            AddBinding(AvaloniaEditCommands.ToggleOverstrike, OnToggleOverstrike);
-            AddBinding(AvaloniaEditCommands.DeleteLine, OnDeleteLine);
+            AddBinding(AvaloniaEditCoreCommands.ToggleOverstrike, OnToggleOverstrike);
+            AddBinding(AvaloniaEditCoreCommands.DeleteLine, OnDeleteLine);
 
-            AddBinding(AvaloniaEditCommands.RemoveLeadingWhitespace, OnRemoveLeadingWhitespace);
-            AddBinding(AvaloniaEditCommands.RemoveTrailingWhitespace, OnRemoveTrailingWhitespace);
-            AddBinding(AvaloniaEditCommands.ConvertToUppercase, OnConvertToUpperCase);
-            AddBinding(AvaloniaEditCommands.ConvertToLowercase, OnConvertToLowerCase);
-            AddBinding(AvaloniaEditCommands.ConvertToTitleCase, OnConvertToTitleCase);
-            AddBinding(AvaloniaEditCommands.InvertCase, OnInvertCase);
-            AddBinding(AvaloniaEditCommands.ConvertTabsToSpaces, OnConvertTabsToSpaces);
-            AddBinding(AvaloniaEditCommands.ConvertSpacesToTabs, OnConvertSpacesToTabs);
-            AddBinding(AvaloniaEditCommands.ConvertLeadingTabsToSpaces, OnConvertLeadingTabsToSpaces);
-            AddBinding(AvaloniaEditCommands.ConvertLeadingSpacesToTabs, OnConvertLeadingSpacesToTabs);
-            AddBinding(AvaloniaEditCommands.IndentSelection, OnIndentSelection);
+            AddBinding(AvaloniaEditCoreCommands.RemoveLeadingWhitespace, OnRemoveLeadingWhitespace);
+            AddBinding(AvaloniaEditCoreCommands.RemoveTrailingWhitespace, OnRemoveTrailingWhitespace);
+            AddBinding(AvaloniaEditCoreCommands.ConvertToUppercase, OnConvertToUpperCase);
+            AddBinding(AvaloniaEditCoreCommands.ConvertToLowercase, OnConvertToLowerCase);
+            AddBinding(AvaloniaEditCoreCommands.ConvertToTitleCase, OnConvertToTitleCase);
+            AddBinding(AvaloniaEditCoreCommands.InvertCase, OnInvertCase);
+            AddBinding(AvaloniaEditCoreCommands.ConvertTabsToSpaces, OnConvertTabsToSpaces);
+            AddBinding(AvaloniaEditCoreCommands.ConvertSpacesToTabs, OnConvertSpacesToTabs);
+            AddBinding(AvaloniaEditCoreCommands.ConvertLeadingTabsToSpaces, OnConvertLeadingTabsToSpaces);
+            AddBinding(AvaloniaEditCoreCommands.ConvertLeadingSpacesToTabs, OnConvertLeadingSpacesToTabs);
+            AddBinding(AvaloniaEditCoreCommands.IndentSelection, OnIndentSelection);
         }
 
         private static TextArea GetTextArea(object target)

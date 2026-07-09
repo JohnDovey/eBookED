@@ -20,9 +20,9 @@ using System;
 using System.Collections.Generic;
 using Avalonia.Input;
 using Avalonia.Threading;
-using AvaloniaEdit.Editing;
+using AvaloniaEditCore.Editing;
 
-namespace AvaloniaEdit.Search
+namespace AvaloniaEditCore.Search
 {
     /// <summary>
     /// Search commands for AvalonEdit.
