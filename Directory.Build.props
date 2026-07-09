@@ -6,8 +6,8 @@
     <LangVersion>latest</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
     <!-- Bump the minor version for new features, patch for other code changes (see
-         feedback_version_bump_policy memory). This round adds font bundling/installation,
-         first/last name metadata fields, and an About-page credit, so it's a minor bump. -->
-    <Version>1.1.0</Version>
+         feedback_version_bump_policy memory). This round only fixes the About dialog's
+         contact email, so it's a patch bump. -->
+    <Version>1.1.1</Version>
   </PropertyGroup>
 </Project>

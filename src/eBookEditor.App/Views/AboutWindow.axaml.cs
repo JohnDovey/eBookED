@@ -8,7 +8,7 @@ namespace eBookEditor.App.Views;
 
 public partial class AboutWindow : Window
 {
-    private const string ContactEmail = "jdovey.john@gamail.com";
+    private const string ContactEmail = "dovey.john@gmail.com";
 
     private readonly string _versionString;
 
