@@ -2,15 +2,16 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using eBookEditor.DocxImport.Services;
+using eBookEditor.Epub.Services;
 
 namespace eBookEditor.Tests.DocxImport;
 
-public class MarkdownToDocxConverterTests : IDisposable
+public class HtmlToDocxConverterTests : IDisposable
 {
     private readonly string _tempDir;
-    private readonly MarkdownToDocxConverter _converter = new();
+    private readonly HtmlToDocxConverter _converter = new();
 
-    public MarkdownToDocxConverterTests()
+    public HtmlToDocxConverterTests()
     {
         _tempDir = Path.Combine(Path.GetTempPath(), "ebookeditor-tests-" + Guid.NewGuid());
         Directory.CreateDirectory(_tempDir);
@@ -25,20 +26,15 @@ public class MarkdownToDocxConverterTests : IDisposable
     [Fact]
     public void ConvertToFile_ProducesDocxWithTitleHeadingsFormattingAndLists()
     {
-        const string markdown = """
-            Hello **bold** and *italic* text.
-
-            ## Subheading
-
-            - First item
-            - Second item
-
-            1. Step one
-            2. Step two
+        const string html = """
+            <p>Hello <strong>bold</strong> and <em>italic</em> text.</p>
+            <h2>Subheading</h2>
+            <ul><li>First item</li><li>Second item</li></ul>
+            <ol><li>Step one</li><li>Step two</li></ol>
             """;
         var path = Path.Combine(_tempDir, "chapter.docx");
 
-        _converter.ConvertToFile(markdown, "Chapter One", path);
+        _converter.ConvertToFile(html, "Chapter One", path);
 
         using var document = WordprocessingDocument.Open(path, false);
         var body = document.MainDocumentPart!.Document!.Body!;
@@ -65,7 +61,7 @@ public class MarkdownToDocxConverterTests : IDisposable
     {
         var path = Path.Combine(_tempDir, "chapter-link.docx");
 
-        _converter.ConvertToFile("Visit [our site](https://example.com) for more.", "Chapter With Link", path);
+        _converter.ConvertToFile("<p>Visit <a href=\"https://example.com\">our site</a> for more.</p>", "Chapter With Link", path);
 
         using var document = WordprocessingDocument.Open(path, false);
         var mainPart = document.MainDocumentPart!;
@@ -77,20 +73,36 @@ public class MarkdownToDocxConverterTests : IDisposable
     }
 
     [Fact]
+    public void ConvertToFile_LinkWithNoHref_RendersAsPlainText()
+    {
+        var path = Path.Combine(_tempDir, "chapter-empty-link.docx");
+
+        _converter.ConvertToFile("<p><a>Not really a link</a>.</p>", "Chapter", path);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        var mainPart = document.MainDocumentPart!;
+
+        Assert.Empty(mainPart.HyperlinkRelationships);
+        Assert.Contains("Not really a link", mainPart.Document!.Body!.InnerText);
+    }
+
+    [Fact]
     public void ConvertToFile_LinksToASpaceContainingPath_ProduceAWellFormedRelationship()
     {
-        // Regression test for a real bug a user hit: the TOC page links to chapter files named
-        // "NNN - Title.md" (spaces and all). Feeding that straight into
-        // WordprocessingDocument.AddHyperlinkRelationship as an unescaped Uri writes a package
-        // the OpenXml SDK itself flags as having a "malformed URI relationship" — in practice
-        // this showed up as a literal "rewritten://<guid>" placeholder baked into the saved
-        // .docx's actual relationship Target instead of the real path, which made Word/Pages
-        // refuse to open the file ("isn't in the correct format"). The destination must be
-        // percent-encoded before it ever reaches AddHyperlinkRelationship.
+        // Regression test for a real bug a user hit (originally against Markdown link syntax,
+        // now against a real HTML href — the underlying AddHyperlinkRelationship risk is the
+        // same either way): the TOC page links to chapter files whose relative path can
+        // contain a space. Feeding that straight into WordprocessingDocument.
+        // AddHyperlinkRelationship as an unescaped Uri writes a package the OpenXml SDK itself
+        // flags as having a "malformed URI relationship" — in practice this showed up as a
+        // literal "rewritten://<guid>" placeholder baked into the saved .docx's actual
+        // relationship Target instead of the real path, which made Word/Pages refuse to open
+        // the file ("isn't in the correct format"). The destination must be percent-encoded
+        // before it ever reaches AddHyperlinkRelationship.
         var path = Path.Combine(_tempDir, "chapter-space-link.docx");
 
         _converter.ConvertToFile(
-            "- [Chapter 1: Getting Ready](<chapters/001 - Getting Ready.md>)",
+            "<ul><li><a href=\"chapters/001 - Getting Ready.md\">Chapter 1: Getting Ready</a></li></ul>",
             "Table of Contents", path);
 
         using var document = WordprocessingDocument.Open(path, false);
@@ -106,50 +118,18 @@ public class MarkdownToDocxConverterTests : IDisposable
     }
 
     [Fact]
-    public void ConvertToFile_LinkWhoseDestinationFailsToParse_FallsBackToDynamicUrlOrPlainText()
-    {
-        // Regression test for the real bug behind the previous test's fix STILL producing a
-        // corrupt file for the user's actual project: when an inline link's destination fails
-        // to parse (the unescaped-space case above), CommonMark backtracks and can resolve
-        // "[text](broken url)" as a shortcut reference instead — and Markdig's AutoIdentifier
-        // extension implicitly registers every heading as a reference target under its own
-        // text. LinkInline.Url comes back empty for that resolved-as-reference case; the real
-        // URL lives behind GetDynamicUrl. Reading only .Url and feeding the empty string into
-        // AddHyperlinkRelationship produced a well-formed-looking but empty relationship
-        // target — another way to end up with a file Word refuses to open.
-        var path = Path.Combine(_tempDir, "toc-matches-heading.docx");
-        const string markdown = """
-            - [Chapter One](chapters/001 - a file.md)
-
-            # Chapter One
-
-            Real content.
-            """;
-
-        _converter.ConvertToFile(markdown, "Book", path);
-
-        using var document = WordprocessingDocument.Open(path, false);
-        var mainPart = document.MainDocumentPart!;
-
-        Assert.DoesNotContain(mainPart.HyperlinkRelationships, r => string.IsNullOrWhiteSpace(r.Uri.OriginalString));
-        Assert.DoesNotContain(mainPart.HyperlinkRelationships, r => r.Uri.OriginalString.Contains("rewritten://", StringComparison.Ordinal));
-
-        var errors = new OpenXmlValidator().Validate(document).ToList();
-        Assert.True(errors.Count == 0, string.Join("\n", errors.Select(e => $"{e.Path?.XPath} :: {e.Description}")));
-    }
-
-    [Fact]
     public void ConvertToFile_RendersTables()
     {
-        const string markdown = """
-            | Name | Role |
-            | --- | --- |
-            | Jane Doe | Author |
-            | Ed Itor | Editor |
+        const string html = """
+            <table>
+            <tr><th>Name</th><th>Role</th></tr>
+            <tr><td>Jane Doe</td><td>Author</td></tr>
+            <tr><td>Ed Itor</td><td>Editor</td></tr>
+            </table>
             """;
         var path = Path.Combine(_tempDir, "chapter-table.docx");
 
-        _converter.ConvertToFile(markdown, "Chapter With Table", path);
+        _converter.ConvertToFile(html, "Chapter With Table", path);
 
         using var document = WordprocessingDocument.Open(path, false);
         var table = document.MainDocumentPart!.Document!.Body!.Descendants<Table>().Single();
@@ -179,40 +159,27 @@ public class MarkdownToDocxConverterTests : IDisposable
         // but schema-invalid XML unless you run it through OpenXmlValidator). This exercises
         // every block/inline kind in one document, including combined underline+highlight on a
         // single run (another real ordering bug this test caught: <w:highlight> must precede
-        // <w:u> in <w:rPr>).
-        const string markdown = """
-            # Chapter One
-
-            Plain text, *italic*, **bold**, ***bold italic***.
-
-            ~~strike~~, ==highlight==, H~2~O, E=mc^2^, ++underlined and ==nested highlight==++.
-
-            - [x] done
-            - [ ] not done
-
-            Term
-            :   Definition text here.
-
-            ::: {.smallcaps}
-            Styled paragraph.
-            :::
-
-            | A | B | C |
-            | - | - | - |
-            | 1 | 2 | 3 |
-            | 4 | 5 | 6 |
-
-            ```
-            code line
-            ```
-
-            ---
-
-            Text after a thematic break.
+        // <w:u> in <w:rPr>). Task lists have no HTML authoring convention yet (no toolbar
+        // command produces one), so they're not part of this combined document — same
+        // deliberate omission as footnotes, see HtmlToDocxConverter's own doc comment.
+        const string html = """
+            <h1>Chapter One</h1>
+            <p>Plain text, <em>italic</em>, <strong>bold</strong>, <strong><em>bold italic</em></strong>.</p>
+            <p><s>strike</s>, <mark>highlight</mark>, H<sub>2</sub>O, E=mc<sup>2</sup>, <u><mark>underlined and nested highlight</mark></u>.</p>
+            <dl><dt>Term</dt><dd>Definition text here.</dd></dl>
+            <div class="smallcaps"><p>Styled paragraph.</p></div>
+            <table>
+            <tr><th>A</th><th>B</th><th>C</th></tr>
+            <tr><td>1</td><td>2</td><td>3</td></tr>
+            <tr><td>4</td><td>5</td><td>6</td></tr>
+            </table>
+            <pre>code line</pre>
+            <hr>
+            <p>Text after a thematic break.</p>
             """;
         var path = Path.Combine(_tempDir, "chapter-full-validation.docx");
 
-        _converter.ConvertToFile(markdown, "Test Book", path);
+        _converter.ConvertToFile(html, "Test Book", path);
 
         using var document = WordprocessingDocument.Open(path, false);
         var errors = new OpenXmlValidator().Validate(document).ToList();
@@ -235,7 +202,7 @@ public class MarkdownToDocxConverterTests : IDisposable
         Directory.CreateDirectory(chaptersDir);
         var path = Path.Combine(_tempDir, "chapter-image.docx");
 
-        _converter.ConvertToFile("![Cover](../images/cover.png)", "Chapter With Image", path, chaptersDir);
+        _converter.ConvertToFile("<p><img src=\"../images/cover.png\" alt=\"Cover\"></p>", "Chapter With Image", path, chaptersDir);
 
         using var document = WordprocessingDocument.Open(path, false);
         var mainPart = document.MainDocumentPart!;
@@ -248,47 +215,19 @@ public class MarkdownToDocxConverterTests : IDisposable
     {
         var path = Path.Combine(_tempDir, "chapter-missing-image.docx");
 
-        _converter.ConvertToFile("![Missing](../images/does-not-exist.png)", "Chapter", path, _tempDir);
+        _converter.ConvertToFile("<p><img src=\"../images/does-not-exist.png\" alt=\"Missing\"></p>", "Chapter", path, _tempDir);
 
         using var document = WordprocessingDocument.Open(path, false);
         Assert.Empty(document.MainDocumentPart!.ImageParts);
     }
 
     [Fact]
-    public void ConvertToFile_AddsRealWordFootnotes()
-    {
-        const string markdown = """
-            Some text with a footnote[^1].
-
-            [^1]: This is the note.
-            """;
-        var path = Path.Combine(_tempDir, "chapter-footnote.docx");
-
-        _converter.ConvertToFile(markdown, "Chapter With Footnote", path);
-
-        using var document = WordprocessingDocument.Open(path, false);
-        var mainPart = document.MainDocumentPart!;
-        var footnoteReference = mainPart.Document!.Body!.Descendants<FootnoteReference>().Single();
-        Assert.Equal(1, footnoteReference.Id!.Value);
-
-        var footnotesPart = mainPart.FootnotesPart;
-        Assert.NotNull(footnotesPart);
-        var realFootnote = footnotesPart!.Footnotes!.Elements<Footnote>().Single(f => f.Id!.Value == 1);
-        Assert.Contains("This is the note.", realFootnote.InnerText);
-    }
-
-    [Fact]
     public void ConvertToFile_RendersFencedCodeBlocksAsMonospaceParagraphs()
     {
-        const string markdown = """
-            ```
-            def greet(name):
-                return f"Hello, {name}!"
-            ```
-            """;
+        const string html = "<pre>def greet(name):\n    return f\"Hello, {name}!\"</pre>";
         var path = Path.Combine(_tempDir, "chapter-code.docx");
 
-        _converter.ConvertToFile(markdown, "Chapter With Code", path);
+        _converter.ConvertToFile(html, "Chapter With Code", path);
 
         using var document = WordprocessingDocument.Open(path, false);
         var paragraphs = document.MainDocumentPart!.Document!.Body!.Elements<Paragraph>().ToList();
@@ -307,19 +246,13 @@ public class MarkdownToDocxConverterTests : IDisposable
     [Fact]
     public void ConvertToFile_RendersThematicBreaksAsPageBreaks()
     {
-        // MarkdownExportService.ExportWholeBook separates sections with "---"; the whole-book
+        // HtmlBookAssembler.AssembleWholeBook separates sections with "<hr>"; the whole-book
         // Word export relies on this becoming a page break so each section still starts on
         // its own page, matching the EPUB/PDF exports' convention.
-        const string markdown = """
-            First section.
-
-            ---
-
-            Second section.
-            """;
+        const string html = "<p>First section.</p><hr><p>Second section.</p>";
         var path = Path.Combine(_tempDir, "chapter-thematic-break.docx");
 
-        _converter.ConvertToFile(markdown, "Chapter With Break", path);
+        _converter.ConvertToFile(html, "Chapter With Break", path);
 
         using var document = WordprocessingDocument.Open(path, false);
         var body = document.MainDocumentPart!.Document!.Body!;
@@ -329,16 +262,15 @@ public class MarkdownToDocxConverterTests : IDisposable
     }
 
     [Fact]
-    public void ConvertToFile_RendersEmphasisExtrasCorrectly_NotAsBoldOrItalic()
+    public void ConvertToFile_RendersTagBasedEmphasisCorrectly_NotAsBoldOrItalic()
     {
-        // Regression test: strikethrough (~~), highlight (==), subscript (~), superscript (^),
-        // and inserted (++) all parse as EmphasisInline distinguished only by DelimiterChar —
-        // a version of this code that checked only DelimiterCount misread every one of them
-        // as bold or italic instead.
-        const string markdown = "~~struck~~ ==marked== H~2~O E=mc^2^ ++inserted++";
-        var path = Path.Combine(_tempDir, "chapter-emphasis-extras.docx");
+        // Regression coverage for HtmlStyleDocument's user-agent baseline stylesheet (see its
+        // own doc comment): strikethrough/highlight/subscript/superscript/underline tags must
+        // resolve to their own real formatting, not fall through to bold/italic or nothing.
+        const string html = "<p><s>struck</s> <mark>marked</mark> H<sub>2</sub>O E=mc<sup>2</sup> <u>inserted</u></p>";
+        var path = Path.Combine(_tempDir, "chapter-tag-emphasis.docx");
 
-        _converter.ConvertToFile(markdown, "Chapter", path);
+        _converter.ConvertToFile(html, "Chapter", path);
 
         using var document = WordprocessingDocument.Open(path, false);
         var runs = document.MainDocumentPart!.Document!.Body!.Descendants<Run>()
@@ -366,10 +298,10 @@ public class MarkdownToDocxConverterTests : IDisposable
     [Fact]
     public void ConvertToFile_RendersDefinitionLists()
     {
-        const string markdown = "Apple\n:   Pomaceous fruit\n:   Comes in many colors\n";
+        const string html = "<dl><dt>Apple</dt><dd>Pomaceous fruit</dd><dd>Comes in many colors</dd></dl>";
         var path = Path.Combine(_tempDir, "chapter-definition-list.docx");
 
-        _converter.ConvertToFile(markdown, "Chapter", path);
+        _converter.ConvertToFile(html, "Chapter", path);
 
         using var document = WordprocessingDocument.Open(path, false);
         var paragraphs = document.MainDocumentPart!.Document!.Body!.Elements<Paragraph>().ToList();
@@ -381,40 +313,8 @@ public class MarkdownToDocxConverterTests : IDisposable
     }
 
     [Fact]
-    public void ConvertToFile_RendersTaskListCheckboxes()
-    {
-        const string markdown = "- [x] Done task\n- [ ] Not done\n";
-        var path = Path.Combine(_tempDir, "chapter-task-list.docx");
-
-        _converter.ConvertToFile(markdown, "Chapter", path);
-
-        using var document = WordprocessingDocument.Open(path, false);
-        var bodyText = document.MainDocumentPart!.Document!.Body!.InnerText;
-
-        Assert.Contains("☑", bodyText);
-        Assert.Contains("☐", bodyText);
-    }
-
-    [Fact]
-    public void ConvertToFile_RendersCustomContainerContent()
-    {
-        const string markdown = "::: {.smallcaps}\nStyled paragraph text.\n:::\n";
-        var path = Path.Combine(_tempDir, "chapter-custom-container.docx");
-
-        _converter.ConvertToFile(markdown, "Chapter", path);
-
-        using var document = WordprocessingDocument.Open(path, false);
-        Assert.Contains("Styled paragraph text.", document.MainDocumentPart!.Document!.Body!.InnerText);
-    }
-
-    [Fact]
     public void ConvertToFile_RendersInsertImageContainerShape_ImageAndCaptionBothPresent()
     {
-        // MainWindow.OnInsertImageClick's exact generated shape — nested custom containers,
-        // not a Markdown table (see MarkdownToHtmlConverterTests for why). Word has no CSS
-        // engine, so the ".caption" class has no visual effect here, same documented
-        // simplification as every other Apply Style class — this just checks the image and
-        // caption text both survive the nesting structurally.
         var pngBytes = Convert.FromBase64String(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
         var imagesDir = Path.Combine(_tempDir, "images");
@@ -423,22 +323,49 @@ public class MarkdownToDocxConverterTests : IDisposable
         var chaptersDir = Path.Combine(_tempDir, "chapters");
         Directory.CreateDirectory(chaptersDir);
 
-        const string markdown = """
-            ::::
-            ![A photo](../images/photo.jpg)
-
-            ::: {.caption}
-            Caption text
-            :::
-            ::::
+        const string html = """
+            <figure>
+            <img src="../images/photo.jpg" alt="A photo">
+            <figcaption class="caption">Caption text</figcaption>
+            </figure>
             """;
         var path = Path.Combine(_tempDir, "chapter-insert-image.docx");
 
-        _converter.ConvertToFile(markdown, "Chapter", path, chaptersDir);
+        _converter.ConvertToFile(html, "Chapter", path, chaptersDir);
 
         using var document = WordprocessingDocument.Open(path, false);
         var mainPart = document.MainDocumentPart!;
         Assert.Single(mainPart.ImageParts);
         Assert.Contains("Caption text", mainPart.Document!.Body!.InnerText);
+    }
+
+    [Fact]
+    public void ConvertToFile_AppliesEditorStyleCatalogClassesViaRealCss()
+    {
+        // The core claim of Phase 5's AngleSharp.Css integration: EditorStyleCatalog classes
+        // (see DefaultStylesheet.cs) actually affect the rendered .docx now, using real Word
+        // primitives the predecessor converter never emitted for these classes at all —
+        // smallCaps and caps are exact matches (Word has real primitives for both), unlike
+        // QuestPDF/PDF, which has neither and must skip or approximate them instead.
+        const string html = """
+            <p class="smallcaps">Small caps text.</p>
+            <p class="all-caps">shout this</p>
+            <div class="attribution"><p>An Author</p></div>
+            """;
+        var path = Path.Combine(_tempDir, "chapter-styled.docx");
+
+        _converter.ConvertToFile(html, "Chapter", path, templateCss: DefaultStylesheet.Css);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        var paragraphs = document.MainDocumentPart!.Document!.Body!.Elements<Paragraph>().ToList();
+
+        var smallCapsRun = paragraphs.Single(p => p.InnerText.Contains("Small caps")).Descendants<Run>().First();
+        Assert.NotNull(smallCapsRun.RunProperties?.SmallCaps);
+
+        var allCapsRun = paragraphs.Single(p => p.InnerText.Contains("shout this")).Descendants<Run>().First();
+        Assert.NotNull(allCapsRun.RunProperties?.Caps);
+
+        var attributionParagraph = paragraphs.Single(p => p.InnerText == "An Author");
+        Assert.Equal(JustificationValues.Right, attributionParagraph.ParagraphProperties!.Justification!.Val!.Value);
     }
 }

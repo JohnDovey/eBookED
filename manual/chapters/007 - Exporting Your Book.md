@@ -23,7 +23,7 @@ The file also includes the markers Kindle Direct Publishing looks for when you u
 
 Produces a print-formatted PDF: every chapter (and front/back matter page) starts on its own physical page, front matter is numbered with lowercase roman numerals (i, ii, iii…) while the body counts up in arabic numerals (1, 2, 3…), and the table of contents has real, clickable, page-numbered entries. Page size comes from **Meta Data → PDF Settings…**.
 
-PDF export uses the same CSS template as EPUB: it picks up the template's body and heading fonts and embeds them into the PDF, so headings and body text render in the same typeface as the EPUB rather than a generic default. Tables and images render too. Footnotes appear as a superscript reference number in the text with the full note collected into a "Notes" section at the end of the chapter that references it — a deliberate choice, since placing a note at the bottom of the exact physical page that references it (the way a printed book does) would need a much more complex layout engine than this app aims for.
+PDF export uses the same CSS template as EPUB: it picks up the template's body and heading fonts and embeds them into the PDF, so headings and body text render in the same typeface as the EPUB rather than a generic default. Tables and images render too, and any style from **Apply Style** (see *Writing in the Editor*) — small caps, verse, attribution, and the rest — actually applies to the exported PDF now, not just the EPUB.
 
 The imprint page in the PDF is laid out slightly differently than in the EPUB: the cover, contributors, publisher, and ISBN sit near the top, with the copyright statement pinned to the very bottom of the page — something only a fixed page layout can do.
 
@@ -31,13 +31,7 @@ Every page also gets a running header and footer, following the same left/right 
 
 ## Word
 
-Right-click a chapter in the sidebar and choose **Export Chapter as Word…** to export just that chapter as a standalone `.docx` file, or use **Export → Word (Whole Book)…** to export the whole book — front matter, every chapter, and back matter — as one `.docx` file, each section starting on its own page. Either way, headings map to Word's built-in heading styles, tables become real Word tables, images are embedded at their real size, and footnotes become genuine native Word footnotes (visible in Word's own footnote pane, not just text at the bottom of the page).
-
-## Markdown
-
-**Export → Markdown (Whole Book)…** concatenates the whole book — front matter, every chapter, and back matter — into one plain `.md` file, in reading order, each section separated by a horizontal rule — useful for handing your manuscript to a tool or person that just wants plain text.
-
-**Export → Markdown (This Chapter)…** exports only the currently selected chapter the same way. This option is only enabled when a chapter (not front/back matter) is selected.
+Right-click a chapter in the sidebar and choose **Export Chapter as Word…** to export just that chapter as a standalone `.docx` file, or use **Export → Word (Whole Book)…** to export the whole book — front matter, every chapter, and back matter — as one `.docx` file, each section starting on its own page. Either way, headings map to Word's built-in heading styles, tables become real Word tables, images are embedded at their real size, and **Apply Style** classes come through using real Word formatting — small caps and letter spacing use Word's own primitives for them, for instance, not just an approximation.
 
 ## After export
 

@@ -46,7 +46,7 @@ public class PdfBuilderTests : IDisposable
         var relativePath = Path.GetRelativePath(project.DirectoryPath, chapterPath).Replace('\\', '/');
         _chapterFileService.WriteChapter(chapterPath,
             new ChapterFrontMatter { Title = "Chapter One" },
-            "Hello **world**, this is the first chapter. It has a few words in it.");
+            "<p>Hello <strong>world</strong>, this is the first chapter. It has a few words in it.</p>");
         _spineService.AddChapter(project, "Chapter One", relativePath);
 
         _pageGenerator.RegenerateAllGeneratedPages(project);
@@ -90,7 +90,10 @@ public class PdfBuilderTests : IDisposable
 
         var result = _pdfBuilder.Build(project, outputPath);
 
-        // "Hello world, this is the first chapter. It has a few words in it." = 14 words.
+        // "Hello world, this is the first chapter. It has a few words in it." = 14 words —
+        // counted from the parsed HTML's text content (HtmlText.CountWords), not the raw
+        // stored markup, so the "<p>"/"<strong>" tags themselves don't get miscounted as
+        // extra/glued-together "words".
         Assert.Equal(14, result.WordCount);
     }
 
@@ -126,15 +129,12 @@ public class PdfBuilderTests : IDisposable
         _chapterFileService.WriteChapter(chapterPath,
             new ChapterFrontMatter { Title = "Chapter Two" },
             """
-            Some text with a footnote[^1].
-
-            | Name | Role |
-            | --- | --- |
-            | Jane Doe | Author |
-
-            ![Diagram](../images/diagram.png)
-
-            [^1]: This is the note.
+            <p>Some text with a footnote.</p>
+            <table>
+            <tr><th>Name</th><th>Role</th></tr>
+            <tr><td>Jane Doe</td><td>Author</td></tr>
+            </table>
+            <p><img src="../images/diagram.png" alt="Diagram"></p>
             """);
         _spineService.AddChapter(project, "Chapter Two", relativePath);
         _projectService.SaveProject(project);
@@ -180,12 +180,9 @@ public class PdfBuilderTests : IDisposable
         _chapterFileService.WriteChapter(chapterPath,
             new ChapterFrontMatter { Title = "Chapter Two" },
             """
-            Some text before a code sample.
-
-            ```
-            def greet(name):
-                return f"Hello, {name}!"
-            ```
+            <p>Some text before a code sample.</p>
+            <pre>def greet(name):
+                return f"Hello, {name}!"</pre>
             """);
         _spineService.AddChapter(project, "Chapter Two", relativePath);
         _projectService.SaveProject(project);
@@ -293,15 +290,8 @@ public class PdfBuilderTests : IDisposable
     }
 
     [Fact]
-    public void Build_RendersExtendedSyntaxWithoutError_DefinitionListsAndTaskLists()
+    public void Build_RendersExtendedFormattingWithoutError_DefinitionListsAndStyledDivs()
     {
-        // Regression coverage for the DelimiterChar bug: a version of this code that checked
-        // only DelimiterCount on EmphasisInline rendered ~~strikethrough~~, ==highlight==,
-        // ~subscript~, ^superscript^, and ++inserted++ as plain bold/italic instead. There's
-        // no easy way to assert visual text-decoration from extracted PDF text, so this
-        // mainly guards against a real regression: the old code's bold/italic branches still
-        // ran on any DelimiterCount match regardless of char, so this wouldn't throw either
-        // way — the DOCX equivalent test is the one that actually catches a misrender.
         var project = BuildSampleProject();
 
         var chapterPath = _chapterFileService.CreateNewChapterFile(project.ChaptersDir, "Chapter Two");
@@ -309,17 +299,9 @@ public class PdfBuilderTests : IDisposable
         _chapterFileService.WriteChapter(chapterPath,
             new ChapterFrontMatter { Title = "Chapter Two" },
             """
-            Some ~~struck~~ and ==marked== and H~2~O and E=mc^2^ text.
-
-            - [x] Done task
-            - [ ] Not done
-
-            Apple
-            :   Pomaceous fruit
-
-            ::: {.smallcaps}
-            A styled paragraph.
-            :::
+            <p>Some <s>struck</s> and <mark>marked</mark> and H<sub>2</sub>O and E=mc<sup>2</sup> text.</p>
+            <dl><dt>Apple</dt><dd>Pomaceous fruit</dd></dl>
+            <div class="smallcaps"><p>A styled paragraph.</p></div>
             """);
         _spineService.AddChapter(project, "Chapter Two", relativePath);
         _projectService.SaveProject(project);
@@ -336,17 +318,17 @@ public class PdfBuilderTests : IDisposable
         Assert.Contains("marked", allText);
         Assert.Contains("Apple", allText);
         Assert.Contains("Pomaceousfruit", allText.Replace(" ", ""));
-        Assert.Contains("Donetask", allText.Replace(" ", ""));
         Assert.Contains("styledparagraph", allText.Replace(" ", ""));
     }
 
     [Fact]
     public void Build_RendersInsertImageContainerShape_WithoutErrorAndCaptionTextPresent()
     {
-        // MainWindow.OnInsertImageClick's exact generated shape (nested custom containers,
-        // not a Markdown table — see MarkdownToHtmlConverterTests for why). PDF has no CSS
-        // engine, so ".caption" has no visual effect — this just checks it renders without
-        // throwing and the caption text survives the nesting.
+        // MainWindow.OnInsertImageClick's planned HTML shape (a <figure>/<figcaption> pair —
+        // see PageGeneratorService's design notes). ".caption" now has a real visual effect
+        // via AngleSharp.Css (a smaller font size, see DefaultStylesheet.cs), unlike the
+        // pre-Phase-5 renderer, which had no CSS engine at all — this just checks it renders
+        // without throwing and the caption text survives the structure.
         var project = BuildSampleProject();
         var imagesDir = Path.Combine(project.DirectoryPath, "images");
         Directory.CreateDirectory(imagesDir);
@@ -359,13 +341,10 @@ public class PdfBuilderTests : IDisposable
         _chapterFileService.WriteChapter(chapterPath,
             new ChapterFrontMatter { Title = "Chapter Two" },
             """
-            ::::
-            ![A photo](../images/photo.jpg)
-
-            ::: {.caption}
-            Caption text
-            :::
-            ::::
+            <figure>
+            <img src="../images/photo.jpg" alt="A photo">
+            <figcaption class="caption">Caption text</figcaption>
+            </figure>
             """);
         _spineService.AddChapter(project, "Chapter Two", relativePath);
         _projectService.SaveProject(project);
@@ -380,15 +359,43 @@ public class PdfBuilderTests : IDisposable
     }
 
     [Fact]
+    public void Build_AppliesEditorStyleCatalogClassesViaRealCss()
+    {
+        // Regression coverage for the actual Phase 5 feature: a class the template CSS
+        // defines (here, the shipped default template's own EditorStyleCatalog rules) must
+        // visibly affect rendering, not just survive structurally. There's no easy way to
+        // assert visual formatting from extracted PDF text, so this checks the one CSS effect
+        // that also changes extracted text content: text-transform: uppercase on .all-caps.
+        var project = BuildSampleProject();
+
+        var chapterPath = _chapterFileService.CreateNewChapterFile(project.ChaptersDir, "Chapter Two");
+        var relativePath = Path.GetRelativePath(project.DirectoryPath, chapterPath).Replace('\\', '/');
+        _chapterFileService.WriteChapter(chapterPath,
+            new ChapterFrontMatter { Title = "Chapter Two" },
+            "<p class=\"all-caps\">shout this line</p>");
+        _spineService.AddChapter(project, "Chapter Two", relativePath);
+        _projectService.SaveProject(project);
+
+        var outputPath = Path.Combine(project.OutputDir, "book.pdf");
+        _pdfBuilder.Build(project, outputPath);
+
+        using var document = PdfDocument.Open(outputPath);
+        var allText = string.Join(" ", Enumerable.Range(1, document.NumberOfPages).Select(i => document.GetPage(i).Text));
+
+        Assert.Contains("SHOUT THIS LINE", allText);
+    }
+
+    [Fact]
     public void Build_TocPageNumberAndRunningHeaderResolveCorrectly_ForAnEmptyChapter()
     {
         // Regression test for a real bug a user hit: an unwritten "New Chapter" stub (created
         // via ChapterFileService.CreateNewChapterFile, which leaves the body empty until the
-        // author writes something) has zero Markdown blocks, so RenderMarkdownBody's loop never
-        // ran at all — meaning the chapter's QuestPDF .Section() never got registered anywhere.
-        // That broke two things: the TOC's page-number lookup for that chapter had nothing to
-        // resolve and rendered a literal "?", and the running header's "current chapter" lookup
-        // stayed stuck on whichever earlier chapter DID register, for the rest of the book.
+        // author writes something) has zero HTML nodes, so RenderHtmlBody's loop never ran at
+        // all — meaning the chapter's QuestPDF .Section() never got registered anywhere. That
+        // broke two things: the TOC's page-number lookup for that chapter had nothing to
+        // resolve and rendered a literal "?", and the running header's "current chapter"
+        // lookup stayed stuck on whichever earlier chapter DID register, for the rest of the
+        // book.
         var project = BuildSampleProject();
         var emptyChapterPath = _chapterFileService.CreateNewChapterFile(project.ChaptersDir, "Chapter Two");
         var relativePath = Path.GetRelativePath(project.DirectoryPath, emptyChapterPath).Replace('\\', '/');

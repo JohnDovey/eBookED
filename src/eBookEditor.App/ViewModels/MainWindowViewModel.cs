@@ -7,7 +7,6 @@ using eBookEditor.Core.Services;
 using eBookEditor.DocxImport.Services;
 using eBookEditor.Epub.Services;
 using eBookEditor.Html.Services;
-using eBookEditor.Markdown.Services;
 using eBookEditor.Pdf.Services;
 
 namespace eBookEditor.App.ViewModels;
@@ -19,9 +18,9 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly ChapterFileService _chapterFileService = new();
     private readonly PageGeneratorService _pageGenerator = new();
     private readonly BookIndexGenerator _bookIndexGenerator = new();
-    private readonly MarkdownExportService _markdownExportService = new();
+    private readonly HtmlBookAssembler _htmlBookAssembler = new();
     private readonly DocxImportService _docxImportService = new();
-    private readonly MarkdownToDocxConverter _markdownToDocxConverter = new();
+    private readonly HtmlToDocxConverter _htmlToDocxConverter = new();
     private readonly ChapterImportService _chapterImportService = new();
     private readonly OrphanChapterScanner _orphanScanner = new();
     private readonly TemplateService _templateService;
@@ -255,12 +254,13 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Imports one or more dropped/picked files as new chapters: .md is used as-is, .docx
-    /// reuses the whole-manuscript importer's chapter-boundary detection, and .html/.htm is
-    /// converted to Markdown. Each file's name supplies both a title and an optional spine
-    /// position hint (e.g. "23. What Now.md" -> chapter 23) — see ChapterFileNaming.ParseHint.
-    /// Files with an unsupported extension are silently skipped, so dropping a folder's worth
-    /// of mixed chapter/image files doesn't need pre-filtering by the caller.
+    /// Imports one or more dropped/picked files as new chapters: .ebhtml/.md are used as-is,
+    /// .docx reuses the whole-manuscript importer's chapter-boundary detection, and .html/.htm
+    /// are sanitized (see HtmlImportSanitizer). Each file's name supplies both a title and an
+    /// optional spine position hint (e.g. "23. What Now.md" -> chapter 23) — see
+    /// ChapterFileNaming.ParseHint. Files with an unsupported extension are silently skipped,
+    /// so dropping a folder's worth of mixed chapter/image files doesn't need pre-filtering by
+    /// the caller.
     /// </summary>
     public void ImportChapterFiles(IReadOnlyList<string> filePaths)
     {
@@ -362,7 +362,7 @@ public partial class MainWindowViewModel : ViewModelBase
         StatusMessage = $"Deleted chapter \"{item.Title}\".";
     }
 
-    /// <summary>Exports a single chapter's Markdown body as a .docx file — the reverse of
+    /// <summary>Exports a single chapter's HTML body as a .docx file — the reverse of
     /// Import DOCX/Import Chapters.</summary>
     public void ExportChapterAsWord(SpineItem item)
     {
@@ -378,7 +378,8 @@ public partial class MainWindowViewModel : ViewModelBase
             var fileName = Slug.Create(item.Title ?? "chapter", "chapter") + ".docx";
             var outputPath = Path.Combine(CurrentProject.OutputDir, fileName);
             var sourceDir = Path.GetDirectoryName(CurrentProject.ResolvePath(item));
-            _markdownToDocxConverter.ConvertToFile(body, item.Title ?? "Untitled Chapter", outputPath, sourceDir);
+            var templateCss = _templateService.GetTemplateCss(CurrentProject.Metadata.SelectedTemplate);
+            _htmlToDocxConverter.ConvertToFile(body, item.Title ?? "Untitled Chapter", outputPath, sourceDir, templateCss);
             StatusMessage = $"Exported chapter to {outputPath}";
         }
         catch (Exception ex)
@@ -405,7 +406,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
             var wordCount = CurrentProject.Spine
                 .Where(i => i.Type == SpineItemType.Chapter)
-                .Sum(i => CountWords(_chapterFileService.ReadChapter(CurrentProject.ResolvePath(i)).Body));
+                .Sum(i => HtmlText.CountWords(_chapterFileService.ReadChapter(CurrentProject.ResolvePath(i)).Body));
             LastExportResult = new GenerationResult(true, "EPUB", outputPath, null, wordCount, null);
         }
         catch (Exception ex)
@@ -436,9 +437,6 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
-    private static int CountWords(string text) =>
-        text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
-
     [RelayCommand]
     private void ExportWordWholeBook()
     {
@@ -447,65 +445,20 @@ public partial class MainWindowViewModel : ViewModelBase
             if (Editor.IsDirty)
                 Editor.Save();
 
-            var markdown = _markdownExportService.ExportWholeBook(CurrentProject);
+            var html = _htmlBookAssembler.AssembleWholeBook(CurrentProject);
             var fileName = Slug.Create(CurrentProject.Metadata.Title, "book") + ".docx";
             var outputPath = Path.Combine(CurrentProject.OutputDir, fileName);
+            var templateCss = _templateService.GetTemplateCss(CurrentProject.Metadata.SelectedTemplate);
             // Front matter/chapters/back matter each reference images as "../images/…"
             // relative to their own directory, but those directories are all siblings of
             // images/ at the project root, so any one of them resolves correctly for every
-            // section in the whole-book markdown — ChaptersDir is as good as any.
-            _markdownToDocxConverter.ConvertToFile(markdown, CurrentProject.Metadata.Title, outputPath, CurrentProject.ChaptersDir);
+            // section in the whole-book HTML — ChaptersDir is as good as any.
+            _htmlToDocxConverter.ConvertToFile(html, CurrentProject.Metadata.Title, outputPath, CurrentProject.ChaptersDir, templateCss);
             StatusMessage = $"Exported whole book Word document to {outputPath}";
         }
         catch (Exception ex)
         {
             StatusMessage = $"Word export failed: {ex.Message}";
-        }
-    }
-
-    [RelayCommand]
-    private void ExportMarkdownWholeBook()
-    {
-        try
-        {
-            if (Editor.IsDirty)
-                Editor.Save();
-
-            var markdown = _markdownExportService.ExportWholeBook(CurrentProject);
-            var fileName = Slug.Create(CurrentProject.Metadata.Title, "book") + "-full.md";
-            var outputPath = Path.Combine(CurrentProject.OutputDir, fileName);
-            File.WriteAllText(outputPath, markdown);
-            StatusMessage = $"Exported whole book markdown to {outputPath}";
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Markdown export failed: {ex.Message}";
-        }
-    }
-
-    [RelayCommand]
-    private void ExportMarkdownChapter()
-    {
-        if (SelectedSpineItem is not { Type: SpineItemType.Chapter } item)
-        {
-            StatusMessage = "Select a chapter to export.";
-            return;
-        }
-
-        try
-        {
-            if (Editor.IsDirty)
-                Editor.Save();
-
-            var markdown = _markdownExportService.ExportChapter(CurrentProject, item);
-            var fileName = Slug.Create(item.Title ?? "chapter", "chapter") + ".md";
-            var outputPath = Path.Combine(CurrentProject.OutputDir, fileName);
-            File.WriteAllText(outputPath, markdown);
-            StatusMessage = $"Exported chapter markdown to {outputPath}";
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Markdown export failed: {ex.Message}";
         }
     }
 

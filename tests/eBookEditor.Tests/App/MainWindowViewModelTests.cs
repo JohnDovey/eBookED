@@ -199,46 +199,6 @@ public class MainWindowViewModelTests : IDisposable
     }
 
     [Fact]
-    public void ExportMarkdownWholeBook_WritesConcatenatedMarkdownFile()
-    {
-        var vm = NewViewModel();
-        vm.AddChapterCommand.Execute(null);
-
-        vm.ExportMarkdownWholeBookCommand.Execute(null);
-
-        var expectedPath = Path.Combine(vm.CurrentProject.OutputDir, "vm-test-book-full.md");
-        Assert.True(File.Exists(expectedPath));
-        Assert.Contains("VM Test Book", File.ReadAllText(expectedPath));
-        Assert.Contains(expectedPath, vm.StatusMessage);
-    }
-
-    [Fact]
-    public void ExportMarkdownChapter_WithChapterSelected_WritesChapterMarkdownFile()
-    {
-        var vm = NewViewModel();
-        vm.AddChapterCommand.Execute(null);
-        vm.ChapterTitleInput = "The Arrival";
-        vm.SaveChapterHeaderCommand.Execute(null);
-
-        vm.ExportMarkdownChapterCommand.Execute(null);
-
-        var expectedPath = Path.Combine(vm.CurrentProject.OutputDir, "the-arrival.md");
-        Assert.True(File.Exists(expectedPath));
-        Assert.Contains("# Chapter 1: The Arrival", File.ReadAllText(expectedPath));
-    }
-
-    [Fact]
-    public void ExportMarkdownChapter_WithNoChapterSelected_ReportsStatusWithoutWritingFile()
-    {
-        var vm = NewViewModel();
-
-        vm.ExportMarkdownChapterCommand.Execute(null);
-
-        Assert.Equal("Select a chapter to export.", vm.StatusMessage);
-        Assert.False(Directory.Exists(vm.CurrentProject.OutputDir) && Directory.GetFiles(vm.CurrentProject.OutputDir).Length > 0);
-    }
-
-    [Fact]
     public void ImportDocx_AddsDetectedChaptersToSpineAndRegeneratesToc()
     {
         var vm = NewViewModel();

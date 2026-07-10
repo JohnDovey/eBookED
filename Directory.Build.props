@@ -236,6 +236,50 @@
          ChapterFileNaming.ParseHint (which reads position/title hints back out of a file name)
          is unchanged — it still accepts space, period, hyphen, underscore, or colon as the
          number/title separator, so old space-containing file names remain readable. -->
-    <Version>2.7.0</Version>
+    <!-- 2.8.0: Phase 5 of the HTML refactor (see 2.0.0 note / the plan doc) — PDF/Word export
+         rewrite, the plan's own highest-effort phase, now with real CSS. MarkdownToPdfRenderer
+         -> HtmlToPdfRenderer and MarkdownToDocxConverter -> HtmlToDocxConverter both walk an
+         AngleSharp DOM instead of a Markdig AST, preserving the existing "switch over node type
+         -> emit QuestPDF/OpenXml calls" structure. Pagination itself (roman/arabic numbering,
+         verso/recto running headers, clickable TOC via SectionLink) is untouched — only PDF's
+         input source changed.
+         New shared infrastructure in eBookEditor.Html: HtmlStyleDocument (AngleSharp.Css real
+         cascade/specificity/inheritance resolution — verified directly against a spike before
+         wiring it in, not assumed to work), CssValueParser (em/%/pt/px length resolution),
+         CssColor (hex/rgb()/named-color parsing), HtmlBookAssembler (replaces
+         MarkdownExportService's whole-book concatenation for Word's whole-book export), and
+         HtmlText.CountWords (fixes a real bug this phase's own tests caught: naively
+         whitespace-splitting raw HTML text for a word count miscounts "&lt;p&gt;Hello" as one
+         token — used by both PDF and EPUB export). A small user-agent baseline stylesheet
+         (strong/em/u/s/mark/sub/sup etc.) is cascaded under the template CSS, since
+         AngleSharp.Css has no built-in default stylesheet the way a real browser does.
+         EditorStyleCatalog classes (and any other CSS the selected template defines) now
+         actually render, not just structurally survive unstyled — confirmed by test, not just
+         asserted. Word gets real primitives QuestPDF/PDF simply doesn't have: true small caps
+         (w:smallCaps), true letter spacing (w:spacing), true all-caps display (w:caps). PDF
+         approximates text-transform: uppercase by uppercasing the text itself, and silently
+         skips font-variant: small-caps, letter-spacing, and ::first-letter drop caps — no
+         QuestPDF primitive exists for any of them, and an uppercase-text approximation of small
+         caps would misrepresent the source styling rather than honestly degrade it.
+         Per the user's decision to cut the Markdown export feature: deleted
+         MarkdownExportService and the "Export → Markdown (Whole Book/This Chapter)…" menu
+         items/commands entirely (MarkdownExportService also happened to power Word's
+         whole-book export internally — that's now HtmlBookAssembler instead). Evaluated
+         HtmlToOpenXml (the NuGet package) as a Word-side foundation per the plan and decided
+         against it: hand-rolling the AngleSharp-DOM-to-OpenXml walk keeps exact control over
+         this app's specific formatting/schema-ordering requirements (already a source of real
+         past bugs — see the 1.9.1/1.9.3 changelog entries) and keeps the PDF/Word renderers
+         structurally consistent with each other, without pulling in an unfamiliar dependency
+         mid-refactor.
+         Footnotes are deliberately NOT handled in either renderer — there's no HTML authoring
+         convention for them yet (no toolbar command produces one), and inventing one in
+         isolation here would risk not matching whatever Phase 7's "Insert Footnote" command
+         actually produces. Task lists have no HTML authoring convention either and are
+         similarly out of scope. Both are documented gaps, not oversights — see
+         HtmlToPdfRenderer/HtmlToDocxConverter's own doc comments. Updated the user manual's
+         Exporting Your Book chapter to match: removed the cut Markdown export section and the
+         now-inaccurate footnote claims, added a note that Apply Style classes render for real
+         in PDF/Word now. -->
+    <Version>2.8.0</Version>
   </PropertyGroup>
 </Project>

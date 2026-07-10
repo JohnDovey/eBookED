@@ -2,7 +2,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\eBookEditor.Core\eBookEditor.Core.csproj" />
-    <ProjectReference Include="..\eBookEditor.Markdown\eBookEditor.Markdown.csproj" />
+    <!-- HtmlStyleDocument/CssValueParser (AngleSharp.Css-driven cascade resolution, shared
+         with eBookEditor.DocxImport's HtmlToDocxConverter) and HtmlBookAssembler. -->
+    <ProjectReference Include="..\eBookEditor.Html\eBookEditor.Html.csproj" />
     <!-- Reuses TemplateService/FontService (the book's selected CSS template and the
          @font-face fonts it references) so PDF export matches the EPUB's typography
          instead of a fixed default typeface. -->

@@ -4,6 +4,18 @@
     <ProjectReference Include="..\eBookEditor.Core\eBookEditor.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="AngleSharp" Version="1.5.1" />
+    <!-- Pinned to the last stable release; its own dependency constraint asks for AngleSharp
+         0.17.x specifically (a NU1608 restore warning, not an error), but it works correctly
+         against AngleSharp 1.5.1 in practice — verified directly (cascade, specificity, and
+         inheritance all resolve correctly) rather than assumed. The only 1.x-targeting releases
+         are unstable prereleases (1.0.0-beta.*), and one of them throws at runtime computing
+         em/% font-size values without an explicitly configured render device — a worse
+         trade-off than one restore warning on a stable package. -->
+    <PackageReference Include="AngleSharp.Css" Version="0.17.0" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

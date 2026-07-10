@@ -2,14 +2,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\eBookEditor.Core\eBookEditor.Core.csproj" />
-    <!-- For MarkdownPipelineFactory, reused by MarkdownToDocxConverter so both directions of
-         DOCX <-> Markdown conversion parse Markdown the same way. -->
-    <ProjectReference Include="..\eBookEditor.Markdown\eBookEditor.Markdown.csproj" />
+    <!-- HtmlStyleDocument/CssValueParser/CssColor (AngleSharp.Css-driven cascade resolution,
+         shared with eBookEditor.Pdf's HtmlToPdfRenderer). -->
+    <ProjectReference Include="..\eBookEditor.Html\eBookEditor.Html.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="DocumentFormat.OpenXml" Version="3.5.1" />
-    <PackageReference Include="Markdig" Version="1.3.2" />
   </ItemGroup>
 
   <PropertyGroup>

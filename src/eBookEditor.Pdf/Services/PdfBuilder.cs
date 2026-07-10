@@ -1,6 +1,7 @@
 using eBookEditor.Core.Models;
 using eBookEditor.Core.Services;
 using eBookEditor.Epub.Services;
+using eBookEditor.Html.Services;
 using eBookEditor.Pdf.Models;
 using QuestPDF.Fluent;
 using QuestPDF.Infrastructure;
@@ -22,7 +23,7 @@ namespace eBookEditor.Pdf.Services;
 /// </summary>
 public class PdfBuilder
 {
-    private readonly MarkdownToPdfRenderer _renderer = new();
+    private readonly HtmlToPdfRenderer _renderer = new();
     private readonly ChapterFileService _chapterFileService = new();
     private readonly TemplateService _templateService;
     private readonly PdfTemplateFonts _templateFonts;
@@ -98,10 +99,10 @@ public class PdfBuilder
 
                         var (_, body) = _chapterFileService.ReadChapter(project.ResolvePath(item));
                         if (item.Type == SpineItemType.Chapter)
-                            wordCount += CountWords(body);
+                            wordCount += HtmlText.CountWords(body);
 
                         var sourceDir = Path.GetDirectoryName(project.ResolvePath(item));
-                        _renderer.RenderMarkdownBody(column, body, sourceDir, sectionName, fonts.HeadingFontFamily);
+                        _renderer.RenderHtmlBody(column, body, sourceDir, templateCss, sectionName, fonts.HeadingFontFamily);
                     }
                 });
 
@@ -192,7 +193,4 @@ public class PdfBuilder
     }
 
     private static string SectionName(SpineItem item) => $"spine-{item.Id}";
-
-    private static int CountWords(string text) =>
-        text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
 }
