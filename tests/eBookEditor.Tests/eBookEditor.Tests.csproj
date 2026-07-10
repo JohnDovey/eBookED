@@ -27,6 +27,7 @@
     <ProjectReference Include="..\..\src\eBookEditor.Core\eBookEditor.Core.csproj" />
     <ProjectReference Include="..\..\src\eBookEditor.Html\eBookEditor.Html.csproj" />
     <ProjectReference Include="..\..\src\eBookEditor.Markdown\eBookEditor.Markdown.csproj" />
+    <ProjectReference Include="..\..\src\eBookEditor.Migration\eBookEditor.Migration.csproj" />
     <ProjectReference Include="..\..\src\eBookEditor.Epub\eBookEditor.Epub.csproj" />
     <ProjectReference Include="..\..\src\eBookEditor.DocxImport\eBookEditor.DocxImport.csproj" />
     <ProjectReference Include="..\..\src\eBookEditor.ChapterImport\eBookEditor.ChapterImport.csproj" />

@@ -7,6 +7,7 @@ using eBookEditor.Core.Services;
 using eBookEditor.DocxImport.Services;
 using eBookEditor.Epub.Services;
 using eBookEditor.Html.Services;
+using eBookEditor.Migration.Services;
 using eBookEditor.Pdf.Services;
 
 namespace eBookEditor.App.ViewModels;
@@ -23,6 +24,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly HtmlToDocxConverter _htmlToDocxConverter = new();
     private readonly ChapterImportService _chapterImportService = new();
     private readonly OrphanChapterScanner _orphanScanner = new();
+    private readonly ProjectMigrator _projectMigrator = new();
     private readonly TemplateService _templateService;
     private readonly EpubBuilder _epubBuilder;
     private readonly PdfBuilder _pdfBuilder;
@@ -390,6 +392,42 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [RelayCommand]
     private void RegenerateFrontMatter() => RegenerateGeneratedContent();
+
+    /// <summary>Whether CurrentProject still has any chapter/front/back matter file in the
+    /// legacy Markdown ".md" format — i.e. was created before the HTML content-model
+    /// refactor and hasn't been upgraded yet. Checked fresh each time rather than cached,
+    /// since it only needs to be read right before showing the "Upgrade Project to HTML…"
+    /// confirmation dialog.</summary>
+    public bool ProjectNeedsHtmlMigration => _projectMigrator.NeedsMigration(CurrentProject);
+
+    /// <summary>
+    /// Upgrades CurrentProject from the legacy Markdown format to this app's native HTML
+    /// format: backs up the whole project directory first, then converts every chapter/front/
+    /// back matter file's body from Markdown to HTML in place (see ProjectMigrator — hand-
+    /// edited generated pages are converted verbatim, not regenerated from metadata, so
+    /// hand-edits survive). A no-op, safely, if the project doesn't need it.
+    /// </summary>
+    public void UpgradeProjectToHtml()
+    {
+        try
+        {
+            if (Editor.IsDirty)
+                Editor.Save();
+
+            var backupPath = _projectMigrator.CreateBackup(CurrentProject);
+            var result = _projectMigrator.MigrateToHtml(CurrentProject);
+
+            OnPropertyChanged(nameof(SpineItems));
+            if (FindTitlePageItem(CurrentProject) is { } titlePage)
+                OpenSpineItem(titlePage);
+
+            StatusMessage = $"Upgraded {result.ConvertedFileCount} file(s) to HTML. Backup saved to {backupPath}.";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Upgrade to HTML failed: {ex.Message}";
+        }
+    }
 
     [RelayCommand]
     private void ExportEpub()

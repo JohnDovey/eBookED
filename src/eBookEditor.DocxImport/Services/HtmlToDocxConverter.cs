@@ -310,7 +310,15 @@ public class HtmlToDocxConverter
             widthEmu = maxWidthEmu;
         }
 
-        body.Append(new Paragraph(new Run(BuildImageDrawing(relationshipId, widthEmu, heightEmu))));
+        // wp:docPr/@id and pic:cNvPr/@id must be unique within the whole document —
+        // OpenXmlValidator flags a duplicate as a schema error, and Word won't reliably open
+        // the file. A hardcoded "1" for every image (the bug this replaces) only worked by
+        // accident for documents with at most one image; a real multi-chapter book with more
+        // than one caught it immediately. Counting the Drawing elements already in the
+        // document (mainPart is already threaded through the whole call chain, so this needs
+        // no new state or signature changes) gives a value that's always unique so far.
+        var drawingId = (uint)mainPart.Document!.Descendants<Drawing>().Count() + 1;
+        body.Append(new Paragraph(new Run(BuildImageDrawing(relationshipId, drawingId, widthEmu, heightEmu))));
     }
 
     private static PartTypeInfo? ImagePartTypeFor(string path) => Path.GetExtension(path).ToLowerInvariant() switch
@@ -322,17 +330,17 @@ public class HtmlToDocxConverter
         _ => null,
     };
 
-    private static Drawing BuildImageDrawing(string relationshipId, long cx, long cy) => new(
+    private static Drawing BuildImageDrawing(string relationshipId, uint drawingId, long cx, long cy) => new(
         new DW.Inline(
             new DW.Extent { Cx = cx, Cy = cy },
             new DW.EffectExtent { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 0L },
-            new DW.DocProperties { Id = 1U, Name = "Picture" },
+            new DW.DocProperties { Id = drawingId, Name = "Picture" },
             new DW.NonVisualGraphicFrameDrawingProperties(new A.GraphicFrameLocks { NoChangeAspect = true }),
             new A.Graphic(
                 new A.GraphicData(
                     new PIC.Picture(
                         new PIC.NonVisualPictureProperties(
-                            new PIC.NonVisualDrawingProperties { Id = 0U, Name = "Picture" },
+                            new PIC.NonVisualDrawingProperties { Id = drawingId, Name = "Picture" },
                             new PIC.NonVisualPictureDrawingProperties()),
                         new PIC.BlipFill(
                             new A.Blip { Embed = relationshipId },

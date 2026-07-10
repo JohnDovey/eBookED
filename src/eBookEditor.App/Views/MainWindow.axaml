@@ -32,6 +32,8 @@
         </MenuItem>
         <MenuItem Header="_Project">
           <MenuItem Header="Regenerate Front Matter" Command="{Binding RegenerateFrontMatterCommand}" />
+          <Separator />
+          <MenuItem Header="Upgrade Project to HTML…" Click="OnUpgradeProjectToHtmlClick" />
         </MenuItem>
         <MenuItem Header="_Meta Data">
           <MenuItem Header="Front Matter…" Click="OnEditFrontMatterClick" />

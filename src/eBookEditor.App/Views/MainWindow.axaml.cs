@@ -517,6 +517,25 @@ public partial class MainWindow : Window
             ViewModel.DeleteChapter(item);
     }
 
+    private async void OnUpgradeProjectToHtmlClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null)
+            return;
+
+        if (!ViewModel.ProjectNeedsHtmlMigration)
+        {
+            ViewModel.StatusMessage = "This project is already using the current HTML format.";
+            return;
+        }
+
+        var dialog = new ConfirmDialog(
+            "Upgrade Project to HTML",
+            "This converts every chapter and page in this project from Markdown to this app's HTML format. A full backup copy of the project is made first, then the original files are replaced. Continue?",
+            "Upgrade");
+        if (await dialog.ShowDialog<bool>(this))
+            ViewModel.UpgradeProjectToHtml();
+    }
+
     private void OnExportChapterAsWordClick(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is null || sender is not Control { DataContext: SpineItem { Type: SpineItemType.Chapter } item })

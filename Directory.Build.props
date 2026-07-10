@@ -280,6 +280,36 @@
          Exporting Your Book chapter to match: removed the cut Markdown export section and the
          now-inaccurate footnote claims, added a note that Apply Style classes render for real
          in PDF/Word now. -->
-    <Version>2.8.0</Version>
+    <!-- 2.9.0: Phase 6 of the HTML refactor (see 2.0.0 note / the plan doc) — legacy content
+         migration tooling. New eBookEditor.Migration project (ProjectMigrator), keeping Markdig
+         as a NuGet-only, migration-only dependency for this one-time batch conversion — reusing
+         MarkdownToHtmlConverter's existing wrapper rather than hand-rolling parsing for a
+         rarely-run tool. Shipped as an explicit, user-triggered "Project -> Upgrade Project to
+         HTML..." command (never silent), which backs up the whole project directory first, then
+         converts every spine item's Markdown body to HTML verbatim and deletes the old ".md"
+         file. Hand-edited generated pages (title/imprint/TOC/about-author) are converted
+         verbatim, not regenerated from metadata, so hand-edits survive. Idempotent — safe to
+         invoke on an already-migrated project, and NeedsMigration/MigrateToHtml both check the
+         actual file extensions on disk rather than trusting ProjectFile.SchemaVersion directly:
+         a project.ebookproj.json saved before the SchemaVersion field existed has no
+         "schemaVersion" key in its JSON, and System.Text.Json fills an absent init-property
+         from its C# default (CurrentSchemaVersion) — trusting the field would make a genuinely
+         legacy project look already-migrated.
+         Acceptance-tested against real, actively-maintained projects per the plan's own
+         criteria: copies of this repo's manual/ project and an external "Test Book" project
+         were migrated and re-exported to EPUB/PDF/Word, not the tracked originals. That test
+         caught a real, pre-existing bug in Phase 5's HtmlToDocxConverter: every embedded
+         image's DrawingML docPr/cNvPr "id" was hardcoded to 1, so any document with more than
+         one image produced schema-invalid OOXML (Word refuses such a file) — a bug that only
+         ever worked by accident for single-image documents, inherited verbatim from the
+         pre-refactor MarkdownToDocxConverter and never caught until a real multi-chapter,
+         multi-image book actually exercised the whole-book export path. Fixed by deriving each
+         image's id from how many Drawing elements already exist in the document so far, instead
+         of a hardcoded constant.
+         Updated the user manual's Getting Started chapter: a new "Upgrading an older project"
+         section, plus two Phase-5-era inaccuracies caught in passing (the project directory
+         description still said "plain Markdown files", and the title-bar-menu tour still listed
+         Markdown in the Export menu after Phase 5 cut that feature). -->
+    <Version>2.9.0</Version>
   </PropertyGroup>
 </Project>

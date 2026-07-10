@@ -7,7 +7,7 @@ numberOverride:
 
 # Getting Started
 
-eBook Editor is a desktop application for writing, organizing, and publishing eBooks. It runs on macOS, Windows, and Linux, and every book you work on lives in its own **project directory** on disk — a folder of plain Markdown files plus a small metadata file, not a single opaque document. That means your book is always readable, editable, and versionable (with a tool like Git) outside the app too.
+eBook Editor is a desktop application for writing, organizing, and publishing eBooks. It runs on macOS, Windows, and Linux, and every book you work on lives in its own **project directory** on disk — a folder of plain HTML files plus a small metadata file, not a single opaque document. That means your book is always readable, editable, and versionable (with a tool like Git) outside the app too.
 
 ## Requirements
 
@@ -31,11 +31,17 @@ You can have several projects open at once: **File → New Project…** and **Fi
 
 eBook Editor also remembers your **Recent Projects** (last 10, under the File menu) and reopens whatever projects were open when you last quit the app, so you don't have to hunt for them again next time.
 
+## Upgrading an older project
+
+Projects created by an older version of eBook Editor store chapters and pages as Markdown (`.md`) files rather than the current HTML (`.ebhtml`) format. Opening one of these still works, but exports won't render correctly until you upgrade it: **Project → Upgrade Project to HTML…** converts every chapter and page in place, front matter and back matter included. Any page you've hand-edited (the imprint page, say) is converted as-is rather than regenerated from your book's metadata, so hand-edits survive the upgrade.
+
+A full backup copy of the project is made automatically, in a sibling folder named "*Project Name* (Backup before HTML Upgrade)", before anything is changed. If your project is already on the current format, this command reports that and does nothing.
+
 ## A tour of the main window
 
 The main window has three parts:
 
-- **Title bar menu** — File (new/open/save/import), Project (regenerate front matter), Meta Data (the book's metadata, split across several focused windows — see *Book Metadata*), Export (EPUB/PDF/Word/Markdown), and About.
+- **Title bar menu** — File (new/open/save/import), Project (regenerate front matter, upgrade an older project — see below), Meta Data (the book's metadata, split across several focused windows — see *Book Metadata*), Export (EPUB/PDF/Word), and About.
 - **Sidebar** (left) — an ordered list of everything in your book: front matter, chapters, and back matter, in the order they'll appear in the finished book. A **+ Add Chapter** button sits at the top.
 - **Editor pane** (right) — shows the raw Markdown of whatever's selected in the sidebar. An **Open Preview** button opens a separate window with a rendered view of the same content, kept in sync as you edit.
 

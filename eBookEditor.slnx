@@ -9,6 +9,7 @@
     <Project Path="src/eBookEditor.Epub/eBookEditor.Epub.csproj" />
     <Project Path="src/eBookEditor.Html/eBookEditor.Html.csproj" />
     <Project Path="src/eBookEditor.Markdown/eBookEditor.Markdown.csproj" />
+    <Project Path="src/eBookEditor.Migration/eBookEditor.Migration.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/eBookEditor.Tests/eBookEditor.Tests.csproj" />
