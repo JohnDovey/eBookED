@@ -5,6 +5,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- AngleSharp.Css 0.17.0 declares a dependency on AngleSharp 0.17.x, but this solution
+         resolves AngleSharp 1.5.1 (needed elsewhere — HtmlImportSanitizer,
+         OpenXmlToHtmlConverter, etc.). Verified directly, not assumed: cascade/specificity/
+         inheritance resolution all work correctly on 1.5.1 (see eBookEditor.Html's own csproj
+         comment). The only true 1.x-targeting AngleSharp.Css release is an unstable prerelease
+         that throws at runtime computing em/% font sizes — worse than this warning. -->
+    <NoWarn>$(NoWarn);NU1608</NoWarn>
     <!-- Bump the minor version for new features, patch for other code changes (see
          feedback_version_bump_policy memory). This round adds Kindle/KDP support to EPUB
          export (landmarks nav + fixed cover meta), fixes a Markdig delimiter-char bug that
@@ -428,6 +435,11 @@
          command) — the old README claim of a PDF "Notes" section and real native Word footnotes
          no longer held; the reference/note now render as ordinary superscript text and a
          trailing list, real only in EPUB. -->
-    <Version>2.12.1</Version>
+    <!-- 2.12.2: patch, no functional change. Suppressed the NU1608 restore warning every
+         project carrying an AngleSharp.Css reference has emitted since Phase 5 (2.8.0) —
+         AngleSharp.Css 0.17.0 wants AngleSharp 0.17.x, this solution resolves 1.5.1. Already
+         verified safe (see 2.8.0's note and eBookEditor.Html's own csproj comment); the warning
+         was just noise at this point, not a live signal to keep watching. -->
+    <Version>2.12.2</Version>
   </PropertyGroup>
 </Project>
