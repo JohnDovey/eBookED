@@ -90,6 +90,26 @@
          missing from App.axaml the whole time. Added
          <StyleInclude Source="avares://AvaloniaEditCore/Themes/Fluent/AvaloniaEdit.xaml" />
          to Application.Styles. -->
-    <Version>1.10.1</Version>
+    <!-- 1.11.0: new feature, so a minor bump. Adds a right-click "Insert Image…" editor menu
+         item: picks a file (starting in the project's images/ folder, created if missing),
+         copies it in if it wasn't already there, and inserts it with a caption styled by a new
+         "Caption" entry in EditorStyleCatalog (half-size, italic — added to both
+         DefaultStylesheet.cs and "Vellum Serif.css", with a new EditorStyleCatalogTests
+         asserting every catalog class has a matching rule in both, closing the loop on "do
+         these actually exist in the stylesheet"). The image+caption markup is deliberately
+         nested custom containers, not a Markdown table: verified directly against the Markdig
+         pipeline that a trailing "{.class}" attribute block immediately after a pipe table
+         makes the whole table fail to parse and fall back to literal pipe-character text — not
+         documented anywhere, just how the parser behaves. Auditing whether Apply Style's
+         existing ten classes (now eleven) actually render in the Open Preview window (the
+         other half of this round's request) turned up a real, separate gap: Markdown.Avalonia
+         is an independent parser, not Markdig, with no support at all for custom containers or
+         attribute blocks — both rendered as visibly broken raw-syntax text there. Added
+         PreviewMarkdownSanitizer (eBookEditor.Markdown) to strip both before handing content to
+         the preview, verified end-to-end against the real Markdown.Avalonia engine via a
+         headless Avalonia harness (not just unit-tested in isolation) — Preview now shows clean
+         plain text/images instead of broken syntax, though still without the actual CSS-driven
+         styling, since Preview has no CSS engine of its own regardless. -->
+    <Version>1.11.0</Version>
   </PropertyGroup>
 </Project>

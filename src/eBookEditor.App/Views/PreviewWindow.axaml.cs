@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using eBookEditor.Markdown.Services;
 
 namespace eBookEditor.App.Views;
 
@@ -22,7 +23,10 @@ public partial class PreviewWindow : Window
 
     public void UpdateContent(string markdown, string? title)
     {
-        MarkdownViewer.Markdown = markdown;
+        // Markdown.Avalonia understands neither custom containers nor attribute blocks (see
+        // PreviewMarkdownSanitizer) — feeding it those verbatim shows broken/literal syntax
+        // instead of just rendering plainly, so strip them before handing off to it.
+        MarkdownViewer.Markdown = PreviewMarkdownSanitizer.Sanitize(markdown);
         Title = title is { Length: > 0 } ? $"Preview — {title}" : "Preview";
     }
 

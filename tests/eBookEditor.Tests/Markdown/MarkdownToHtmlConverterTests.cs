@@ -53,4 +53,32 @@ public class MarkdownToHtmlConverterTests
         }
     }
 
+    [Fact]
+    public void ToHtml_InsertImageContainerShape_RendersImageAndClassHookedCaption()
+    {
+        // MainWindow.OnInsertImageClick wraps an inserted image exactly like this — a
+        // classless outer container (just a grouping <div>) holding the image and an inner
+        // ".caption"-classed container for the caption text. This is deliberately NOT a
+        // Markdown table: a trailing "{.class}" attribute block immediately after a table
+        // makes Markdig fail to recognize the table at all (falls back to literal pipe-
+        // character text) — verified directly against the pipeline, not documented anywhere.
+        // The outer fence must use more colons than the inner one, or Markdig emits a stray
+        // empty trailing <div></div> — also verified directly, not documented.
+        const string markdown = """
+            ::::
+            ![A photo](../images/photo.jpg)
+
+            ::: {.caption}
+            Caption text
+            :::
+            ::::
+            """;
+
+        var html = _converter.ToHtml(markdown);
+
+        Assert.Contains("<img src=\"../images/photo.jpg\"", html);
+        Assert.Contains("class=\"caption\"", html);
+        Assert.Contains("Caption text", html);
+        Assert.DoesNotContain("<div></div>", html);
+    }
 }

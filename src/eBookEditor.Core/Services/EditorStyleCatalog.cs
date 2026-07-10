@@ -30,5 +30,6 @@ public static class EditorStyleCatalog
         new("Inset", "inset"),
         new("Attribution", "attribution"),
         new("Drop Cap", "drop-cap"),
+        new("Caption", "caption"),
     ];
 }

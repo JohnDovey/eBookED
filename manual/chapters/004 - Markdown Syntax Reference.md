@@ -181,7 +181,23 @@ This paragraph renders in small caps.
 :::
 ```
 
-You don't have to remember this syntax — right-click any selected text in the editor and choose **Apply Style** for a menu of the styles eBook Editor ships with (Small Caps, Underline, Strikethrough, Monospace, Sans-serif, All Caps, Verse, Inset, Attribution, Drop Cap), and it writes the `:::` block around your selection for you. See *Book Metadata → Style* for how the underlying CSS classes are defined.
+You don't have to remember this syntax — right-click any selected text in the editor and choose **Apply Style** for a menu of the styles eBook Editor ships with (Small Caps, Underline, Strikethrough, Monospace, Sans-serif, All Caps, Verse, Inset, Attribution, Drop Cap, Caption), and it writes the `:::` block around your selection for you. See *Book Metadata → Style* for how the underlying CSS classes are defined.
+
+### Inserting images with a caption
+
+Right-click the editor and choose **Insert Image…** to pick a picture and add it with a caption underneath, styled half-size and italic (the **Caption** style above). Behind the scenes it's a nested block:
+
+```
+::::
+![Alt text](../images/photo.jpg)
+
+::: {.caption}
+Caption text
+:::
+::::
+```
+
+This isn't a Markdown table — attaching a style directly to a table breaks the table entirely, so the image and its caption are two nested blocks instead, which the **Insert Image…** menu writes for you. See *Writing in the Editor → The right-click menu*.
 
 ## Line breaks
 

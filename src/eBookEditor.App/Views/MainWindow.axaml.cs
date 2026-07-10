@@ -173,6 +173,83 @@ public partial class MainWindow : Window
         EditorTextBox.Focus();
     }
 
+    /// <summary>
+    /// Picks an image (starting in the project's images/ folder, created here if it doesn't
+    /// exist yet), copies it in if it was picked from elsewhere, and inserts it wrapped in a
+    /// classless custom-container "figure" grouping the image with a ".caption"-styled caption
+    /// paragraph underneath — see EditorStyleCatalog. Deliberately not a Markdown pipe table:
+    /// a trailing "{.class}" attribute block immediately after a table makes Markdig fail to
+    /// recognize the table at all and fall back to literal pipe-character text (verified
+    /// directly against the pipeline; not documented anywhere, just how the parser behaves),
+    /// so nested containers are the only reliable way to get an independently-styled caption.
+    /// </summary>
+    private async void OnInsertImageClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null)
+            return;
+
+        var imagesDir = ViewModel.CurrentProject.ImagesDir;
+        Directory.CreateDirectory(imagesDir);
+
+        var startLocation = await StorageProvider.TryGetFolderFromPathAsync(imagesDir);
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Insert Image",
+            AllowMultiple = false,
+            SuggestedStartLocation = startLocation,
+            FileTypeFilter = [new FilePickerFileType("Images") { Patterns = ["*.png", "*.jpg", "*.jpeg", "*.gif", "*.svg", "*.webp"] }]
+        });
+
+        var file = files.FirstOrDefault();
+        if (file?.TryGetLocalPath() is not { } sourcePath)
+            return;
+
+        var fileName = Path.GetFileName(sourcePath);
+        var destinationPath = Path.Combine(imagesDir, fileName);
+
+        if (!string.Equals(Path.GetFullPath(sourcePath), Path.GetFullPath(destinationPath), StringComparison.OrdinalIgnoreCase))
+        {
+            destinationPath = UniqueDestinationPath(imagesDir, fileName);
+            File.Copy(sourcePath, destinationPath);
+            fileName = Path.GetFileName(destinationPath);
+        }
+
+        var altText = Path.GetFileNameWithoutExtension(fileName);
+        var markdown = $$"""
+            ::::
+            ![{{altText}}](../images/{{fileName}})
+
+            ::: {.caption}
+            Caption text
+            :::
+            ::::
+            """;
+
+        var offset = EditorTextBox.CaretOffset;
+        EditorTextBox.Document.Insert(offset, markdown);
+        EditorTextBox.CaretOffset = offset + markdown.Length;
+        EditorTextBox.Focus();
+    }
+
+    private static string UniqueDestinationPath(string directory, string fileName)
+    {
+        var path = Path.Combine(directory, fileName);
+        if (!File.Exists(path))
+            return path;
+
+        var nameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
+        var extension = Path.GetExtension(fileName);
+        var counter = 2;
+        string candidate;
+        do
+        {
+            candidate = Path.Combine(directory, $"{nameWithoutExtension} ({counter}){extension}");
+            counter++;
+        } while (File.Exists(candidate));
+
+        return candidate;
+    }
+
     private void OnEditorContextMenuOpened(object? sender, RoutedEventArgs e)
     {
         var hasSelection = EditorTextBox.SelectionLength > 0;

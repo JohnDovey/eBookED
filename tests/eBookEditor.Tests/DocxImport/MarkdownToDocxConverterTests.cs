@@ -406,4 +406,39 @@ public class MarkdownToDocxConverterTests : IDisposable
         using var document = WordprocessingDocument.Open(path, false);
         Assert.Contains("Styled paragraph text.", document.MainDocumentPart!.Document!.Body!.InnerText);
     }
+
+    [Fact]
+    public void ConvertToFile_RendersInsertImageContainerShape_ImageAndCaptionBothPresent()
+    {
+        // MainWindow.OnInsertImageClick's exact generated shape — nested custom containers,
+        // not a Markdown table (see MarkdownToHtmlConverterTests for why). Word has no CSS
+        // engine, so the ".caption" class has no visual effect here, same documented
+        // simplification as every other Apply Style class — this just checks the image and
+        // caption text both survive the nesting structurally.
+        var pngBytes = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        var imagesDir = Path.Combine(_tempDir, "images");
+        Directory.CreateDirectory(imagesDir);
+        File.WriteAllBytes(Path.Combine(imagesDir, "photo.jpg"), pngBytes);
+        var chaptersDir = Path.Combine(_tempDir, "chapters");
+        Directory.CreateDirectory(chaptersDir);
+
+        const string markdown = """
+            ::::
+            ![A photo](../images/photo.jpg)
+
+            ::: {.caption}
+            Caption text
+            :::
+            ::::
+            """;
+        var path = Path.Combine(_tempDir, "chapter-insert-image.docx");
+
+        _converter.ConvertToFile(markdown, "Chapter", path, chaptersDir);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        var mainPart = document.MainDocumentPart!;
+        Assert.Single(mainPart.ImageParts);
+        Assert.Contains("Caption text", mainPart.Document!.Body!.InnerText);
+    }
 }

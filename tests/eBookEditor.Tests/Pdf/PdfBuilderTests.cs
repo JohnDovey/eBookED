@@ -341,6 +341,45 @@ public class PdfBuilderTests : IDisposable
     }
 
     [Fact]
+    public void Build_RendersInsertImageContainerShape_WithoutErrorAndCaptionTextPresent()
+    {
+        // MainWindow.OnInsertImageClick's exact generated shape (nested custom containers,
+        // not a Markdown table — see MarkdownToHtmlConverterTests for why). PDF has no CSS
+        // engine, so ".caption" has no visual effect — this just checks it renders without
+        // throwing and the caption text survives the nesting.
+        var project = BuildSampleProject();
+        var imagesDir = Path.Combine(project.DirectoryPath, "images");
+        Directory.CreateDirectory(imagesDir);
+        var pngBytes = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        File.WriteAllBytes(Path.Combine(imagesDir, "photo.jpg"), pngBytes);
+
+        var chapterPath = _chapterFileService.CreateNewChapterFile(project.ChaptersDir, "Chapter Two");
+        var relativePath = Path.GetRelativePath(project.DirectoryPath, chapterPath).Replace('\\', '/');
+        _chapterFileService.WriteChapter(chapterPath,
+            new ChapterFrontMatter { Title = "Chapter Two" },
+            """
+            ::::
+            ![A photo](../images/photo.jpg)
+
+            ::: {.caption}
+            Caption text
+            :::
+            ::::
+            """);
+        _spineService.AddChapter(project, "Chapter Two", relativePath);
+        _projectService.SaveProject(project);
+
+        var outputPath = Path.Combine(project.OutputDir, "book.pdf");
+        _pdfBuilder.Build(project, outputPath);
+
+        using var document = PdfDocument.Open(outputPath);
+        var allText = string.Join(" ", Enumerable.Range(1, document.NumberOfPages).Select(i => document.GetPage(i).Text));
+
+        Assert.Contains("Captiontext", allText.Replace(" ", ""));
+    }
+
+    [Fact]
     public void Build_TocPageNumberAndRunningHeaderResolveCorrectly_ForAnEmptyChapter()
     {
         // Regression test for a real bug a user hit: an unwritten "New Chapter" stub (created

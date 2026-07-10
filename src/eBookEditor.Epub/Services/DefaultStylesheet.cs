@@ -107,5 +107,10 @@ public static class DefaultStylesheet
             padding-right: 0.08em;
             padding-top: 0.05em;
         }
+
+        .caption {
+            font-size: 50%;
+            font-style: italic;
+        }
         """;
 }

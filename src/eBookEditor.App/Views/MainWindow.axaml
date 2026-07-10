@@ -124,6 +124,7 @@
           <ae:TextEditor.ContextMenu>
             <ContextMenu Opened="OnEditorContextMenuOpened">
               <MenuItem Header="Insert Table…" Click="OnInsertTableClick" />
+              <MenuItem Header="Insert Image…" Click="OnInsertImageClick" />
               <MenuItem Header="Apply Style" x:Name="ApplyStyleMenuItem" />
             </ContextMenu>
           </ae:TextEditor.ContextMenu>
