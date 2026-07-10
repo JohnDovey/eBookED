@@ -5,13 +5,12 @@
 
   <Application.Styles>
     <FluentTheme />
-    <!-- Without this, AvaloniaEditCore's TextEditor control has no ControlTheme registered
+    <!-- Without this, AvaloniaEdit's TextEditor control has no ControlTheme registered
          anywhere the app can find it, so it renders as a totally empty, template-less area —
          no border, no text, nothing — regardless of what's in its Document. This single include
          transitively merges the theme's own Base.xaml, which in turn merges TextEditor.xaml,
-         Editing/TextArea.xaml, and Search/SearchPanel.xaml (the vendored source's own
-         MergeResourceInclude chain — see Themes/Base.xaml). -->
-    <StyleInclude Source="avares://AvaloniaEditCore/Themes/Fluent/AvaloniaEdit.xaml" />
+         Editing/TextArea.xaml, and Search/SearchPanel.xaml. -->
+    <StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />
   </Application.Styles>
 
 </Application>

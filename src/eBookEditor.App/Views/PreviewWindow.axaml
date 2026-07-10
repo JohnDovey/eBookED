@@ -1,13 +1,14 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:md="https://github.com/whistyun/Markdown.Avalonia"
         mc:Ignorable="d"
         x:Class="eBookEditor.App.Views.PreviewWindow"
         Title="Preview"
         Width="700" Height="800"
         MinWidth="360" MinHeight="300">
 
-  <md:MarkdownScrollViewer x:Name="MarkdownViewer" Margin="16" />
+  <!-- The actual NativeWebView is constructed and attached in code-behind, deferred until
+       after this window's first layout pass — see the constructor. -->
+  <ContentControl x:Name="ViewerHost" />
 
 </Window>

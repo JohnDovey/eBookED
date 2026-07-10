@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:ae="using:AvaloniaEditCore"
+        xmlns:ae="using:AvaloniaEdit"
         xmlns:vm="using:eBookEditor.App.ViewModels"
         xmlns:models="using:eBookEditor.Core.Models"
         mc:Ignorable="d"
@@ -106,7 +106,17 @@
 
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
           <Button Content="Open Preview" Click="OnOpenPreviewClick" />
+          <ToggleButton x:Name="WysiwygToggle" Content="Rich Text" Click="OnWysiwygToggleClick" />
           <TextBlock Text="{Binding Editor.FilePath}" VerticalAlignment="Center" Opacity="0.6" />
+        </StackPanel>
+
+        <!-- Mode-agnostic toolbar: works whichever pane below is active, unlike the raw editor's
+             own right-click menu (which only the AvaloniaEdit control below responds to). -->
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+          <Button Content="Insert Table…" Click="OnInsertTableClick" />
+          <Button Content="Insert Image…" Click="OnInsertImageClick" />
+          <Button Content="Insert Footnote…" Click="OnInsertFootnoteClick" />
+          <Button x:Name="ApplyStyleButton" Content="Apply Style ▾" Click="OnApplyStyleButtonClick" />
         </StackPanel>
 
         <Grid DockPanel.Dock="Top" ColumnDefinitions="*,*,Auto" IsVisible="{Binding IsChapterSelected}" Margin="0,0,0,8">
@@ -115,20 +125,26 @@
           <Button Grid.Column="2" Content="Apply" Command="{Binding SaveChapterHeaderCommand}" Margin="4,0,0,0" />
         </Grid>
 
-        <ae:TextEditor x:Name="EditorTextBox"
-                       FontFamily="Cascadia Code,Menlo,Consolas,monospace"
-                       FontSize="14"
-                       ShowLineNumbers="True"
-                       WordWrap="True">
-          <ae:TextEditor.ContextMenu>
-            <ContextMenu Opened="OnEditorContextMenuOpened">
-              <MenuItem Header="Insert Table…" Click="OnInsertTableClick" />
-              <MenuItem Header="Insert Image…" Click="OnInsertImageClick" />
-              <MenuItem Header="Insert Footnote…" Click="OnInsertFootnoteClick" />
-              <MenuItem Header="Apply Style" x:Name="ApplyStyleMenuItem" />
-            </ContextMenu>
-          </ae:TextEditor.ContextMenu>
-        </ae:TextEditor>
+        <!-- Raw HTML (ae:TextEditor) and WYSIWYG (WysiwygHost, a NativeWebView built in
+             code-behind — see MainWindow.axaml.cs) share this cell; only one is IsVisible at a
+             time, toggled by WysiwygToggle above. -->
+        <Panel>
+          <ae:TextEditor x:Name="EditorTextBox"
+                         FontFamily="Cascadia Code,Menlo,Consolas,monospace"
+                         FontSize="14"
+                         ShowLineNumbers="True"
+                         WordWrap="True">
+            <ae:TextEditor.ContextMenu>
+              <ContextMenu Opened="OnEditorContextMenuOpened">
+                <MenuItem Header="Insert Table…" Click="OnInsertTableClick" />
+                <MenuItem Header="Insert Image…" Click="OnInsertImageClick" />
+                <MenuItem Header="Insert Footnote…" Click="OnInsertFootnoteClick" />
+                <MenuItem Header="Apply Style" x:Name="ApplyStyleMenuItem" />
+              </ContextMenu>
+            </ae:TextEditor.ContextMenu>
+          </ae:TextEditor>
+          <ContentControl x:Name="WysiwygHost" IsVisible="False" />
+        </Panel>
       </DockPanel>
 
     </Grid>

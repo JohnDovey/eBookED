@@ -167,6 +167,10 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public void RefreshAvailableTemplates() => Metadata.RefreshAvailableTemplates(_templateService);
 
+    /// <summary>The current project's selected CSS template, for the WYSIWYG editor pane and
+    /// Preview window (both render via HtmlPageShell, real CSS, real browser engine).</summary>
+    public string GetCurrentTemplateCss() => _templateService.GetTemplateCss(CurrentProject.Metadata.SelectedTemplate);
+
     /// <summary>
     /// Installs any fonts the given template's stylesheet requires onto the host system if
     /// they aren't there yet. Called whenever the template picker's selection changes.

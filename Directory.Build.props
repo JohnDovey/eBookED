@@ -333,6 +333,62 @@
          rewritten for HTML authoring and the new Insert Footnote command; Inserting Tables the
          Easy Way updated for HTML table output; Tips/Limitations and Getting Started's stale
          "raw Markdown"/".md"/no-CSS-engine references fixed to match Phase 5/6's real state. -->
-    <Version>2.10.0</Version>
+    <!-- 2.11.0: Phase 8 of the HTML refactor (see 2.0.0 note / the plan doc) — WYSIWYG
+         build-out + Preview window migration, the plan's own highest-risk phase.
+         Added Avalonia.Controls.WebView (11.4.0+, the official MIT-licensed native-webview
+         backend — WKWebView on macOS — confirmed viable by the Phase 0 spike). New
+         HtmlPageShell (eBookEditor.Html) wraps a chapter's HTML body + the book's selected CSS
+         template into a standalone document, with a small injected JS bridge
+         (window.ebookEditor: setContent/insertHtml/wrapSelection/scrollToFraction/
+         appendFootnoteDefinition) — insertHtml/wrapSelection deliberately use real DOM Range
+         manipulation, not document.execCommand, per the plan's own reasoning that execCommand
+         bets on legacy/deprecated browser behavior.
+         The editor pane now has two interchangeable modes over the same underlying HTML: raw
+         (existing AvaloniaEdit) and a new "Rich Text" WYSIWYG mode (a contenteditable
+         NativeWebView), toggled by a new button — MainWindow's own IsVisible-toggle between the
+         two, confirmed safe despite this app's history of AvaloniaEdit-visibility bugs (1.9.x/
+         1.10.x) since those turned out to be an unrelated missing ControlTheme registration
+         (fixed for good in 1.10.1), not a consequence of toggling visibility itself.
+         The right-click-context-menu-only toolbar commands (Insert Table/Image/Footnote, Apply
+         Style) didn't reach the WYSIWYG pane (a context menu attached to EditorTextBox
+         specifically), so a new mode-agnostic toolbar row was added above the editor, calling
+         the same handlers — each now dispatches to either EditorTextBox.Document (raw mode) or
+         the WebView's JS bridge (WYSIWYG mode) via a shared InsertAtCursor/InvokeWysiwygScript
+         helper pair. Insert Footnote's numbering scan was fixed to read
+         ViewModel.Editor.CurrentText instead of EditorTextBox.Text directly, since the latter
+         doesn't reflect WYSIWYG edits (only reaches CurrentText via the debounced JS bridge).
+         PreviewWindow migrated to the same NativeWebView/HtmlPageShell technology
+         (contenteditable="false"), replacing Markdown.Avalonia's MarkdownScrollViewer — real
+         CSS-template-styled rendering instead of a second, independent, CSS-blind parser.
+         Applied the exact deferred-attach-after-layout pattern the Phase 0 spike found necessary
+         (Dispatcher.UIThread.Post(..., DispatcherPriority.Loaded) before first assigning
+         Window.Content/NavigateToString) to avoid WKWebView's "Invalid view geometry: y is NaN"
+         crash — needed for PreviewWindow (a fresh Window each time) but not the WYSIWYG pane
+         embedded in the already-laid-out MainWindow.
+         Fixed a real, latent bug while touching this code: SyncEditorTextFromViewModel's
+         "skip if already synced" early-return was accidentally also skipping the Preview
+         window's content update on every keystroke in raw mode — Preview only ever updated on
+         chapter switches, never while actively typing, contrary to what the manual already
+         claimed. Separated the two concerns (avoid resetting AvaloniaEdit's caret vs. keep
+         Preview/WYSIWYG in sync) so both now update live.
+         Removing Markdown.Avalonia (nothing else depended on it once PreviewWindow no longer
+         did) is what unblocks completing Phase 7's deferred NuGet swap: eBookEditor.App now
+         references the real Avalonia.AvaloniaEdit package directly instead of the vendored
+         src/AvaloniaEdit/ project (namespace AvaloniaEditCore -> AvaloniaEdit, App.axaml's
+         StyleInclude path updated to match) — confirmed via the assembly's own embedded
+         resources that the real package ships the same "HTML" .xshd highlighting definition and
+         Themes/Fluent/AvaloniaEdit.xaml theme this app already depended on. The vendored
+         src/AvaloniaEdit/ directory itself is now unreferenced but not yet deleted — that's
+         Phase 9's job, per the plan's own phase split. Deleted PreviewMarkdownSanitizer (dead
+         code the moment Preview stopped using Markdown.Avalonia) and its test.
+         Updated the user manual (Writing in the Editor, Getting Started) for the Rich Text
+         toggle and the new toolbar; fixed README.md sections this phase's changes made
+         literally false (AvaloniaEdit vendoring rationale, the App's editor description, the
+         Preview-vs-export-rendering section, the scroll-sync limitation) — the README's
+         still-Markdown-era sections from earlier phases (syntax reference, project layout,
+         solution-structure rows for eBookEditor.Markdown/DocxImport/ChapterImport) are pre-
+         existing debt spun off as a separate follow-up task rather than folded into this
+         commit. -->
+    <Version>2.11.0</Version>
   </PropertyGroup>
 </Project>

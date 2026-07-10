@@ -25,30 +25,28 @@
   <ItemGroup>
     <ProjectReference Include="..\eBookEditor.Core\eBookEditor.Core.csproj" />
     <ProjectReference Include="..\eBookEditor.Html\eBookEditor.Html.csproj" />
-    <ProjectReference Include="..\eBookEditor.Markdown\eBookEditor.Markdown.csproj" />
     <ProjectReference Include="..\eBookEditor.Migration\eBookEditor.Migration.csproj" />
     <ProjectReference Include="..\eBookEditor.Epub\eBookEditor.Epub.csproj" />
     <ProjectReference Include="..\eBookEditor.DocxImport\eBookEditor.DocxImport.csproj" />
     <ProjectReference Include="..\eBookEditor.ChapterImport\eBookEditor.ChapterImport.csproj" />
     <ProjectReference Include="..\eBookEditor.Pdf\eBookEditor.Pdf.csproj" />
-    <!-- Vendored source (see src/AvaloniaEdit/AvaloniaEdit.csproj), assembly/namespace
-         renamed to AvaloniaEditCore so it can coexist with the real Avalonia.AvaloniaEdit
-         NuGet package that Markdown.Avalonia.SyntaxHigh (a Markdown.Avalonia dependency)
-         pulls in for its own, unrelated use — see the vendored project's own comment. -->
-    <ProjectReference Include="..\AvaloniaEdit\AvaloniaEdit.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Pinned to the 11.x line throughout: Markdown.Avalonia and Avalonia.Diagnostics have
-         no stable release yet against the new Avalonia 12 major version (only alphas), so
-         mixing v12 core with v11 add-ons would risk a broken/unstable build. -->
+    <!-- Pinned to the 11.x line throughout: Avalonia.Diagnostics has no stable release yet
+         against the new Avalonia 12 major version (only alphas), so mixing v12 core with v11
+         add-ons would risk a broken/unstable build. -->
     <PackageReference Include="Avalonia" Version="11.3.18" />
+    <PackageReference Include="Avalonia.AvaloniaEdit" Version="11.4.1" />
+    <!-- 11.4.0+ is the first release built on the official, MIT-licensed native webview
+         backend (WKWebView on macOS) rather than an Electron-style bundled Chromium — used
+         for the WYSIWYG editor pane and the Preview window (see HtmlPageShell). -->
+    <PackageReference Include="Avalonia.Controls.WebView" Version="11.4.0" />
     <PackageReference Include="Avalonia.Desktop" Version="11.3.18" />
     <PackageReference Include="Avalonia.Diagnostics" Version="11.3.18" Condition="'$(Configuration)' == 'Debug'" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.18" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.18" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
-    <PackageReference Include="Markdown.Avalonia" Version="11.0.3" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
   </ItemGroup>
 

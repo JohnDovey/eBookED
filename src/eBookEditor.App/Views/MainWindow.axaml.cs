@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -7,6 +8,7 @@ using Avalonia.Platform.Storage;
 using eBookEditor.App.ViewModels;
 using eBookEditor.Core.Models;
 using eBookEditor.Core.Services;
+using eBookEditor.Html.Services;
 
 namespace eBookEditor.App.Views;
 
@@ -16,10 +18,13 @@ public partial class MainWindow : Window
     private const double DragThreshold = 6;
 
     private bool _suppressTextChanged;
+    private bool _suppressWysiwygPush;
     private bool _forceClose;
     private SpineItem? _dragCandidate;
     private Point _dragStartPoint;
     private PreviewWindow? _previewWindow;
+    private NativeWebView? _wysiwygWebView;
+    private bool _wysiwygNavigated;
 
     public MainWindow()
     {
@@ -27,9 +32,9 @@ public partial class MainWindow : Window
         DataContextChanged += OnDataContextChanged;
         EditorTextBox.TextChanged += OnEditorTextBoxTextChanged;
         EditorTextBox.TextArea.Caret.PositionChanged += OnEditorCaretPositionChanged;
-        // Chapters are HTML now (see the HTML content-model refactor); AvaloniaEditCore ships
-        // an "HTML" highlighting definition built in, no custom .xshd needed.
-        EditorTextBox.SyntaxHighlighting = AvaloniaEditCore.Highlighting.HighlightingManager.Instance.GetDefinition("HTML");
+        // Chapters are HTML now (see the HTML content-model refactor); AvaloniaEdit ships an
+        // "HTML" highlighting definition built in, no custom .xshd needed.
+        EditorTextBox.SyntaxHighlighting = AvaloniaEdit.Highlighting.HighlightingManager.Instance.GetDefinition("HTML");
         Closing += OnWindowClosing;
         Closed += OnWindowClosed;
     }
@@ -90,12 +95,15 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Pushes CurrentText into the AvaloniaEdit control. Skipping the reassignment when the
-    /// text already matches is essential, not just an optimization: every keystroke round-trips
-    /// through OnEditorTextBoxTextChanged -> ViewModel.CurrentText -> this method, and
-    /// unconditionally setting TextEditor.Text (even to its own current value) resets the
-    /// caret/selection on every character typed, which made typing into the editor effectively
-    /// impossible.
+    /// Pushes CurrentText into whichever editor pane isn't its own source (and, if open, the
+    /// Preview window). Skipping the AvaloniaEdit reassignment when its text already matches is
+    /// essential, not just an optimization: every keystroke round-trips through
+    /// OnEditorTextBoxTextChanged -> ViewModel.CurrentText -> this method, and unconditionally
+    /// setting TextEditor.Text (even to its own current value) resets the caret/selection on
+    /// every character typed, which made typing into the editor effectively impossible. The
+    /// WYSIWYG push has the same "don't echo my own edit back to me" concern, guarded by
+    /// _suppressWysiwygPush instead (see OnWysiwygWebMessageReceived) since a WebView has no
+    /// equivalent "already matches" short-circuit to check against.
     /// </summary>
     private void SyncEditorTextFromViewModel()
     {
@@ -103,12 +111,16 @@ public partial class MainWindow : Window
             return;
 
         var text = ViewModel.Editor.CurrentText;
-        if (EditorTextBox.Text == text)
-            return;
 
-        _suppressTextChanged = true;
-        EditorTextBox.Text = text;
-        _suppressTextChanged = false;
+        if (EditorTextBox.Text != text)
+        {
+            _suppressTextChanged = true;
+            EditorTextBox.Text = text;
+            _suppressTextChanged = false;
+        }
+
+        if (IsWysiwygMode && !_suppressWysiwygPush)
+            PushContentToWysiwyg(text);
 
         if (ViewModel.Editor.FilePath is { } path)
             UpdatePreviewWindow(text, Path.GetFileNameWithoutExtension(path));
@@ -137,16 +149,16 @@ public partial class MainWindow : Window
         }
 
         var title = ViewModel.Editor.FilePath is { } path ? Path.GetFileNameWithoutExtension(path) : null;
-        _previewWindow.UpdateContent(ViewModel.Editor.CurrentText, title);
+        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), ViewModel.Editor.CurrentText, title);
         ScrollPreviewToCaret();
     }
 
-    private void UpdatePreviewWindow(string markdown, string? title)
+    private void UpdatePreviewWindow(string bodyHtml, string? title)
     {
-        if (_previewWindow is null)
+        if (_previewWindow is null || ViewModel is null)
             return;
 
-        _previewWindow.UpdateContent(markdown, title);
+        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), bodyHtml, title);
         ScrollPreviewToCaret();
     }
 
@@ -154,7 +166,11 @@ public partial class MainWindow : Window
 
     private void ScrollPreviewToCaret()
     {
-        if (_previewWindow is null)
+        // Only meaningful while raw mode is what the user is actually typing in — the raw
+        // caret doesn't move while editing in WYSIWYG mode, so this would just re-apply a stale
+        // fraction; skipping it there means Preview simply stops caret-tracking during WYSIWYG
+        // editing rather than jumping to a wrong position.
+        if (_previewWindow is null || IsWysiwygMode)
             return;
 
         var lineCount = EditorTextBox.Document.LineCount;
@@ -162,18 +178,130 @@ public partial class MainWindow : Window
         _previewWindow.ScrollToFraction(fraction);
     }
 
+    private bool IsWysiwygMode => WysiwygToggle.IsChecked == true;
+
+    /// <summary>
+    /// Toggles between the raw AvaloniaEdit pane and a WYSIWYG WebView pane over the same
+    /// underlying content — see the plan's "three modes" design (raw HTML, WYSIWYG, and the
+    /// separate Preview window). Only one is ever visible; per 1.9.1-era history this app has
+    /// been burned by AvaloniaEdit going blank after an IsVisible toggle before (see
+    /// Directory.Build.props' 1.10.x notes) — that turned out to be an unrelated missing
+    /// ControlTheme registration (fixed for good in 1.10.1, in App.axaml, independent of any
+    /// instance's IsVisible state), not a consequence of toggling visibility itself, so
+    /// reintroducing a toggle here is safe.
+    /// </summary>
+    private void OnWysiwygToggleClick(object? sender, RoutedEventArgs e)
+    {
+        if (IsWysiwygMode)
+        {
+            EditorTextBox.IsVisible = false;
+            WysiwygHost.IsVisible = true;
+            PushContentToWysiwyg(ViewModel?.Editor.CurrentText ?? string.Empty);
+        }
+        else
+        {
+            WysiwygHost.IsVisible = false;
+            EditorTextBox.IsVisible = true;
+            EditorTextBox.Focus();
+        }
+    }
+
+    private void EnsureWysiwygWebView()
+    {
+        if (_wysiwygWebView is not null)
+            return;
+
+        _wysiwygWebView = new NativeWebView();
+        _wysiwygWebView.NavigationCompleted += (_, e) => _wysiwygNavigated = e.IsSuccess;
+        // Subscribed as a lambda rather than a named method so the compiler infers the exact
+        // event-args type instead of this file needing to name it explicitly.
+        _wysiwygWebView.WebMessageReceived += (_, e) => OnWysiwygMessageBody(e.Body);
+        WysiwygHost.Content = _wysiwygWebView;
+    }
+
+    private void PushContentToWysiwyg(string bodyHtml)
+    {
+        if (ViewModel is null)
+            return;
+
+        EnsureWysiwygWebView();
+        _wysiwygNavigated = false;
+        var html = HtmlPageShell.Wrap(ViewModel.GetCurrentTemplateCss(), bodyHtml, editable: true);
+        _wysiwygWebView!.NavigateToString(html, new Uri("about:blank"));
+    }
+
+    /// <summary>
+    /// Receives the debounced { event: "change", html: "..." } message the WYSIWYG page's JS
+    /// bridge posts after an edit (see HtmlPageShell's BridgeScript) and folds it back into
+    /// CurrentText — guarded by _suppressWysiwygPush so SyncEditorTextFromViewModel doesn't
+    /// immediately re-navigate the WebView back to the content it just sent us.
+    /// </summary>
+    private void OnWysiwygMessageBody(string? body)
+    {
+        if (ViewModel is null || body is null)
+            return;
+
+        try
+        {
+            using var message = JsonDocument.Parse(body);
+            if (message.RootElement.GetProperty("event").GetString() != "change")
+                return;
+
+            var html = message.RootElement.GetProperty("html").GetString() ?? string.Empty;
+            _suppressWysiwygPush = true;
+            ViewModel.Editor.CurrentText = html;
+            _suppressWysiwygPush = false;
+        }
+        catch (JsonException)
+        {
+            // A malformed bridge message shouldn't take the editor down with it.
+        }
+    }
+
+    /// <summary>
+    /// Inserts a fragment of HTML at the cursor in whichever pane is active — the raw
+    /// AvaloniaEdit caret, or the WYSIWYG WebView's current DOM selection via its JS bridge (see
+    /// HtmlPageShell). Shared by Insert Table/Insert Image/Insert Footnote so those commands
+    /// work the same regardless of mode.
+    /// </summary>
+    private void InsertAtCursor(string html)
+    {
+        if (IsWysiwygMode)
+        {
+            InvokeWysiwygScript($"window.ebookEditor.insertHtml({JsonSerializer.Serialize(html)})");
+            return;
+        }
+
+        var offset = EditorTextBox.CaretOffset;
+        EditorTextBox.Document.Insert(offset, html);
+        EditorTextBox.CaretOffset = offset + html.Length;
+        EditorTextBox.Focus();
+    }
+
+    private async void InvokeWysiwygScript(string script)
+    {
+        if (_wysiwygWebView is null || !_wysiwygNavigated)
+            return;
+
+        try
+        {
+            await _wysiwygWebView.InvokeScript(script);
+        }
+        catch
+        {
+            // Best-effort — a script call that races a fresh navigation can legitimately fail.
+        }
+    }
+
     private async void OnInsertTableClick(object? sender, RoutedEventArgs e)
     {
         var window = new InsertTableWindow();
         await window.ShowDialog(this);
 
-        if (window.Result is not { } markdown)
+        if (window.Result is not { } html)
             return;
 
-        var offset = EditorTextBox.CaretOffset;
-        EditorTextBox.Document.Insert(offset, markdown);
-        EditorTextBox.CaretOffset = offset + markdown.Length;
-        EditorTextBox.Focus();
+        InsertAtCursor(html);
     }
 
     /// <summary>
@@ -221,10 +349,7 @@ public partial class MainWindow : Window
             </figure>
             """;
 
-        var offset = EditorTextBox.CaretOffset;
-        EditorTextBox.Document.Insert(offset, html);
-        EditorTextBox.CaretOffset = offset + html.Length;
-        EditorTextBox.Focus();
+        InsertAtCursor(html);
     }
 
     private static string UniqueDestinationPath(string directory, string fileName)
@@ -263,15 +388,46 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
+    /// The toolbar's "Apply Style ▾" button — the WYSIWYG-mode-reachable equivalent of the raw
+    /// editor's right-click "Apply Style" submenu (that context menu is attached to EditorTextBox
+    /// itself, so it's only reachable while the raw pane is the one visible/focused). Builds the
+    /// same menu items OnEditorContextMenuOpened does, reusing OnApplyStyleClick as the handler.
+    /// </summary>
+    private void OnApplyStyleButtonClick(object? sender, RoutedEventArgs e)
+    {
+        var flyout = new MenuFlyout();
+        foreach (var style in EditorStyleCatalog.Styles)
+        {
+            var item = new MenuItem { Header = style.Label, Tag = style };
+            item.Click += OnApplyStyleClick;
+            flyout.Items.Add(item);
+        }
+
+        flyout.ShowAt(ApplyStyleButton);
+    }
+
+    /// <summary>
     /// Wraps the current selection in real HTML naming the CSS class the chosen style hooks to
     /// in DefaultStylesheet.cs/"Vellum Serif.css" — a &lt;span&gt; for an inline style (safe
     /// mid-paragraph, e.g. small-caps a single word) or a &lt;div&gt; for a block style (its
-    /// own paragraph-level element, e.g. a verse stanza) — see EditorStyleCatalog.IsBlock.
+    /// own paragraph-level element, e.g. a verse stanza) — see EditorStyleCatalog.IsBlock. In
+    /// WYSIWYG mode the wrap happens JS-side against the WebView's own DOM selection (see
+    /// HtmlPageShell's wrapSelection) rather than against EditorTextBox's selection, which isn't
+    /// what the user is looking at in that mode.
     /// </summary>
     private void OnApplyStyleClick(object? sender, RoutedEventArgs e)
     {
         if (sender is not MenuItem { Tag: EditorStyle style })
             return;
+
+        var tag = style.IsBlock ? "div" : "span";
+
+        if (IsWysiwygMode)
+        {
+            InvokeWysiwygScript(
+                $"window.ebookEditor.wrapSelection({JsonSerializer.Serialize(tag)}, {JsonSerializer.Serialize(style.ClassName)})");
+            return;
+        }
 
         var selectionStart = EditorTextBox.SelectionStart;
         var selectionLength = EditorTextBox.SelectionLength;
@@ -279,7 +435,6 @@ public partial class MainWindow : Window
             return;
 
         var selectedText = EditorTextBox.Document.GetText(selectionStart, selectionLength);
-        var tag = style.IsBlock ? "div" : "span";
         var wrapped = $"<{tag} class=\"{style.ClassName}\">{selectedText}</{tag}>";
 
         EditorTextBox.Document.Replace(selectionStart, selectionLength, wrapped);
@@ -300,29 +455,47 @@ public partial class MainWindow : Window
     /// </summary>
     private async void OnInsertFootnoteClick(object? sender, RoutedEventArgs e)
     {
+        if (ViewModel is null)
+            return;
+
         var dialog = new InsertFootnoteWindow();
         await dialog.ShowDialog(this);
 
         if (dialog.Result is not { } noteText)
             return;
 
-        var nextNumber = FootnoteReferenceIdRegex().Matches(EditorTextBox.Text ?? "")
+        // Scans ViewModel.Editor.CurrentText, not EditorTextBox.Text directly — the latter only
+        // reflects live typing in raw mode; WYSIWYG-mode edits reach CurrentText via the
+        // debounced JS bridge instead (see OnWysiwygMessageBody), so it's the one source both
+        // modes keep current.
+        var nextNumber = FootnoteReferenceIdRegex().Matches(ViewModel.Editor.CurrentText)
             .Select(m => int.Parse(m.Groups[1].Value))
             .DefaultIfEmpty(0)
             .Max() + 1;
 
         var reference = $"<sup id=\"fnref:{nextNumber}\"><a href=\"#fn:{nextNumber}\" class=\"footnote-ref\">{nextNumber}</a></sup>";
-        var caretOffset = EditorTextBox.CaretOffset;
-        EditorTextBox.Document.Insert(caretOffset, reference);
-        EditorTextBox.CaretOffset = caretOffset + reference.Length;
-
+        InsertAtCursor(reference);
         InsertOrAppendFootnoteDefinition(nextNumber, noteText);
-        EditorTextBox.Focus();
     }
 
+    /// <summary>
+    /// Adds a footnote's note text to (or starts) a "&lt;div class="footnotes"&gt;" list at the
+    /// end of the page. Raw mode finds/edits that block as a string, by offset, within
+    /// EditorTextBox's own document; WYSIWYG mode instead does the equivalent DOM operation
+    /// JS-side (see HtmlPageShell's appendFootnoteDefinition) since there's no reliable mapping
+    /// from a string offset in CurrentText to a DOM position in the WebView's live document.
+    /// </summary>
     private void InsertOrAppendFootnoteDefinition(int number, string noteText)
     {
         var encodedNote = System.Net.WebUtility.HtmlEncode(noteText);
+
+        if (IsWysiwygMode)
+        {
+            InvokeWysiwygScript(
+                $"window.ebookEditor.appendFootnoteDefinition({number}, {JsonSerializer.Serialize(encodedNote)})");
+            return;
+        }
+
         var listItem = $"<li id=\"fn:{number}\"><p>{encodedNote} <a href=\"#fnref:{number}\" class=\"footnote-back-ref\">↩</a></p></li>";
 
         var text = EditorTextBox.Text ?? "";
