@@ -4,7 +4,7 @@ using Avalonia.Platform.Storage;
 using eBookEditor.App.ViewModels;
 using eBookEditor.Core.Models;
 using eBookEditor.Core.Services;
-using eBookEditor.Markdown.Services;
+using eBookEditor.Html.Services;
 
 namespace eBookEditor.App.Views;
 

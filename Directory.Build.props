@@ -155,6 +155,32 @@
          which is invalid inside an XML comment body and broke every build/restore off
          origin/main with an MSB4024 error. Reworded to avoid consecutive hyphens. No code
          changes otherwise. -->
-    <Version>2.2.1</Version>
+    <!-- 2.3.0: Phase 2 of the HTML refactor (see 2.0.0 note / the plan doc) — content-generation
+         rewrite. PageGeneratorService and BookIndexGenerator (title/imprint/TOC/about-author
+         pages, and the internal book.ebhtml navigation index) now emit HTML fragments instead of
+         Markdown, and moved out of eBookEditor.Markdown into a new eBookEditor.Html project with
+         no Markdig dependency — that project holds only format-neutral generation logic and is
+         what survives once eBookEditor.Markdown is retired (Phase 9). Every metadata value
+         interpolated into a page (title, author names, bio, disclaimer, etc.) is now
+         HTML-encoded via WebUtility.HtmlEncode, a real new correctness requirement Markdown
+         generation never needed — confirmed by test (raw "&", "<", ">" in a title no longer
+         corrupt the markup) and by the fact that WebUtility.HtmlEncode also escapes apostrophes
+         (e.g. the default copyright disclaimer's "author's imagination"), which changed a couple
+         of test assertions from raw text to their encoded form without being a functional bug.
+         Free-form multi-paragraph text (author bio, disclaimer) is now split into real
+         &lt;p&gt;/&lt;br&gt; HTML instead of relying on Markdown's blank-line paragraph
+         convention. The in-book TOC's chapter links no longer need Markdown's
+         angle-bracket-wrapped-destination workaround for space-containing chapter filenames —
+         HTML href attributes handle spaces natively.
+         Known, expected regression, deferred on purpose: EpubBuilderTests.
+         Build_TocPageLinksResolveToTheChaptersActualContentDocument is now Skip-annotated.
+         EpubInternalLinkResolver.RewriteChapterLinks still matches Markdown link syntax
+         ("[text](path)") applied to raw file content before Markdig conversion; the generated
+         TOC page now emits real "&lt;a href&gt;" HTML instead, so the resolver never matches and
+         TOC links point at project-relative source paths instead of EPUB content document
+         filenames. Rewriting EpubBuilder/EpubInternalLinkResolver to consume real HTML anchors
+         is Phase 4's job ("EPUB export simplification") — fixing it here would mean doing Phase
+         4's work inside Phase 2's commit. -->
+    <Version>2.3.0</Version>
   </PropertyGroup>
 </Project>

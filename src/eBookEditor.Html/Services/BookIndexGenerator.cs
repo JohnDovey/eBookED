@@ -1,18 +1,17 @@
+using System.Net;
 using System.Text;
 using eBookEditor.Core.Models;
 
-namespace eBookEditor.Markdown.Services;
+namespace eBookEditor.Html.Services;
 
 public class BookIndexGenerator
 {
     public string GenerateBookMd(EbookProject project)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"# {project.Metadata.Title}");
-        sb.AppendLine();
-        sb.AppendLine("_This file is auto-regenerated whenever the spine changes. Edit chapter order and content_");
-        sb.AppendLine("_via the app rather than editing this file's links directly._");
-        sb.AppendLine();
+        sb.AppendLine($"<h1>{Encode(project.Metadata.Title)}</h1>");
+        sb.AppendLine("<p><em>This file is auto-regenerated whenever the spine changes. Edit chapter order and content");
+        sb.AppendLine("via the app rather than editing this file's links directly.</em></p>");
 
         AppendGroup(sb, "Front Matter", project.Spine, SpineItemType.FrontMatter);
         AppendGroup(sb, "Chapters", project.Spine, SpineItemType.Chapter);
@@ -27,8 +26,8 @@ public class BookIndexGenerator
         if (items.Count == 0)
             return;
 
-        sb.AppendLine($"## {heading}");
-        sb.AppendLine();
+        sb.AppendLine($"<h2>{heading}</h2>");
+        sb.AppendLine("<ul>");
 
         foreach (var item in items)
         {
@@ -36,9 +35,11 @@ public class BookIndexGenerator
                 ? $"Chapter {item.ResolvedNumber}: {item.Title}"
                 : item.Title ?? item.RelativePath;
 
-            sb.AppendLine($"- [{label}]({item.RelativePath})");
+            sb.AppendLine($"<li><a href=\"{Encode(item.RelativePath)}\">{Encode(label)}</a></li>");
         }
 
-        sb.AppendLine();
+        sb.AppendLine("</ul>");
     }
+
+    private static string Encode(string? text) => WebUtility.HtmlEncode(text ?? "");
 }

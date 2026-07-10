@@ -2,7 +2,7 @@ using eBookEditor.App.ViewModels;
 using eBookEditor.Core.Models;
 using eBookEditor.Core.Services;
 using eBookEditor.Epub.Services;
-using eBookEditor.Markdown.Services;
+using eBookEditor.Html.Services;
 
 namespace eBookEditor.Tests.App;
 

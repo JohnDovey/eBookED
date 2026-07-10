@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\eBookEditor.Core\eBookEditor.Core.csproj" />
+    <ProjectReference Include="..\eBookEditor.Html\eBookEditor.Html.csproj" />
     <ProjectReference Include="..\eBookEditor.Markdown\eBookEditor.Markdown.csproj" />
     <ProjectReference Include="..\eBookEditor.Epub\eBookEditor.Epub.csproj" />
     <ProjectReference Include="..\eBookEditor.DocxImport\eBookEditor.DocxImport.csproj" />

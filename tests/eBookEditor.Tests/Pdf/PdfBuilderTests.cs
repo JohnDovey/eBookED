@@ -1,7 +1,7 @@
 using eBookEditor.Core.Models;
 using eBookEditor.Core.Services;
 using eBookEditor.Epub.Services;
-using eBookEditor.Markdown.Services;
+using eBookEditor.Html.Services;
 using eBookEditor.Pdf.Services;
 using UglyToad.PdfPig;
 

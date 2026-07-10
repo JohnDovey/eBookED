@@ -1,0 +1,185 @@
+using System.Net;
+using System.Text;
+using eBookEditor.Core.Models;
+
+namespace eBookEditor.Html.Services;
+
+/// <summary>
+/// Generates the HTML body fragments for the app's auto-generated front/back matter pages
+/// (title, imprint/copyright, table of contents, about-the-author). Every value interpolated
+/// from BookMetadata is HTML-encoded — unlike the old Markdown generator, raw "&amp;", "&lt;",
+/// "&gt;", or quote characters in a title/author name would otherwise corrupt the markup itself,
+/// not just render literally.
+/// </summary>
+public class PageGeneratorService
+{
+    public string GenerateTitlePage(BookMetadata metadata)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine($"<h1>{Encode(metadata.Title)}</h1>");
+
+        if (!string.IsNullOrWhiteSpace(metadata.Subtitle))
+            sb.AppendLine($"<h2>{Encode(metadata.Subtitle)}</h2>");
+
+        var authorNames = metadata.Authors.Select(a => a.Name).ToList();
+        if (authorNames.Count > 0)
+            sb.AppendLine($"<p><em>by {Encode(string.Join(", ", authorNames))}</em></p>");
+
+        var editorNames = metadata.Editors.Select(e => e.Name).ToList();
+        var illustratorNames = metadata.Illustrators.Select(i => i.Name).ToList();
+        if (editorNames.Count > 0 || illustratorNames.Count > 0)
+        {
+            var lines = new List<string>();
+            if (editorNames.Count > 0)
+                lines.Add($"Edited by {Encode(string.Join(", ", editorNames))}");
+            if (illustratorNames.Count > 0)
+                lines.Add($"Illustrated by {Encode(string.Join(", ", illustratorNames))}");
+            sb.AppendLine($"<p>{string.Join("<br>\n", lines)}</p>");
+        }
+
+        if (metadata.Publisher is { } publisher)
+            sb.AppendLine($"<p>{Encode(publisher.Name)}</p>");
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    /// Generates the book's imprint page: cover thumbnail and the contributor/publisher/ISBN
+    /// details usually found on such a page near the top, with the copyright statement and
+    /// disclaimer at the bottom — the file/spine slot is still "copyright.ebhtml" (renaming it
+    /// would touch every existing project), but its content is the fuller imprint-page
+    /// convention rather than just a bare copyright line.
+    /// </summary>
+    public string GenerateCopyrightPage(BookMetadata metadata)
+    {
+        var sb = new StringBuilder();
+
+        if (!string.IsNullOrWhiteSpace(metadata.CoverImagePath))
+            sb.AppendLine($"<p><img src=\"../{Encode(metadata.CoverImagePath)}\" alt=\"Cover\"></p>");
+
+        var titleLines = new List<string> { $"<strong>{Encode(metadata.Title)}</strong>" };
+        if (!string.IsNullOrWhiteSpace(metadata.Subtitle))
+            titleLines.Add($"<em>{Encode(metadata.Subtitle)}</em>");
+
+        var authorNames = metadata.Authors.Select(a => a.Name).ToList();
+        if (authorNames.Count > 0)
+            titleLines.Add($"By {Encode(string.Join(", ", authorNames))}");
+
+        var illustratorNames = metadata.Illustrators.Select(i => i.Name).ToList();
+        if (illustratorNames.Count > 0)
+            titleLines.Add($"Illustrated by {Encode(string.Join(", ", illustratorNames))}");
+
+        var editorNames = metadata.Editors.Select(e => e.Name).ToList();
+        if (editorNames.Count > 0)
+            titleLines.Add($"Edited by {Encode(string.Join(", ", editorNames))}");
+
+        sb.AppendLine($"<p>{string.Join("<br>\n", titleLines)}</p>");
+
+        var publisherLines = new List<string>();
+        if (metadata.Publisher is { } publisher)
+            publisherLines.Add($"Published by {Encode(publisher.Name)}");
+        if (!string.IsNullOrWhiteSpace(metadata.Isbn13))
+            publisherLines.Add($"ISBN-13: {Encode(metadata.Isbn13)}");
+        if (!string.IsNullOrWhiteSpace(metadata.Isbn10))
+            publisherLines.Add($"ISBN-10: {Encode(metadata.Isbn10)}");
+        if (metadata.PublicationDate is { } publicationDate)
+            publisherLines.Add($"Published {publicationDate:yyyy-MM-dd}");
+        if (publisherLines.Count > 0)
+            sb.AppendLine($"<p>{string.Join("<br>\n", publisherLines)}</p>");
+
+        var year = metadata.CopyrightYear ?? metadata.PublicationDate?.Year;
+        var holder = string.IsNullOrWhiteSpace(metadata.CopyrightHolder)
+            ? string.Join(", ", authorNames)
+            : metadata.CopyrightHolder;
+        sb.AppendLine($"<p>Copyright © {year} {Encode(holder)}</p>");
+        sb.AppendLine(WrapParagraphs(metadata.CopyrightDisclaimer));
+
+        return sb.ToString();
+    }
+
+    public string GenerateTocPage(IReadOnlyList<SpineItem> spine)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("<h1>Table of Contents</h1>");
+        sb.AppendLine("<ul>");
+
+        foreach (var item in spine.OrderBy(i => i.Order))
+        {
+            if (item.RelativePath.EndsWith(ProjectPaths.TocPageFileName, StringComparison.Ordinal))
+                continue;
+
+            var label = item is { Type: SpineItemType.Chapter, ResolvedNumber: not null }
+                ? $"Chapter {item.ResolvedNumber}: {item.Title}"
+                : item.Title ?? item.RelativePath;
+
+            sb.AppendLine($"<li><a href=\"{Encode(item.RelativePath)}\">{Encode(label)}</a></li>");
+        }
+
+        sb.AppendLine("</ul>");
+        return sb.ToString();
+    }
+
+    public string GenerateAboutAuthorPage(BookMetadata metadata)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("<h1>About the Author</h1>");
+
+        if (metadata.AboutAuthor?.PhotoPath is { Length: > 0 } photoPath)
+            sb.AppendLine($"<p><img src=\"../{Encode(photoPath)}\" alt=\"Author photo\"></p>");
+
+        if (!string.IsNullOrWhiteSpace(metadata.AboutAuthor?.Bio))
+            sb.AppendLine(WrapParagraphs(metadata.AboutAuthor.Bio));
+
+        var socialLinks = metadata.AboutAuthor?.SocialLinks ?? [];
+        if (socialLinks.Count > 0)
+        {
+            sb.AppendLine("<h2>Connect</h2>");
+            sb.AppendLine("<ul>");
+            foreach (var link in socialLinks)
+                sb.AppendLine($"<li><a href=\"{Encode(link.Url)}\">{Encode(link.Platform)}</a></li>");
+            sb.AppendLine("</ul>");
+        }
+
+        return sb.ToString();
+    }
+
+    public void RegenerateAllGeneratedPages(EbookProject project)
+    {
+        File.WriteAllText(
+            Path.Combine(project.FrontMatterDir, ProjectPaths.TitlePageFileName),
+            GenerateTitlePage(project.Metadata));
+
+        File.WriteAllText(
+            Path.Combine(project.FrontMatterDir, ProjectPaths.CopyrightPageFileName),
+            GenerateCopyrightPage(project.Metadata));
+
+        File.WriteAllText(
+            Path.Combine(project.FrontMatterDir, ProjectPaths.TocPageFileName),
+            GenerateTocPage(project.Spine));
+
+        File.WriteAllText(
+            Path.Combine(project.BackMatterDir, ProjectPaths.AboutAuthorPageFileName),
+            GenerateAboutAuthorPage(project.Metadata));
+    }
+
+    /// <summary>
+    /// Splits free-form user text (e.g. an author bio or the copyright disclaimer) into
+    /// HTML paragraphs on blank lines, preserving single line breaks within a paragraph as
+    /// &lt;br&gt;. Each paragraph's text is HTML-encoded before the &lt;br&gt; tags are
+    /// reinserted, so encoding never touches the tags themselves.
+    /// </summary>
+    private static string WrapParagraphs(string text)
+    {
+        var paragraphs = text.Replace("\r\n", "\n").Split("\n\n", StringSplitOptions.RemoveEmptyEntries);
+        var sb = new StringBuilder();
+        foreach (var paragraph in paragraphs)
+        {
+            var lines = paragraph.Split('\n').Select(Encode);
+            sb.AppendLine($"<p>{string.Join("<br>\n", lines)}</p>");
+        }
+
+        return sb.ToString().TrimEnd('\n');
+    }
+
+    private static string Encode(string? text) => WebUtility.HtmlEncode(text ?? "");
+}

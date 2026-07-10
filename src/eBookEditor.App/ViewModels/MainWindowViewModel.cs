@@ -6,6 +6,7 @@ using eBookEditor.Core.Models;
 using eBookEditor.Core.Services;
 using eBookEditor.DocxImport.Services;
 using eBookEditor.Epub.Services;
+using eBookEditor.Html.Services;
 using eBookEditor.Markdown.Services;
 using eBookEditor.Pdf.Services;
 
