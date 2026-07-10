@@ -160,8 +160,8 @@ public class HtmlToDocxConverterTests : IDisposable
         // every block/inline kind in one document, including combined underline+highlight on a
         // single run (another real ordering bug this test caught: <w:highlight> must precede
         // <w:u> in <w:rPr>). Task lists have no HTML authoring convention yet (no toolbar
-        // command produces one), so they're not part of this combined document — same
-        // deliberate omission as footnotes, see HtmlToDocxConverter's own doc comment.
+        // command produces one), so they're not part of this combined document. Footnotes get
+        // their own dedicated tests below (real FootnotesPart output), not folded in here.
         const string html = """
             <h1>Chapter One</h1>
             <p>Plain text, <em>italic</em>, <strong>bold</strong>, <strong><em>bold italic</em></strong>.</p>
@@ -367,5 +367,106 @@ public class HtmlToDocxConverterTests : IDisposable
 
         var attributionParagraph = paragraphs.Single(p => p.InnerText == "An Author");
         Assert.Equal(JustificationValues.Right, attributionParagraph.ParagraphProperties!.Justification!.Val!.Value);
+    }
+
+    private const string FootnoteHtml = """
+        <p>Some text with a note.<sup id="fnref:1"><a href="#fn:1" class="footnote-ref">1</a></sup></p>
+        <div class="footnotes">
+        <hr>
+        <ol>
+        <li id="fn:1"><p>The note text. <a href="#fnref:1" class="footnote-back-ref">&#8617;</a></p></li>
+        </ol>
+        </div>
+        """;
+
+    [Fact]
+    public void ConvertToFile_FootnoteReference_BecomesARealFootnoteReferenceRun()
+    {
+        var path = Path.Combine(_tempDir, "chapter-footnote.docx");
+
+        _converter.ConvertToFile(FootnoteHtml, "Chapter", path);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        var body = document.MainDocumentPart!.Document!.Body!;
+
+        // The reference lives in the body as a real w:footnoteReference, not literal "1" text —
+        // and the "<div class='footnotes'>" block that held the note's own text is gone from
+        // the body entirely (its content moved into the FootnotesPart instead).
+        var reference = body.Descendants<FootnoteReference>().Single();
+        Assert.DoesNotContain(body.Descendants<Text>(), t => t.Text == "1");
+        Assert.DoesNotContain("footnotes", body.InnerText);
+
+        var footnotesPart = document.MainDocumentPart!.FootnotesPart;
+        Assert.NotNull(footnotesPart);
+        var noteFootnote = footnotesPart!.Footnotes!.Elements<Footnote>().Single(f => f.Id!.Value == reference.Id!.Value);
+        Assert.Contains("The note text.", noteFootnote.InnerText);
+        // The back-reference arrow is Word's own built-in footnote-pane behavior — this app's
+        // own "↩" text shouldn't also appear inside the real footnote content.
+        Assert.DoesNotContain('↩', noteFootnote.InnerText);
+    }
+
+    [Fact]
+    public void ConvertToFile_FootnotesPart_IncludesRequiredSeparatorEntries()
+    {
+        var path = Path.Combine(_tempDir, "chapter-footnote-separators.docx");
+
+        _converter.ConvertToFile(FootnoteHtml, "Chapter", path);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        var footnotes = document.MainDocumentPart!.FootnotesPart!.Footnotes!.Elements<Footnote>().ToList();
+
+        Assert.Contains(footnotes, f => f.Type?.Value == FootnoteEndnoteValues.Separator);
+        Assert.Contains(footnotes, f => f.Type?.Value == FootnoteEndnoteValues.ContinuationSeparator);
+    }
+
+    [Fact]
+    public void ConvertToFile_ProducesSchemaValidDocx_WithAFootnote()
+    {
+        var path = Path.Combine(_tempDir, "chapter-footnote-valid.docx");
+
+        _converter.ConvertToFile(FootnoteHtml, "Chapter", path);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        var errors = new OpenXmlValidator().Validate(document).ToList();
+
+        Assert.True(errors.Count == 0,
+            string.Join("\n", errors.Select(e => $"{e.Path?.XPath} :: {e.Description}")));
+    }
+
+    [Fact]
+    public void ConvertToFile_TwoChaptersEachRestartingAtFootnoteOne_GetGloballyUniqueWordIds()
+    {
+        // HtmlBookAssembler concatenates chapters into one HTML string for whole-book export,
+        // and this app's own footnote numbering restarts at 1 in every chapter (see
+        // MainWindow.OnInsertFootnoteClick) — two "id='fn:1'" li elements from different
+        // chapters would collide in a single FootnotesPart unless each gets its own Word id.
+        const string html = """
+            <h1>Chapter One</h1>
+            <p>First chapter note.<sup id="fnref:1"><a href="#fn:1" class="footnote-ref">1</a></sup></p>
+            <div class="footnotes"><ol><li id="fn:1"><p>Note from chapter one.</p></li></ol></div>
+            <hr>
+            <h1>Chapter Two</h1>
+            <p>Second chapter note.<sup id="fnref:1"><a href="#fn:1" class="footnote-ref">1</a></sup></p>
+            <div class="footnotes"><ol><li id="fn:1"><p>Note from chapter two.</p></li></ol></div>
+            """;
+        var path = Path.Combine(_tempDir, "whole-book-footnotes.docx");
+
+        _converter.ConvertToFile(html, "Test Book", path);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        var references = document.MainDocumentPart!.Document!.Body!.Descendants<FootnoteReference>().ToList();
+        Assert.Equal(2, references.Count);
+        Assert.NotEqual(references[0].Id!.Value, references[1].Id!.Value);
+
+        var realFootnotes = document.MainDocumentPart!.FootnotesPart!.Footnotes!.Elements<Footnote>()
+            .Where(f => f.Type is null)
+            .ToList();
+        Assert.Equal(2, realFootnotes.Count);
+        Assert.Contains(realFootnotes, f => f.InnerText.Contains("Note from chapter one."));
+        Assert.Contains(realFootnotes, f => f.InnerText.Contains("Note from chapter two."));
+
+        var errors = new OpenXmlValidator().Validate(document).ToList();
+        Assert.True(errors.Count == 0,
+            string.Join("\n", errors.Select(e => $"{e.Path?.XPath} :: {e.Description}")));
     }
 }

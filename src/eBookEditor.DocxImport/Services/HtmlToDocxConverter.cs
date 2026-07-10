@@ -32,18 +32,33 @@ namespace eBookEditor.DocxImport.Services;
 /// underlying run text) — so those apply for real here rather than being approximated or
 /// skipped.
 ///
-/// Real Word footnotes (FootnotesPart/FootnoteReference) are deliberately not handled here —
-/// there's no HTML authoring convention for them yet (no toolbar command produces one); that's
-/// tied to the "Insert Footnote" command planned alongside the editor UI rewrite, not something
-/// this rendering-only phase should invent in isolation.
+/// Footnotes render as real Word footnotes (FootnotesPart/FootnoteReference, visible in Word's
+/// own footnote pane) — see FootnoteContext/AppendFootnotesPart. A "&lt;sup id="fnref:N"&gt;"
+/// reference (see MainWindow.OnInsertFootnoteClick) becomes a real FootnoteReference run instead
+/// of literal superscript text, and its matching "&lt;div class="footnotes"&gt;" definition
+/// block is skipped entirely from the main body — its content moves into the FootnotesPart
+/// instead. The app's own footnote numbering restarts per chapter (see EditorStyleCatalog/
+/// InsertFootnoteWindow's own doc comments), but Word's FootnotesPart requires globally-unique
+/// ids across the whole document — assigning those by first-appearance order (not by the app's
+/// own per-chapter display number) is what lets a whole-book export's several chapters each
+/// restart at "1" in the source without an id collision; Word's own rendering numbers footnotes
+/// by document flow order regardless of the id's numeric value, so the visible result is still
+/// correctly sequential.
 /// </summary>
 public class HtmlToDocxConverter
 {
     private const float DefaultFontSizePt = 11f;
 
+    /// <summary>Keyed by the actual "&lt;sup&gt;" reference element (identity, not its "fnref:N"
+    /// string — see BuildFootnoteContext for why the string alone isn't safely unique): that
+    /// reference's matching &lt;li&gt; note content, and the globally-unique Word footnote id
+    /// assigned to it (see the class doc comment).</summary>
+    private sealed record FootnoteContext(Dictionary<DomElement, DomElement> Definitions, Dictionary<DomElement, uint> WordIds);
+
     public void ConvertToFile(string html, string title, string outputPath, string? sourceDir = null, string? templateCss = null)
     {
         var styled = HtmlStyleDocument.Parse(html, templateCss);
+        var footnotes = BuildFootnoteContext(styled.Body);
 
         using var wordDocument = WordprocessingDocument.Create(outputPath, DocumentFormat.OpenXml.WordprocessingDocumentType.Document);
         var mainPart = wordDocument.AddMainDocumentPart();
@@ -54,12 +69,65 @@ public class HtmlToDocxConverter
         body.Append(HeadingParagraph(title, "Title"));
 
         foreach (var node in styled.Body.ChildNodes)
-            AppendNode(body, node, mainPart, sourceDir, styled, DefaultFontSizePt);
+            AppendNode(body, node, mainPart, sourceDir, styled, DefaultFontSizePt, footnotes);
+
+        if (footnotes.WordIds.Count > 0)
+            AppendFootnotesPart(mainPart, styled, DefaultFontSizePt, footnotes);
 
         mainPart.Document.Save();
     }
 
-    private static void AppendNode(Body body, INode node, MainDocumentPart mainPart, string? sourceDir, HtmlStyleDocument styles, float baseFontSizePt)
+    /// <summary>
+    /// Word ids are assigned in first-appearance order of each "&lt;sup id="fnref:N"&gt;"
+    /// reference. The "fn:N"/"fnref:N" strings alone aren't safely unique keys for a whole-book
+    /// export: HtmlBookAssembler concatenates every chapter into one HTML string, and this
+    /// app's own footnote numbering restarts at 1 in each chapter, so a naive "fn:1" lookup
+    /// would collide across chapters. Instead this walks the body's top-level children in
+    /// document order, treating a "&lt;div class="footnotes"&gt;" as closing out whichever
+    /// preceding references are still unresolved — matching each of its &lt;li&gt; entries to
+    /// the pending reference with the same "N" (they always belong to the same chapter, since
+    /// HtmlBookAssembler's own "&lt;hr&gt;" section separators and this app's single-chapter
+    /// files both keep a chapter's references and its own footnotes block together with no
+    /// other chapter's content between them) — keyed by the reference element itself, not the
+    /// string, so identically-numbered notes from different chapters never collide.
+    /// </summary>
+    private static FootnoteContext BuildFootnoteContext(DomElement body)
+    {
+        var definitions = new Dictionary<DomElement, DomElement>();
+        var wordIds = new Dictionary<DomElement, uint>();
+        uint nextId = 1;
+        var pendingReferences = new List<DomElement>();
+
+        foreach (var child in body.Children)
+        {
+            if (child.TagName == "DIV" && child.ClassList.Contains("footnotes"))
+            {
+                foreach (var li in child.QuerySelectorAll("li[id]").Where(li => li.Id!.StartsWith("fn:", StringComparison.Ordinal)))
+                {
+                    var number = li.Id!["fn:".Length..];
+                    var reference = pendingReferences.FirstOrDefault(sup => sup.Id == "fnref:" + number);
+                    if (reference is null)
+                        continue;
+
+                    definitions[reference] = li;
+                    wordIds[reference] = nextId++;
+                    pendingReferences.Remove(reference);
+                }
+
+                // Any left unmatched here are dangling references with no definition — leave
+                // them out of wordIds; AppendInlineChildren's SUP case falls through to the
+                // default (generic) handling for those rather than emitting a broken reference.
+                pendingReferences.Clear();
+                continue;
+            }
+
+            pendingReferences.AddRange(child.QuerySelectorAll("sup[id]").Where(sup => sup.Id!.StartsWith("fnref:", StringComparison.Ordinal)));
+        }
+
+        return new FootnoteContext(definitions, wordIds);
+    }
+
+    private static void AppendNode(Body body, INode node, MainDocumentPart mainPart, string? sourceDir, HtmlStyleDocument styles, float baseFontSizePt, FootnoteContext footnotes)
     {
         if (node is not DomElement element)
             return;
@@ -81,16 +149,22 @@ public class HtmlToDocxConverter
                 AppendImage(body, element, mainPart, sourceDir);
                 break;
 
+            // Its content already moved into the FootnotesPart (see ConvertToFile/
+            // AppendFootnotesPart) — rendering it again here would duplicate every note inline
+            // in the body as well as in Word's real footnote pane.
+            case "DIV" when element.ClassList.Contains("footnotes"):
+                break;
+
             case "P" or "DIV":
-                AppendBlockContainer(body, element, mainPart, sourceDir, styles, baseFontSizePt);
+                AppendBlockContainer(body, element, mainPart, sourceDir, styles, baseFontSizePt, footnotes);
                 break;
 
             case "UL" or "OL":
-                AppendList(body, element, mainPart, styles, baseFontSizePt, ordered: element.TagName == "OL");
+                AppendList(body, element, mainPart, styles, baseFontSizePt, footnotes, ordered: element.TagName == "OL");
                 break;
 
             case "TABLE":
-                body.Append(BuildTable(element, mainPart, styles, baseFontSizePt));
+                body.Append(BuildTable(element, mainPart, styles, baseFontSizePt, footnotes));
                 break;
 
             case "PRE":
@@ -99,24 +173,24 @@ public class HtmlToDocxConverter
 
             case "FIGURE":
                 foreach (var child in element.Children)
-                    AppendNode(body, child, mainPart, sourceDir, styles, baseFontSizePt);
+                    AppendNode(body, child, mainPart, sourceDir, styles, baseFontSizePt, footnotes);
                 break;
 
             case "FIGCAPTION":
                 var captionStyle = styles.ComputedStyle(element);
                 var captionSize = CssValueParser.ParseLength(captionStyle.GetPropertyValue("font-size"), baseFontSizePt) ?? baseFontSizePt;
                 var captionParagraph = new Paragraph();
-                AppendInlineChildren(captionParagraph, element, mainPart, styles, captionSize);
+                AppendInlineChildren(captionParagraph, element, mainPart, styles, captionSize, footnotes);
                 body.Append(captionParagraph);
                 break;
 
             case "DL":
-                AppendDefinitionList(body, element, mainPart, styles, baseFontSizePt);
+                AppendDefinitionList(body, element, mainPart, styles, baseFontSizePt, footnotes);
                 break;
 
             case "BLOCKQUOTE":
                 foreach (var child in element.Children)
-                    AppendNode(body, child, mainPart, sourceDir, styles, baseFontSizePt);
+                    AppendNode(body, child, mainPart, sourceDir, styles, baseFontSizePt, footnotes);
                 break;
 
             // HtmlBookAssembler.AssembleWholeBook separates front matter/chapters/back matter
@@ -129,7 +203,7 @@ public class HtmlToDocxConverter
         }
     }
 
-    private static void AppendBlockContainer(Body body, DomElement element, MainDocumentPart mainPart, string? sourceDir, HtmlStyleDocument styles, float baseFontSizePt)
+    private static void AppendBlockContainer(Body body, DomElement element, MainDocumentPart mainPart, string? sourceDir, HtmlStyleDocument styles, float baseFontSizePt, FootnoteContext footnotes)
     {
         var style = styles.ComputedStyle(element);
         var fontSize = CssValueParser.ParseLength(style.GetPropertyValue("font-size"), baseFontSizePt) ?? baseFontSizePt;
@@ -144,13 +218,13 @@ public class HtmlToDocxConverter
         if (element.TagName == "DIV" && element.Children.Any(IsBlockElement))
         {
             foreach (var child in element.Children)
-                AppendNode(body, child, mainPart, sourceDir, styles, fontSize);
+                AppendNode(body, child, mainPart, sourceDir, styles, fontSize, footnotes);
             return;
         }
 
         var paragraph = new Paragraph();
         ApplyParagraphBlockStyle(paragraph, style, baseFontSizePt);
-        AppendInlineChildren(paragraph, element, mainPart, styles, fontSize);
+        AppendInlineChildren(paragraph, element, mainPart, styles, fontSize, footnotes);
         body.Append(paragraph);
     }
 
@@ -180,33 +254,33 @@ public class HtmlToDocxConverter
             paragraph.Append(properties);
     }
 
-    private static void AppendList(Body body, DomElement list, MainDocumentPart mainPart, HtmlStyleDocument styles, float baseFontSizePt, bool ordered)
+    private static void AppendList(Body body, DomElement list, MainDocumentPart mainPart, HtmlStyleDocument styles, float baseFontSizePt, FootnoteContext footnotes, bool ordered)
     {
         var index = 1;
         foreach (var item in list.Children.Where(c => c.TagName == "LI"))
         {
             var paragraph = new Paragraph();
             paragraph.Append(new Run(new Text(ordered ? $"{index}. " : "• ") { Space = SpaceProcessingModeValues.Preserve }));
-            AppendInlineChildren(paragraph, item, mainPart, styles, baseFontSizePt);
+            AppendInlineChildren(paragraph, item, mainPart, styles, baseFontSizePt, footnotes);
             body.Append(paragraph);
             index++;
         }
     }
 
-    private static void AppendDefinitionList(Body body, DomElement dl, MainDocumentPart mainPart, HtmlStyleDocument styles, float baseFontSizePt)
+    private static void AppendDefinitionList(Body body, DomElement dl, MainDocumentPart mainPart, HtmlStyleDocument styles, float baseFontSizePt, FootnoteContext footnotes)
     {
         foreach (var child in dl.Children)
         {
             if (child.TagName == "DT")
             {
                 var paragraph = new Paragraph();
-                AppendInlineChildren(paragraph, child, mainPart, styles, baseFontSizePt, forceBold: true);
+                AppendInlineChildren(paragraph, child, mainPart, styles, baseFontSizePt, footnotes, forceBold: true);
                 body.Append(paragraph);
             }
             else if (child.TagName == "DD")
             {
                 var paragraph = new Paragraph(new ParagraphProperties(new Indentation { Left = "720" }));
-                AppendInlineChildren(paragraph, child, mainPart, styles, baseFontSizePt);
+                AppendInlineChildren(paragraph, child, mainPart, styles, baseFontSizePt, footnotes);
                 body.Append(paragraph);
             }
         }
@@ -244,7 +318,7 @@ public class HtmlToDocxConverter
         return paragraph;
     }
 
-    private static DocumentFormat.OpenXml.Wordprocessing.Table BuildTable(DomElement table, MainDocumentPart mainPart, HtmlStyleDocument styles, float baseFontSizePt)
+    private static DocumentFormat.OpenXml.Wordprocessing.Table BuildTable(DomElement table, MainDocumentPart mainPart, HtmlStyleDocument styles, float baseFontSizePt, FootnoteContext footnotes)
     {
         var docxTable = new DocumentFormat.OpenXml.Wordprocessing.Table();
         docxTable.AppendChild(new TableProperties(new TableBorders(
@@ -268,7 +342,7 @@ public class HtmlToDocxConverter
             foreach (var cell in row.Children.Where(c => c.TagName is "TD" or "TH"))
             {
                 var paragraph = new Paragraph();
-                AppendInlineChildren(paragraph, cell, mainPart, styles, baseFontSizePt, forceBold: cell.TagName == "TH");
+                AppendInlineChildren(paragraph, cell, mainPart, styles, baseFontSizePt, footnotes, forceBold: cell.TagName == "TH");
                 if (!paragraph.HasChildren)
                     paragraph.Append(new Run(new Text(string.Empty)));
 
@@ -360,7 +434,7 @@ public class HtmlToDocxConverter
             DistanceFromRight = 0U,
         });
 
-    private static void AppendInlineChildren(Paragraph paragraph, DomElement parent, MainDocumentPart mainPart, HtmlStyleDocument styles, float baseFontSizePt, bool forceBold = false)
+    private static void AppendInlineChildren(Paragraph paragraph, DomElement parent, MainDocumentPart mainPart, HtmlStyleDocument styles, float baseFontSizePt, FootnoteContext footnotes, bool forceBold = false)
     {
         var parentStyle = styles.ComputedStyle(parent);
 
@@ -381,6 +455,22 @@ public class HtmlToDocxConverter
             {
                 case "BR":
                     paragraph.Append(new Run(new Break()));
+                    break;
+
+                // Word's own footnote UX already provides a way back to the reference —
+                // rendering this literal "↩" (with a dead link, since Word has no equivalent
+                // fragment-anchor target for it) would just be redundant/confusing.
+                case "A" when element.ClassList.Contains("footnote-back-ref"):
+                    break;
+
+                // A footnote reference (see MainWindow.OnInsertFootnoteClick) becomes a real
+                // Word FootnoteReference run instead of literal "<sup><a>N</a></sup>" text —
+                // its content lives in the FootnotesPart (see AppendFootnotesPart), addressed
+                // by the id BuildFootnoteContext assigned it.
+                case "SUP" when footnotes.WordIds.TryGetValue(element, out var wordId):
+                    paragraph.Append(new Run(
+                        new RunProperties(new VerticalTextAlignment { Val = VerticalPositionValues.Superscript }),
+                        new FootnoteReference { Id = wordId }));
                     break;
 
                 case "A":
@@ -404,10 +494,53 @@ public class HtmlToDocxConverter
                     break;
 
                 default:
-                    AppendInlineChildren(paragraph, element, mainPart, styles, baseFontSizePt, forceBold);
+                    AppendInlineChildren(paragraph, element, mainPart, styles, baseFontSizePt, footnotes, forceBold);
                     break;
             }
         }
+    }
+
+    /// <summary>
+    /// Builds the FootnotesPart every id in footnotes.WordIds needs — a required separator and
+    /// continuation-separator entry (Word's own schema expects these two reserved ids, -1 and
+    /// 0, even though this app never triggers the "continued on next page" case they exist
+    /// for), then one real w:footnote per note, in Word-id order so they read in the same
+    /// sequence as their references appear in the body.
+    /// </summary>
+    private static void AppendFootnotesPart(MainDocumentPart mainPart, HtmlStyleDocument styles, float baseFontSizePt, FootnoteContext footnotes)
+    {
+        var footnotesPart = mainPart.AddNewPart<FootnotesPart>();
+        var footnotesRoot = new Footnotes(
+            new DocumentFormat.OpenXml.Wordprocessing.Footnote(new Paragraph(new Run(new SeparatorMark())))
+            {
+                Type = FootnoteEndnoteValues.Separator,
+                Id = -1,
+            },
+            new DocumentFormat.OpenXml.Wordprocessing.Footnote(new Paragraph(new Run(new ContinuationSeparatorMark())))
+            {
+                Type = FootnoteEndnoteValues.ContinuationSeparator,
+                Id = 0,
+            });
+
+        foreach (var (reference, wordId) in footnotes.WordIds.OrderBy(entry => entry.Value))
+        {
+            if (!footnotes.Definitions.TryGetValue(reference, out var li))
+                continue;
+
+            var paragraph = new Paragraph(new ParagraphProperties(new ParagraphStyleId { Val = "FootnoteText" }));
+            paragraph.Append(new Run(new RunProperties(new RunStyle { Val = "FootnoteText" }), new FootnoteReferenceMark()));
+            paragraph.Append(new Run(new Text(" ") { Space = SpaceProcessingModeValues.Preserve }));
+
+            // The note's own text lives inside a <p> (see MainWindow.InsertOrAppendFootnoteDefinition's
+            // "<li id='fn:N'><p>{note} <a class='footnote-back-ref'>...</a></p></li>" shape) —
+            // fall back to the <li> itself defensively, in case a hand-edited chapter omits it.
+            var contentElement = li.QuerySelector("p") ?? li;
+            AppendInlineChildren(paragraph, contentElement, mainPart, styles, baseFontSizePt, footnotes);
+
+            footnotesRoot.Append(new DocumentFormat.OpenXml.Wordprocessing.Footnote(paragraph) { Id = wordId });
+        }
+
+        footnotesPart.Footnotes = footnotesRoot;
     }
 
     /// <summary>

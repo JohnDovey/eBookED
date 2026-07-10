@@ -169,6 +169,40 @@ public class PdfBuilderTests : IDisposable
     }
 
     [Fact]
+    public void Build_RendersARealFootnoteReferenceAndNotesSection()
+    {
+        var project = BuildSampleProject();
+
+        var chapterPath = _chapterFileService.CreateNewChapterFile(project.ChaptersDir, "Chapter Two");
+        var relativePath = Path.GetRelativePath(project.DirectoryPath, chapterPath).Replace('\\', '/');
+        _chapterFileService.WriteChapter(chapterPath,
+            new ChapterFrontMatter { Title = "Chapter Two" },
+            """
+            <p>Some text with a note.<sup id="fnref:1"><a href="#fn:1" class="footnote-ref">1</a></sup></p>
+            <div class="footnotes">
+            <hr>
+            <ol>
+            <li id="fn:1"><p>Gruber is also known for the blog Daring Fireball. <a href="#fnref:1" class="footnote-back-ref">&#8617;</a></p></li>
+            </ol>
+            </div>
+            """);
+        _spineService.AddChapter(project, "Chapter Two", relativePath);
+        _projectService.SaveProject(project);
+
+        var outputPath = Path.Combine(project.OutputDir, "book.pdf");
+        _pdfBuilder.Build(project, outputPath);
+
+        using var document = PdfDocument.Open(outputPath);
+        var allText = string.Join(" ", Enumerable.Range(1, document.NumberOfPages).Select(i => document.GetPage(i).Text));
+
+        Assert.Contains("Notes", allText);
+        Assert.Contains("Gruber is also known for the blog Daring Fireball.", allText);
+        // The back-reference arrow has no in-document jump target in PDF (see
+        // HtmlToPdfRenderer.RenderFootnotes) and shouldn't appear as dead link text.
+        Assert.DoesNotContain('↩', allText);
+    }
+
+    [Fact]
     public void Build_WithVellumSerifTemplate_EmbedsTheTemplatesFonts()
     {
         var repoRoot = FindRepoRoot();

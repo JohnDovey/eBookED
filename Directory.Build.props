@@ -471,6 +471,43 @@
          the div itself. PDF still won't show the drop cap (QuestPDF has no ::first-letter primitive at
          all — a separate, pre-existing, documented limitation, not part of this fix) but
          Preview and EPUB now do. -->
-    <Version>2.12.3</Version>
+    <!-- 2.13.0: new feature, so a minor bump. Restores real native footnote support to PDF and
+         Word, which the HTML content-model refactor's PDF/Word rewrite (2.8.0) had deliberately
+         left generic ("Footnotes are deliberately NOT handled here" — that phase's own doc
+         comments) since no HTML authoring convention existed yet for them at the time; Phase 7
+         (2.10.0) later added "Insert Footnote…" but never revisited PDF/Word to special-case
+         the convention it produces, so both kept rendering a footnote reference/note as plain
+         inline HTML (a superscript link plus a trailing list) — user-reported as a real,
+         confusing regression from this app's pre-refactor behavior (verified directly: the old
+         MarkdownToDocxConverter/MarkdownToPdfRenderer, still in git history, did have real
+         support).
+         Word: a "&lt;sup id="fnref:N"&gt;" reference now becomes a real w:footnoteReference run,
+         and its matching "&lt;div class="footnotes"&gt;" note moves into a real FootnotesPart
+         (visible in Word's own footnote pane) instead of rendering inline in the body — ported
+         from the pre-refactor converter's own FootnotesPart-building code, adapted from walking
+         a Markdig AST to walking an AngleSharp DOM. This app's own footnote numbering restarts
+         at 1 per chapter (by design, each chapter's notes are its own), but Word's FootnotesPart
+         needs document-wide-unique ids — HtmlBookAssembler's whole-book export concatenates
+         every chapter into one HTML string, so two different chapters' own "id='fn:1'" would
+         otherwise collide. Fixed by assigning Word's internal ids by first-reference-appearance
+         order (Word displays footnotes by document flow order regardless of the id's numeric
+         value, so this doesn't affect what the reader sees) and pairing each reference to its
+         definition by matching them within the same "footnotes" section rather than by the raw,
+         non-globally-unique "fn:N" string — caught by a real dictionary-key-collision test
+         failure against a two-chapter fixture before this fix, not assumed correct.
+         PDF: a footnote reference renders as a real superscript number (previously lost its
+         superscript positioning entirely — vertical-align isn't an inherited CSS property, and
+         the reference sits on a nested <a>, not the <sup> the "font-size: 75%"/"vertical-align:
+         super" baseline rule targets), and the matching "footnotes" div now renders as a
+         horizontal rule, a bold "Notes" heading, and numbered rows — restoring the exact layout
+         MarkdownToPdfRenderer used before the refactor. True per-physical-page footnote
+         placement remains out of scope either way (would need a custom pagination engine
+         QuestPDF doesn't offer) — notes still collect at the end of whichever chapter/page
+         referenced them, same simplification the app has always made.
+         Both renderers drop the note's own "&lt;a class="footnote-back-ref"&gt;" arrow when
+         rendering its text — Word's footnote pane already provides its own way back to the
+         reference, and PDF has no in-document jump target for the arrow to point at either way,
+         so showing it there would just be a dead link. -->
+    <Version>2.13.0</Version>
   </PropertyGroup>
 </Project>

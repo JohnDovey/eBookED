@@ -21,10 +21,12 @@ namespace eBookEditor.Pdf.Services;
 /// small-caps, letter-spacing, ::first-letter drop caps) — those are acknowledged, silent
 /// no-ops rather than attempted approximations that would misrepresent the source styling.
 ///
-/// Footnotes are deliberately not handled here — there's no HTML authoring convention for them
-/// yet (no toolbar command produces one); that's tied to the "Insert Footnote" command planned
-/// alongside the editor UI rewrite, not something this rendering-only phase should invent in
-/// isolation.
+/// Footnotes (see MainWindow.OnInsertFootnoteClick) render as a superscript reference number in
+/// the text and a "Notes" section collected at the end of whichever chapter/page they were
+/// written in (see RenderFootnotes) — matching this app's pre-HTML-refactor PDF footnote
+/// behavior. True per-page-bottom footnotes, reflowing onto whichever physical page the
+/// reference lands on, would need a custom pagination engine QuestPDF doesn't offer; this is the
+/// same simplification the app has always made for PDF.
 /// </summary>
 internal class HtmlToPdfRenderer
 {
@@ -71,6 +73,10 @@ internal class HtmlToPdfRenderer
             // <p>) needs the same handling as the "sole image in a paragraph" case above.
             case "IMG":
                 RenderImage(column.Item(), element, sourceDir);
+                break;
+
+            case "DIV" when element.ClassList.Contains("footnotes"):
+                RenderFootnotes(column, element, headingFontFamily, styles, baseFontSize);
                 break;
 
             case "P" or "DIV":
@@ -239,6 +245,38 @@ internal class HtmlToPdfRenderer
         }
     }
 
+    /// <summary>
+    /// Renders a "&lt;div class="footnotes"&gt;" block (see MainWindow.OnInsertFootnoteClick)
+    /// as a horizontal rule, a "Notes" heading, and one "N. text" row per note — mirroring this
+    /// app's pre-HTML-refactor PDF footnote layout. The note's own trailing back-link anchor
+    /// ("&lt;a class='footnote-back-ref'&gt;") is skipped when rendering its text (see
+    /// RenderInlineChildren's "A" case) — PDF has no in-document jump target for it to point at.
+    /// </summary>
+    private static void RenderFootnotes(ColumnDescriptor column, DomElement footnotesDiv, string? headingFontFamily, HtmlStyleDocument styles, float baseFontSize)
+    {
+        var items = footnotesDiv.QuerySelectorAll("li[id]")
+            .Where(li => li.Id!.StartsWith("fn:", StringComparison.Ordinal))
+            .ToList();
+        if (items.Count == 0)
+            return;
+
+        column.Item().PaddingTop(16).LineHorizontal(0.5f).LineColor(Colors.Grey.Lighten1);
+        var notesHeading = column.Item().PaddingTop(6).PaddingBottom(4).Text("Notes").Bold().FontSize(baseFontSize + 2);
+        if (headingFontFamily is not null)
+            notesHeading.FontFamily(headingFontFamily);
+
+        foreach (var li in items)
+        {
+            var number = li.Id!["fn:".Length..];
+            column.Item().PaddingBottom(4).Row(row =>
+            {
+                row.ConstantItem(18).Text($"{number}.").FontSize(baseFontSize * 0.85f);
+                row.RelativeItem().Text(text =>
+                    RenderInlineChildren(text, li.QuerySelector("p") ?? li, baseFontSize * 0.85f, headingFontFamily, styles));
+            });
+        }
+    }
+
     private static bool TryGetSoleImage(DomElement paragraph, out DomElement? image)
     {
         var elements = paragraph.Children;
@@ -286,6 +324,19 @@ internal class HtmlToPdfRenderer
             {
                 case "BR":
                     text.EmptyLine();
+                    break;
+
+                // A footnote reference (see MainWindow.OnInsertFootnoteClick) — its number is
+                // rendered directly rather than descending into its "<a>" child, since PDF has
+                // no in-document jump target for that link to point at.
+                case "SUP" when element.Id is { } supId && supId.StartsWith("fnref:", StringComparison.Ordinal):
+                    text.Span(supId["fnref:".Length..]).FontSize(baseFontSize * 0.75f).Superscript();
+                    break;
+
+                // Word's own footnote UX already provides a way back to the reference; PDF's
+                // "Notes" section (see RenderFootnotes) has no equivalent jump target for this
+                // literal "↩" to point at, so it's dropped rather than shown as a dead link.
+                case "A" when element.ClassList.Contains("footnote-back-ref"):
                     break;
 
                 case "A":
