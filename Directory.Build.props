@@ -410,6 +410,24 @@
          Also fixed README.md's solution-structure table: removed the AvaloniaEdit and
          eBookEditor.Markdown rows (both gone), added a row for eBookEditor.Html (added in Phase
          2, never documented) and eBookEditor.Migration (added in Phase 6, never documented). -->
-    <Version>2.12.0</Version>
+    <!-- 2.12.1: docs-only patch, no code changes — the README.md follow-up spun off by 2.11.0's
+         note. Rewrote the intro paragraph, the eBookEditor.Migration/DocxImport/ChapterImport
+         solution-structure rows, the project directory layout, and "Importing chapters" for the
+         current .ebhtml/HTML content model. Replaced "Markdown syntax" (and its "Applying
+         styles"/"Inserting images" subsections) with "HTML syntax", mirroring the conventions in
+         the rewritten manual/chapters/004 - Markdown Syntax Reference.md ("HTML Syntax
+         Reference"). Updated "Word export" for HtmlToDocxConverter/HtmlBookAssembler. Fixed the
+         "Known limitations" custom-containers bullet, which had gone stale the moment Phase 5
+         added real AngleSharp.Css cascade resolution to PDF/Word — replaced with the actual
+         remaining gaps (no PDF small-caps/letter-spacing primitive, no ::first-letter drop-cap
+         support in either engine), per HtmlToPdfRenderer/HtmlToDocxConverter's own doc comments.
+         Also corrected the footnotes bullet and the new HTML-syntax section's footnote coverage:
+         verified directly against HtmlToPdfRenderer.cs/HtmlToDocxConverter.cs that footnotes are
+         NOT specially handled in either renderer (confirmed by their own doc comments, dated
+         back to Phase 5/2.8.0, never revisited after Phase 7/2.10.0 added the "Insert Footnote"
+         command) — the old README claim of a PDF "Notes" section and real native Word footnotes
+         no longer held; the reference/note now render as ordinary superscript text and a
+         trailing list, real only in EPUB. -->
+    <Version>2.12.1</Version>
   </PropertyGroup>
 </Project>
