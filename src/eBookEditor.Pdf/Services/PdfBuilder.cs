@@ -101,6 +101,9 @@ public class PdfBuilder
                         if (item.Type == SpineItemType.Chapter)
                             wordCount += HtmlText.CountWords(body);
 
+                        if (ChapterHeadingHtml.Build(item) is { } heading)
+                            body = heading + "\n" + body;
+
                         var sourceDir = Path.GetDirectoryName(project.ResolvePath(item));
                         _renderer.RenderHtmlBody(column, body, sourceDir, templateCss, sectionName, fonts.HeadingFontFamily);
                     }

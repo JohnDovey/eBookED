@@ -76,6 +76,24 @@ public class EpubBuilderTests : IDisposable
     }
 
     [Fact]
+    public void Build_RendersTheChaptersTitleAsAHeading()
+    {
+        // Chapter files store the title only in front matter, never in the body (see
+        // ChapterHeadingHtml) — BuildSampleProject's chapter body has no heading text at all,
+        // so this only passes if EpubBuilder actually synthesizes one from the spine item.
+        var project = BuildSampleProject();
+        var outputPath = Path.Combine(project.OutputDir, "book.epub");
+        _epubBuilder.Build(project, outputPath);
+
+        using var archive = ZipFile.OpenRead(outputPath);
+        var contentDocsText = archive.Entries
+            .Where(e => e.FullName.StartsWith("OEBPS/content-", StringComparison.Ordinal))
+            .Select(e => { using var reader = new StreamReader(e.Open()); return reader.ReadToEnd(); });
+
+        Assert.Contains(contentDocsText, text => text.Contains("<h1>Chapter 1: Chapter One</h1>", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Build_MimetypeIsFirstEntryAndStoredUncompressed()
     {
         var project = BuildSampleProject();

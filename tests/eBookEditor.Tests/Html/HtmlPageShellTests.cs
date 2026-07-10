@@ -22,11 +22,31 @@ public class HtmlPageShellTests
     }
 
     [Fact]
-    public void Wrap_Editable_MarksBodyContentEditable()
+    public void Wrap_Editable_MarksContentElementContentEditable()
     {
         var html = HtmlPageShell.Wrap("", "<p>Hello</p>", editable: true);
 
         Assert.Contains($"id=\"{HtmlPageShell.ContentElementId}\" contenteditable=\"true\"", html);
+    }
+
+    [Fact]
+    public void Wrap_WithHeading_RendersHeadingOutsideTheContentElement()
+    {
+        var html = HtmlPageShell.Wrap("", "<p>Body text</p>", editable: true, headingHtml: "<h1>Chapter 1: Title</h1>");
+
+        var headingIndex = html.IndexOf("<h1>Chapter 1: Title</h1>", StringComparison.Ordinal);
+        var contentDivIndex = html.IndexOf($"id=\"{HtmlPageShell.ContentElementId}\"", StringComparison.Ordinal);
+
+        Assert.True(headingIndex >= 0 && headingIndex < contentDivIndex,
+            "the heading must appear before the #content element, not inside it");
+    }
+
+    [Fact]
+    public void Wrap_NoHeading_OmitsHeadingMarkup()
+    {
+        var html = HtmlPageShell.Wrap("", "<p>Hello</p>", editable: false);
+
+        Assert.DoesNotContain("<h1>", html);
     }
 
     [Theory]

@@ -18,6 +18,7 @@ public partial class PreviewWindow : Window
     private NativeWebView? _webView;
     private string _pendingCss = string.Empty;
     private string _pendingBody = string.Empty;
+    private string? _pendingHeading;
     private bool _navigated;
     private double? _pendingScrollFraction;
 
@@ -40,10 +41,11 @@ public partial class PreviewWindow : Window
         }, DispatcherPriority.Loaded);
     }
 
-    public void UpdateContent(string css, string bodyHtml, string? title)
+    public void UpdateContent(string css, string bodyHtml, string? title, string? headingHtml = null)
     {
         _pendingCss = css;
         _pendingBody = bodyHtml;
+        _pendingHeading = headingHtml;
         Title = title is { Length: > 0 } ? $"Preview — {title}" : "Preview";
         Navigate();
     }
@@ -54,7 +56,7 @@ public partial class PreviewWindow : Window
             return;
 
         _navigated = false;
-        var html = HtmlPageShell.Wrap(_pendingCss, _pendingBody, editable: false);
+        var html = HtmlPageShell.Wrap(_pendingCss, _pendingBody, editable: false, _pendingHeading);
         _webView.NavigateToString(html, new Uri("about:blank"));
     }
 

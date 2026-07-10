@@ -71,6 +71,23 @@ public class PdfBuilderTests : IDisposable
     }
 
     [Fact]
+    public void Build_RendersTheChaptersTitleAsAHeading()
+    {
+        // Chapter files store the title only in front matter, never in the body (see
+        // ChapterHeadingHtml) — BuildSampleProject's chapter body has no heading text at all,
+        // so this only passes if PdfBuilder actually synthesizes one from the spine item.
+        var project = BuildSampleProject();
+        var outputPath = Path.Combine(project.OutputDir, "book.pdf");
+
+        _pdfBuilder.Build(project, outputPath);
+
+        using var document = PdfDocument.Open(outputPath);
+        var allText = string.Join(" ", Enumerable.Range(1, document.NumberOfPages).Select(i => document.GetPage(i).Text));
+
+        Assert.Contains("Chapter 1: Chapter One", allText);
+    }
+
+    [Fact]
     public void Build_ReturnsAtLeastOnePagePerSpineItem()
     {
         var project = BuildSampleProject();

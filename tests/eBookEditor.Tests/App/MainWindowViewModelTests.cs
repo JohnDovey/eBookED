@@ -460,4 +460,23 @@ public class MainWindowViewModelTests : IDisposable
         Assert.Single(files);
         Assert.Contains(vm.CurrentProject.OutputDir, vm.StatusMessage);
     }
+
+    [Fact]
+    public void ExportChapterAsWord_RendersTheChaptersTitleAsAHeading()
+    {
+        // A brand-new chapter's body is empty — this only passes if ExportChapterAsWord
+        // actually synthesizes a heading from the spine item (see ChapterHeadingHtml), since
+        // the title itself lives only in front matter, never in the body.
+        var vm = NewViewModel();
+        vm.AddChapterCommand.Execute(null);
+        var chapter = Assert.Single(vm.CurrentProject.Spine, i => i.Type == SpineItemType.Chapter);
+
+        vm.ExportChapterAsWord(chapter);
+
+        var outputPath = Directory.GetFiles(vm.CurrentProject.OutputDir, "*.docx").Single();
+        using var document = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(outputPath, false);
+        var bodyText = document.MainDocumentPart!.Document!.Body!.InnerText;
+
+        Assert.Contains("Chapter 1: New Chapter", bodyText);
+    }
 }

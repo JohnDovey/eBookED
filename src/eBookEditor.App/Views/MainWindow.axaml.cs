@@ -149,7 +149,7 @@ public partial class MainWindow : Window
         }
 
         var title = ViewModel.Editor.FilePath is { } path ? Path.GetFileNameWithoutExtension(path) : null;
-        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), ViewModel.Editor.CurrentText, title);
+        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), ViewModel.Editor.CurrentText, title, CurrentChapterHeadingHtml());
         ScrollPreviewToCaret();
     }
 
@@ -158,8 +158,37 @@ public partial class MainWindow : Window
         if (_previewWindow is null || ViewModel is null)
             return;
 
-        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), bodyHtml, title);
+        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), bodyHtml, title, CurrentChapterHeadingHtml());
         ScrollPreviewToCaret();
+    }
+
+    /// <summary>
+    /// The synthesized "&lt;h1&gt;Chapter N: Title&lt;/h1&gt;" for whatever's currently
+    /// selected in the sidebar (see ChapterHeadingHtml) — null for front/back matter (their
+    /// heading is already baked into the generated body) or when nothing's selected. Rendering
+    /// this is what makes Preview/Rich Text mode show the same heading every export produces,
+    /// even though it's never actually part of the stored chapter body.
+    /// </summary>
+    private string? CurrentChapterHeadingHtml() =>
+        ViewModel?.SelectedSpineItem is { } item ? ChapterHeadingHtml.Build(item) : null;
+
+    /// <summary>
+    /// Saves the chapter title/subtitle fields, then refreshes whichever of Preview/Rich Text
+    /// is currently showing — SaveChapterHeaderCommand alone wouldn't do this, since it mutates
+    /// SelectedSpineItem.Title/Subtitle directly rather than through CurrentText, so nothing
+    /// would otherwise trigger SyncEditorTextFromViewModel to notice the heading changed.
+    /// </summary>
+    private void OnSaveChapterHeaderClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null)
+            return;
+
+        ViewModel.SaveChapterHeaderCommand.Execute(null);
+
+        if (IsWysiwygMode)
+            PushContentToWysiwyg(ViewModel.Editor.CurrentText);
+
+        UpdatePreviewWindow(ViewModel.Editor.CurrentText, ViewModel.Editor.FilePath is { } path ? Path.GetFileNameWithoutExtension(path) : null);
     }
 
     private void OnEditorCaretPositionChanged(object? sender, EventArgs e) => ScrollPreviewToCaret();
@@ -226,7 +255,7 @@ public partial class MainWindow : Window
 
         EnsureWysiwygWebView();
         _wysiwygNavigated = false;
-        var html = HtmlPageShell.Wrap(ViewModel.GetCurrentTemplateCss(), bodyHtml, editable: true);
+        var html = HtmlPageShell.Wrap(ViewModel.GetCurrentTemplateCss(), bodyHtml, editable: true, CurrentChapterHeadingHtml());
         _wysiwygWebView!.NavigateToString(html, new Uri("about:blank"));
     }
 

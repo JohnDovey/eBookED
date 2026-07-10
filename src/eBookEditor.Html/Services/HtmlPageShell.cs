@@ -116,7 +116,15 @@ public static class HtmlPageShell
         })();
         """;
 
-    public static string Wrap(string css, string bodyHtml, bool editable) =>
+    /// <summary>
+    /// headingHtml, if given, renders as a sibling BEFORE the #content element rather than
+    /// inside it — a chapter's synthesized "&lt;h1&gt;Chapter N: Title&lt;/h1&gt;" (see
+    /// ChapterHeadingHtml) needs to be visible without becoming part of what the WYSIWYG bridge
+    /// reads back as the editable body on every change (chapter files store the title/subtitle
+    /// only in front matter, never in the body itself — folding the heading into #content would
+    /// permanently duplicate it into the saved file the next time WYSIWYG edits synced back).
+    /// </summary>
+    public static string Wrap(string css, string bodyHtml, bool editable, string? headingHtml = null) =>
         $"""
         <!doctype html>
         <html>
@@ -124,8 +132,10 @@ public static class HtmlPageShell
         <meta charset="utf-8">
         <style>{css}</style>
         </head>
-        <body id="{ContentElementId}"{(editable ? " contenteditable=\"true\" spellcheck=\"false\"" : "")}>
+        <body>
+        {(headingHtml is { Length: > 0 } ? headingHtml + "\n" : "")}<div id="{ContentElementId}"{(editable ? " contenteditable=\"true\" spellcheck=\"false\"" : "")}>
         {bodyHtml}
+        </div>
         <script>
         {BridgeScript}
         </script>

@@ -2,6 +2,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\eBookEditor.Core\eBookEditor.Core.csproj" />
+    <!-- ChapterHeadingHtml, to synthesize a chapter's "<h1>Chapter N: Title</h1>" heading from
+         its front-matter title/subtitle (chapter files store it there, not in the body). -->
+    <ProjectReference Include="..\eBookEditor.Html\eBookEditor.Html.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

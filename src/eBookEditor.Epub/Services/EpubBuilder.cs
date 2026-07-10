@@ -3,6 +3,7 @@ using System.Text;
 using eBookEditor.Core.Models;
 using eBookEditor.Core.Services;
 using eBookEditor.Epub.Models;
+using eBookEditor.Html.Services;
 
 namespace eBookEditor.Epub.Services;
 
@@ -50,6 +51,9 @@ public class EpubBuilder
             var sourcePath = project.ResolvePath(item);
             var rawText = File.ReadAllText(sourcePath);
             var (_, body) = _chapterFileService.ParseChapter(rawText);
+
+            if (ChapterHeadingHtml.Build(item) is { } heading)
+                body = heading + "\n" + body;
 
             // The stored body is already HTML — no Markdown-to-HTML conversion step needed
             // (that conversion, and this method's own project-relative-source-path/EPUB-

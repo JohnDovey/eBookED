@@ -96,11 +96,11 @@ public static class DefaultStylesheet
             margin-top: 0.5em;
         }
 
-        .attribution p::before {
+        .attribution::before {
             content: "— ";
         }
 
-        .drop-cap p:first-letter {
+        .drop-cap:first-letter {
             float: left;
             font-size: 3.2em;
             line-height: 0.8;

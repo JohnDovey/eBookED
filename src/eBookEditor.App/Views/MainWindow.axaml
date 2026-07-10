@@ -122,7 +122,7 @@
         <Grid DockPanel.Dock="Top" ColumnDefinitions="*,*,Auto" IsVisible="{Binding IsChapterSelected}" Margin="0,0,0,8">
           <TextBox Grid.Column="0" Watermark="Chapter title" Text="{Binding ChapterTitleInput}" Margin="0,0,4,0" />
           <TextBox Grid.Column="1" Watermark="Chapter subheading" Text="{Binding ChapterSubtitleInput}" Margin="4,0" />
-          <Button Grid.Column="2" Content="Apply" Command="{Binding SaveChapterHeaderCommand}" Margin="4,0,0,0" />
+          <Button Grid.Column="2" Content="Apply" Click="OnSaveChapterHeaderClick" Margin="4,0,0,0" />
         </Grid>
 
         <!-- Raw HTML (ae:TextEditor) and WYSIWYG (WysiwygHost, a NativeWebView built in

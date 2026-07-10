@@ -440,6 +440,37 @@
          AngleSharp.Css 0.17.0 wants AngleSharp 0.17.x, this solution resolves 1.5.1. Already
          verified safe (see 2.8.0's note and eBookEditor.Html's own csproj comment); the warning
          was just noise at this point, not a live signal to keep watching. -->
-    <Version>2.12.2</Version>
+    <!-- 2.12.3: two user-reported bug fixes, no new features, so a patch bump.
+         (1) A chapter's title/subtitle — entered via the sidebar's "Chapter title"/"Chapter
+         subheading" fields — never actually rendered anywhere except the whole-book Word
+         export. Chapter files store the title only in front matter, never in the body (by
+         design — see HtmlBookAssembler's original comment), and HtmlBookAssembler was the only
+         place that ever synthesized a "<h1>Chapter N: Title</h1>" heading from it before
+         rendering; PdfBuilder, EpubBuilder, single-chapter Word export, and the editor's own
+         Preview/Rich Text panes all just rendered the raw stored body, with no heading at all,
+         confirmed to predate this session's refactor entirely (traced back through git history
+         to the very first commit that added PDF export). Fixed by extracting the shared
+         synthesis into a new ChapterHeadingHtml (eBookEditor.Html) and calling it from every
+         one of those five places. For Preview/Rich Text mode specifically this required
+         restructuring HtmlPageShell: the heading now renders in a sibling element BEFORE
+         #content rather than inside it, so it's visible without becoming part of what the
+         WYSIWYG bridge reads back into CurrentText on every edit (which would have permanently
+         baked the heading into the saved chapter body the next time it synced). Also wired the
+         chapter-header "Apply" button (previously Command-bound only) to explicitly refresh
+         Preview/Rich Text afterward, since mutating SelectedSpineItem.Title/Subtitle directly
+         doesn't touch CurrentText and so wouldn't otherwise trigger a refresh.
+         (2) Drop Cap and Attribution ("Apply Style" catalog entries) silently failed to render
+         at all, in every format including Preview — a real regression from Vellum Serif's
+         source stylesheet, whose selectors (".attribution p::before", ".drop-cap p:first-letter")
+         assumed a nested <p> inside the styled block that this app's own Apply Style
+         implementation never produces (a flat "<div class='...'>{text}</div>", confirmed by
+         reading MainWindow.OnApplyStyleClick directly). Fixed by changing both selectors
+         (DefaultStylesheet.cs and "Vellum Serif.css") to apply directly to the wrapping
+         element (".drop-cap:first-letter", ".attribution::before") instead of requiring a
+         child <p> — Verse/Inset never had this problem since their rules already applied to
+         the div itself. PDF still won't show the drop cap (QuestPDF has no ::first-letter primitive at
+         all — a separate, pre-existing, documented limitation, not part of this fix) but
+         Preview and EPUB now do. -->
+    <Version>2.12.3</Version>
   </PropertyGroup>
 </Project>
