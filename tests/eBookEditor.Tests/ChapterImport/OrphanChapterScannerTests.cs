@@ -49,4 +49,25 @@ public class OrphanChapterScannerTests : IDisposable
 
         Assert.Empty(_scanner.FindOrphanedChapterFiles(project));
     }
+
+    [Fact]
+    public void FindOrphanedChapterFiles_AlsoFindsLegacyMarkdownDocxAndHtmlFiles()
+    {
+        var project = _projectService.CreateProject(_tempDir, "Mixed Format Book", new BookMetadata { Title = "Mixed Format Book" });
+
+        var markdownPath = Path.Combine(project.ChaptersDir, "1. Legacy.md");
+        File.WriteAllText(markdownPath, "Legacy content.");
+        var docxPath = Path.Combine(project.ChaptersDir, "2. Word Doc.docx");
+        File.WriteAllText(docxPath, "not a real docx, just needs to exist for the scan");
+        var htmlPath = Path.Combine(project.ChaptersDir, "3. Web Page.html");
+        File.WriteAllText(htmlPath, "<p>Web content.</p>");
+        var htmPath = Path.Combine(project.ChaptersDir, "4. Web Page Two.htm");
+        File.WriteAllText(htmPath, "<p>More web content.</p>");
+
+        var orphans = _scanner.FindOrphanedChapterFiles(project);
+
+        Assert.Equal(
+            new[] { markdownPath, docxPath, htmlPath, htmPath }.OrderBy(p => p, StringComparer.OrdinalIgnoreCase),
+            orphans);
+    }
 }

@@ -102,9 +102,16 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     /// <summary>
-    /// Picks up .md files sitting in chapters/ that aren't referenced by any spine item —
-    /// e.g. dropped into the folder directly via Finder/Explorer — and adds them to the
-    /// book. Filename hints (see ChapterFileNaming.ParseHint) determine where they land.
+    /// Picks up chapter-shaped files sitting in chapters/ that aren't referenced by any spine
+    /// item — e.g. dropped into the folder directly via Finder/Explorer — and adds them to the
+    /// book. Filename hints (see ChapterFileNaming.ParseHint) determine where they land. An
+    /// orphan already in this app's native .ebhtml format is registered in place, same as
+    /// always. Any other orphan (.md, .docx, .html, .htm) is silently converted: its content is
+    /// imported the same way a drag-and-dropped file would be (see ImportChapterFiles), written
+    /// out as a brand new .ebhtml chapter file, and — only once that conversion has actually
+    /// succeeded and the new file is safely added to the spine — the original non-native file
+    /// is deleted, so the project doesn't end up with two copies of the same chapter in two
+    /// formats.
     /// </summary>
     private void ImportOrphanedChapterFiles()
     {
@@ -114,11 +121,29 @@ public partial class MainWindowViewModel : ViewModelBase
 
         foreach (var filePath in orphanPaths)
         {
-            foreach (var draft in _chapterImportService.ImportFile(filePath))
+            var isNative = string.Equals(Path.GetExtension(filePath), ".ebhtml", StringComparison.OrdinalIgnoreCase);
+            var drafts = _chapterImportService.ImportFile(filePath);
+
+            foreach (var draft in drafts)
             {
-                var relativePath = Path.GetRelativePath(CurrentProject.DirectoryPath, filePath).Replace('\\', '/');
-                _spineService.AddChapter(CurrentProject, draft.Title, relativePath, draft.PositionHint);
+                if (isNative)
+                {
+                    var relativePath = Path.GetRelativePath(CurrentProject.DirectoryPath, filePath).Replace('\\', '/');
+                    _spineService.AddChapter(CurrentProject, draft.Title, relativePath, draft.PositionHint);
+                    continue;
+                }
+
+                var newPath = _chapterFileService.CreateNewChapterFile(CurrentProject.ChaptersDir, draft.Title);
+                _chapterFileService.WriteChapter(newPath, new ChapterFrontMatter { Title = draft.Title }, draft.Body);
+                var newRelativePath = Path.GetRelativePath(CurrentProject.DirectoryPath, newPath).Replace('\\', '/');
+                _spineService.AddChapter(CurrentProject, draft.Title, newRelativePath, draft.PositionHint);
+
+                foreach (var image in draft.Images)
+                    File.WriteAllBytes(Path.Combine(CurrentProject.ImagesDir, image.FileName), image.Bytes);
             }
+
+            if (!isNative)
+                File.Delete(filePath);
         }
 
         SyncChapterFileNamesAndRefreshSelection();

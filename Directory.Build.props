@@ -216,6 +216,14 @@
          as needing self-closing and broke XML parsing outright. Never manifested before because
          every &lt;img&gt; used to come from Markdig's own already-self-closing HTML renderer;
          this app's own HTML (generators, DOCX/HTML importers) routinely has such paths. -->
-    <Version>2.5.0</Version>
+    <!-- 2.6.0: new feature, so a minor bump — not one of the HTML refactor's own numbered
+         phases, but built on top of it. OrphanChapterScanner now also finds legacy .md, .docx,
+         and .html/.htm files sitting untracked in chapters/ (previously only .ebhtml). Every
+         non-.ebhtml orphan MainWindowViewModel.ImportOrphanedChapterFiles finds is silently
+         converted — imported the same way a drag-and-dropped file would be, written out as a
+         brand new native .ebhtml chapter file, added to the spine — and only once that new file
+         is safely in place is the original non-native file deleted, so orphan pickup can't
+         leave a project with two copies of the same chapter in two formats. -->
+    <Version>2.6.0</Version>
   </PropertyGroup>
 </Project>

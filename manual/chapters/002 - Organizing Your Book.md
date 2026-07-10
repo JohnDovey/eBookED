@@ -37,7 +37,7 @@ New chapters can come from three places, all producing the same result:
 2. **Drag files directly onto the sidebar.**
 3. **Drop files into the project's `chapters/` folder** using Finder/Explorer while the project is open — eBook Editor notices them the next time the project opens.
 
-`.md` files are used as-is. `.docx` files go through the same chapter-boundary detection as **File → Import DOCX…** (splitting on Heading 1 styles or "Chapter N" text, if present). `.html`/`.htm` files are converted to Markdown automatically.
+`.docx` files go through the same chapter-boundary detection as **File → Import DOCX…** (splitting on Heading 1 styles or "Chapter N" text, if present). `.html`/`.htm` files are cleaned up automatically (embedded scripts and styling are stripped) rather than converted to a different format. Either way, and for legacy `.md` files too, the result is always written out as this app's own native chapter format — for files dropped straight into `chapters/` (method 3 above), the original `.md`/`.docx`/`.html`/`.htm` file is deleted once its content has been safely converted and added to the book, so you don't end up with two copies of the same chapter sitting side by side.
 
 A file's name can hint at where it belongs: naming a file `"23. What Now.md"` or `"007 - Foo.md"` tells eBook Editor roughly where in the chapter order to place it.
 

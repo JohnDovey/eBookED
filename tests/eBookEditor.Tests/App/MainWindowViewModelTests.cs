@@ -11,6 +11,7 @@ public class MainWindowViewModelTests : IDisposable
     private readonly string _tempDir;
     private readonly ProjectService _projectService = new();
     private readonly PageGeneratorService _pageGenerator = new();
+    private readonly ChapterFileService _chapterFileService = new();
     private readonly AppSettingsService _appSettingsService;
     private readonly TemplateService _templateService;
 
@@ -431,6 +432,32 @@ public class MainWindowViewModelTests : IDisposable
 
         var chapters = vm.CurrentProject.Spine.Where(i => i.Type == SpineItemType.Chapter).OrderBy(i => i.Order).ToList();
         Assert.Equal(["Found Chapter", "Existing Chapter"], chapters.Select(c => c.Title));
+    }
+
+    [Fact]
+    public void Constructor_ConvertsNonNativeOrphanFilesToEbhtmlAndDeletesTheOriginal()
+    {
+        var metadata = new BookMetadata { Title = "Orphan Conversion Book" };
+        var project = _projectService.CreateProject(_tempDir, "Orphan Conversion Book", metadata);
+        _pageGenerator.RegenerateAllGeneratedPages(project);
+        _projectService.SaveProject(project);
+
+        var markdownPath = Path.Combine(project.ChaptersDir, "1. Legacy Chapter.md");
+        File.WriteAllText(markdownPath, "Legacy markdown content.");
+        var htmlPath = Path.Combine(project.ChaptersDir, "2. Web Chapter.html");
+        File.WriteAllText(htmlPath, "<p>Web content.</p>");
+
+        var vm = new MainWindowViewModel(project, _appSettingsService, _templateService);
+
+        var chapters = vm.CurrentProject.Spine.Where(i => i.Type == SpineItemType.Chapter).OrderBy(i => i.Order).ToList();
+        Assert.Equal(["Legacy Chapter", "Web Chapter"], chapters.Select(c => c.Title));
+        Assert.All(chapters, c => Assert.EndsWith(".ebhtml", c.RelativePath));
+
+        Assert.False(File.Exists(markdownPath));
+        Assert.False(File.Exists(htmlPath));
+
+        var (_, webBody) = _chapterFileService.ReadChapter(vm.CurrentProject.ResolvePath(chapters[1]));
+        Assert.Contains("Web content.", webBody);
     }
 
     [Fact]
