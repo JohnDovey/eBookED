@@ -27,11 +27,11 @@ public class OrphanChapterScannerTests : IDisposable
     public void FindOrphanedChapterFiles_ReturnsFilesNotReferencedBySpine()
     {
         var project = _projectService.CreateProject(_tempDir, "Orphan Book", new BookMetadata { Title = "Orphan Book" });
-        var trackedPath = Path.Combine(project.ChaptersDir, "tracked.md");
+        var trackedPath = Path.Combine(project.ChaptersDir, "tracked.ebhtml");
         File.WriteAllText(trackedPath, "Tracked content.");
-        _spineService.AddChapter(project, "Tracked", "chapters/tracked.md");
+        _spineService.AddChapter(project, "Tracked", "chapters/tracked.ebhtml");
 
-        var orphanPath = Path.Combine(project.ChaptersDir, "23. Orphan Chapter.md");
+        var orphanPath = Path.Combine(project.ChaptersDir, "23. Orphan Chapter.ebhtml");
         File.WriteAllText(orphanPath, "Orphaned content.");
 
         var orphans = _scanner.FindOrphanedChapterFiles(project);
@@ -44,8 +44,8 @@ public class OrphanChapterScannerTests : IDisposable
     public void FindOrphanedChapterFiles_ReturnsEmptyWhenEverythingIsTracked()
     {
         var project = _projectService.CreateProject(_tempDir, "Complete Book", new BookMetadata { Title = "Complete Book" });
-        File.WriteAllText(Path.Combine(project.ChaptersDir, "tracked.md"), "Tracked content.");
-        _spineService.AddChapter(project, "Tracked", "chapters/tracked.md");
+        File.WriteAllText(Path.Combine(project.ChaptersDir, "tracked.ebhtml"), "Tracked content.");
+        _spineService.AddChapter(project, "Tracked", "chapters/tracked.ebhtml");
 
         Assert.Empty(_scanner.FindOrphanedChapterFiles(project));
     }

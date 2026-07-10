@@ -391,7 +391,11 @@ public class MainWindowViewModelTests : IDisposable
 
         Assert.Equal(3, chapters.Count);
         Assert.Equal("Imported First", chapters[0].Title);
-        Assert.Equal("chapters/001 - Imported First.md", chapters[0].RelativePath);
+        // The imported file is still ".md" (import conversion is unrelated to this app's own
+        // on-disk storage extension), but what gets written internally always uses this
+        // project's own chapter-file convention — ".ebhtml" as of the HTML content-model
+        // refactor.
+        Assert.Equal("chapters/001 - Imported First.ebhtml", chapters[0].RelativePath);
         Assert.Contains("Imported body text.", File.ReadAllText(vm.CurrentProject.ResolvePath(chapters[0])));
     }
 
@@ -409,7 +413,7 @@ public class MainWindowViewModelTests : IDisposable
     }
 
     [Fact]
-    public void Constructor_PicksUpOrphanedMarkdownFilesInChaptersDirectoryAtTheirHintedPosition()
+    public void Constructor_PicksUpOrphanedChapterFilesInChaptersDirectoryAtTheirHintedPosition()
     {
         var metadata = new BookMetadata { Title = "Orphan Scan Book" };
         var project = _projectService.CreateProject(_tempDir, "Orphan Scan Book", metadata);
@@ -417,11 +421,11 @@ public class MainWindowViewModelTests : IDisposable
 
         // A tracked chapter already in the spine, plus an untracked ("orphan") file dropped
         // directly into chapters/ via Finder/Explorer, named to hint it belongs before it.
-        File.WriteAllText(Path.Combine(project.ChaptersDir, "existing.md"), "Existing content.");
-        new SpineService().AddChapter(project, "Existing Chapter", "chapters/existing.md");
+        File.WriteAllText(Path.Combine(project.ChaptersDir, "existing.ebhtml"), "Existing content.");
+        new SpineService().AddChapter(project, "Existing Chapter", "chapters/existing.ebhtml");
         _projectService.SaveProject(project);
 
-        File.WriteAllText(Path.Combine(project.ChaptersDir, "1. Found Chapter.md"), "Found content.");
+        File.WriteAllText(Path.Combine(project.ChaptersDir, "1. Found Chapter.ebhtml"), "Found content.");
 
         var vm = new MainWindowViewModel(project, _appSettingsService, _templateService);
 

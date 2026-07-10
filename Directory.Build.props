@@ -135,6 +135,21 @@
          deferring Window.Content assignment and the first Navigate call to
          Dispatcher.UIThread.Post(..., DispatcherPriority.Loaded). Phase 8 must apply this same
          pattern for both the editor's WYSIWYG pane and PreviewWindow. -->
-    <Version>2.1.0</Version>
+    <!-- 2.2.0: Phase 1 of the HTML refactor (see 2.0.0 note / the plan doc) — the core storage
+         format change. Chapter/front-matter/back-matter body files now use a new ".ebhtml"
+         extension instead of ".md" (ProjectPaths, ChapterFileNaming.BuildFileName,
+         ChapterFileService.CreateNewChapterFile, OrphanChapterScanner's *.ebhtml glob) — the
+         ---\nYAML\n---\n\n<body> wrapper convention itself is unchanged, only the extension and,
+         starting in Phase 2, what the body actually contains. ProjectFile gained a
+         CurrentSchemaVersion = 2 constant (1 = legacy Markdown-bodied .md projects, 2 = HTML-
+         bodied .ebhtml projects going forward); new projects are created at version 2, but
+         loading a version-1 project isn't gated yet — that belongs to the migration tool
+         (Phase 6). ChapterImportService now recognizes .ebhtml alongside legacy .md, reusing the
+         same front-matter/body parse as before, since Phase 1 doesn't change body content, only
+         its extension — needed so OrphanChapterScanner's newly-.ebhtml-aware results can still be
+         picked up and imported (a real gap: OrphanChapterScanner found .ebhtml orphans fine, but
+         ChapterImportService's extension switch had no case for it and threw). No content-
+         generation, import-conversion, or export code touched yet — that's Phases 2 through 5. -->
+    <Version>2.2.0</Version>
   </PropertyGroup>
 </Project>

@@ -49,7 +49,7 @@ public class ChapterFileService
     public string CreateNewChapterFile(string chaptersDir, string title)
     {
         var slug = Slug.Create(title, "chapter");
-        var fileName = $"{slug}-{Guid.NewGuid().ToString("N")[..8]}.md";
+        var fileName = $"{slug}-{Guid.NewGuid().ToString("N")[..8]}.ebhtml";
         var path = Path.Combine(chaptersDir, fileName);
         WriteChapter(path, new ChapterFrontMatter { Title = title }, "");
         return path;
@@ -57,7 +57,7 @@ public class ChapterFileService
 
     /// <summary>
     /// Renames chapter files on disk to match their resolved position ("023 - Chapter
-    /// Name.md"), so they sort correctly in a file browser too. Renames happen in two
+    /// Name.ebhtml"), so they sort correctly in a file browser too. Renames happen in two
     /// passes — first to unique temp names, then to their final names — so that swapping
     /// two chapters' positions (which briefly makes their desired file names collide with
     /// each other) never fails or overwrites data. Mutates <paramref name="project"/>'s

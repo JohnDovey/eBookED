@@ -27,11 +27,11 @@ public static partial class ChapterFileNaming
         return (null, fileNameWithoutExtension.Trim());
     }
 
-    /// <summary>Builds the on-disk file name for a chapter at its resolved number, e.g. (23, "What Now") -> "023 - What Now.md".</summary>
+    /// <summary>Builds the on-disk file name for a chapter at its resolved number, e.g. (23, "What Now") -> "023 - What Now.ebhtml".</summary>
     public static string BuildFileName(int? number, string title)
     {
         var safeTitle = SanitizeForFileName(title);
-        return number is { } n ? $"{n:D3} - {safeTitle}.md" : $"{safeTitle}.md";
+        return number is { } n ? $"{n:D3} - {safeTitle}.ebhtml" : $"{safeTitle}.ebhtml";
     }
 
     // Path.GetInvalidFileNameChars() only reflects the *current* OS's restrictions (on
