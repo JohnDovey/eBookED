@@ -27,6 +27,9 @@ public partial class MainWindow : Window
         DataContextChanged += OnDataContextChanged;
         EditorTextBox.TextChanged += OnEditorTextBoxTextChanged;
         EditorTextBox.TextArea.Caret.PositionChanged += OnEditorCaretPositionChanged;
+        // Chapters are HTML now (see the HTML content-model refactor); AvaloniaEditCore ships
+        // an "HTML" highlighting definition built in, no custom .xshd needed.
+        EditorTextBox.SyntaxHighlighting = AvaloniaEditCore.Highlighting.HighlightingManager.Instance.GetDefinition("HTML");
         Closing += OnWindowClosing;
         Closed += OnWindowClosed;
     }
@@ -175,13 +178,9 @@ public partial class MainWindow : Window
 
     /// <summary>
     /// Picks an image (starting in the project's images/ folder, created here if it doesn't
-    /// exist yet), copies it in if it was picked from elsewhere, and inserts it wrapped in a
-    /// classless custom-container "figure" grouping the image with a ".caption"-styled caption
-    /// paragraph underneath — see EditorStyleCatalog. Deliberately not a Markdown pipe table:
-    /// a trailing "{.class}" attribute block immediately after a table makes Markdig fail to
-    /// recognize the table at all and fall back to literal pipe-character text (verified
-    /// directly against the pipeline; not documented anywhere, just how the parser behaves),
-    /// so nested containers are the only reliable way to get an independently-styled caption.
+    /// exist yet), copies it in if it was picked from elsewhere, and inserts it as a real HTML
+    /// &lt;figure&gt; grouping the image with a ".caption"-styled &lt;figcaption&gt; underneath
+    /// — see EditorStyleCatalog.
     /// </summary>
     private async void OnInsertImageClick(object? sender, RoutedEventArgs e)
     {
@@ -214,20 +213,17 @@ public partial class MainWindow : Window
             fileName = Path.GetFileName(destinationPath);
         }
 
-        var altText = Path.GetFileNameWithoutExtension(fileName);
-        var markdown = $$"""
-            ::::
-            ![{{altText}}](../images/{{fileName}})
-
-            ::: {.caption}
-            Caption text
-            :::
-            ::::
+        var altText = System.Net.WebUtility.HtmlEncode(Path.GetFileNameWithoutExtension(fileName));
+        var html = $"""
+            <figure>
+            <img src="../images/{fileName}" alt="{altText}">
+            <figcaption class="caption">Caption text</figcaption>
+            </figure>
             """;
 
         var offset = EditorTextBox.CaretOffset;
-        EditorTextBox.Document.Insert(offset, markdown);
-        EditorTextBox.CaretOffset = offset + markdown.Length;
+        EditorTextBox.Document.Insert(offset, html);
+        EditorTextBox.CaretOffset = offset + html.Length;
         EditorTextBox.Focus();
     }
 
@@ -260,21 +256,21 @@ public partial class MainWindow : Window
         ApplyStyleMenuItem.Items.Clear();
         foreach (var style in EditorStyleCatalog.Styles)
         {
-            var item = new MenuItem { Header = style.Label, Tag = style.ClassName };
+            var item = new MenuItem { Header = style.Label, Tag = style };
             item.Click += OnApplyStyleClick;
             ApplyStyleMenuItem.Items.Add(item);
         }
     }
 
     /// <summary>
-    /// Wraps the current selection in a Markdown custom container ("::: {.class} ... :::"),
-    /// naming the CSS class the chosen style hooks to in DefaultStylesheet.cs/"Vellum
-    /// Serif.css". Markdig renders this as &lt;div class="…"&gt; in the EPUB; PDF/Word just
-    /// render the wrapped content plainly, since neither has a stylesheet to consult.
+    /// Wraps the current selection in real HTML naming the CSS class the chosen style hooks to
+    /// in DefaultStylesheet.cs/"Vellum Serif.css" — a &lt;span&gt; for an inline style (safe
+    /// mid-paragraph, e.g. small-caps a single word) or a &lt;div&gt; for a block style (its
+    /// own paragraph-level element, e.g. a verse stanza) — see EditorStyleCatalog.IsBlock.
     /// </summary>
     private void OnApplyStyleClick(object? sender, RoutedEventArgs e)
     {
-        if (sender is not MenuItem { Tag: string className })
+        if (sender is not MenuItem { Tag: EditorStyle style })
             return;
 
         var selectionStart = EditorTextBox.SelectionStart;
@@ -283,12 +279,70 @@ public partial class MainWindow : Window
             return;
 
         var selectedText = EditorTextBox.Document.GetText(selectionStart, selectionLength);
-        var wrapped = $"::: {{.{className}}}\n{selectedText}\n:::";
+        var tag = style.IsBlock ? "div" : "span";
+        var wrapped = $"<{tag} class=\"{style.ClassName}\">{selectedText}</{tag}>";
 
         EditorTextBox.Document.Replace(selectionStart, selectionLength, wrapped);
         EditorTextBox.CaretOffset = selectionStart + wrapped.Length;
         EditorTextBox.Focus();
     }
+
+    /// <summary>
+    /// Inserts a numbered footnote reference at the cursor — "&lt;sup id="fnref:N"&gt;&lt;a
+    /// href="#fn:N" class="footnote-ref"&gt;N&lt;/a&gt;&lt;/sup&gt;" — and adds the note text to
+    /// (or starts) a "&lt;div class="footnotes"&gt;" list at the end of the page. This is the
+    /// same HTML shape Markdig's footnote extension used to produce for the EPUB (see
+    /// DefaultStylesheet.cs's .footnote-ref/.footnotes/.footnote-back-ref rules, which already
+    /// style it), chosen so those existing rules keep working without changes. The number is
+    /// the highest "fnref:" id already in the page's text, plus one — footnote numbering is
+    /// per-page, matching how footnotes always worked here (each chapter's notes are its own,
+    /// not book-wide).
+    /// </summary>
+    private async void OnInsertFootnoteClick(object? sender, RoutedEventArgs e)
+    {
+        var dialog = new InsertFootnoteWindow();
+        await dialog.ShowDialog(this);
+
+        if (dialog.Result is not { } noteText)
+            return;
+
+        var nextNumber = FootnoteReferenceIdRegex().Matches(EditorTextBox.Text ?? "")
+            .Select(m => int.Parse(m.Groups[1].Value))
+            .DefaultIfEmpty(0)
+            .Max() + 1;
+
+        var reference = $"<sup id=\"fnref:{nextNumber}\"><a href=\"#fn:{nextNumber}\" class=\"footnote-ref\">{nextNumber}</a></sup>";
+        var caretOffset = EditorTextBox.CaretOffset;
+        EditorTextBox.Document.Insert(caretOffset, reference);
+        EditorTextBox.CaretOffset = caretOffset + reference.Length;
+
+        InsertOrAppendFootnoteDefinition(nextNumber, noteText);
+        EditorTextBox.Focus();
+    }
+
+    private void InsertOrAppendFootnoteDefinition(int number, string noteText)
+    {
+        var encodedNote = System.Net.WebUtility.HtmlEncode(noteText);
+        var listItem = $"<li id=\"fn:{number}\"><p>{encodedNote} <a href=\"#fnref:{number}\" class=\"footnote-back-ref\">↩</a></p></li>";
+
+        var text = EditorTextBox.Text ?? "";
+        var footnotesIndex = text.IndexOf("<div class=\"footnotes\">", StringComparison.Ordinal);
+        if (footnotesIndex >= 0)
+        {
+            var closeIndex = text.IndexOf("</ol>", footnotesIndex, StringComparison.Ordinal);
+            if (closeIndex >= 0)
+            {
+                EditorTextBox.Document.Insert(closeIndex, listItem + "\n");
+                return;
+            }
+        }
+
+        var newBlock = $"\n\n<div class=\"footnotes\">\n<hr>\n<ol>\n{listItem}\n</ol>\n</div>\n";
+        EditorTextBox.Document.Insert(EditorTextBox.Document.TextLength, newBlock);
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex("id=\"fnref:(\\d+)\"")]
+    private static partial System.Text.RegularExpressions.Regex FootnoteReferenceIdRegex();
 
     private void OnEditorTextBoxTextChanged(object? sender, EventArgs e)
     {

@@ -310,6 +310,29 @@
          section, plus two Phase-5-era inaccuracies caught in passing (the project directory
          description still said "plain Markdown files", and the title-bar-menu tour still listed
          Markdown in the Export menu after Phase 5 cut that feature). -->
-    <Version>2.9.0</Version>
+    <!-- 2.10.0: Phase 7 of the HTML refactor (see 2.0.0 note / the plan doc) — editor UI
+         raw-mode swap. EditorStyleCatalog's EditorStyle record gained an IsBlock flag (six
+         inline styles wrap in &lt;span class="..."&gt;, five block styles — Verse, Inset,
+         Attribution, Drop Cap, Caption — wrap in &lt;div class="..."&gt;, replacing the old
+         "::: {.class} ... :::" custom-container syntax). InsertTableWindow now builds a real
+         &lt;table&gt;&lt;thead&gt;...&lt;tbody&gt; with per-column text-align styles instead
+         of a GFM pipe-table string, and HTML-encodes cell text. OnInsertImageClick now emits a
+         &lt;figure&gt;&lt;img&gt;&lt;figcaption class="caption"&gt; instead of the Phase-
+         5-era nested-custom-container workaround. Added a new "Insert Footnote…" command (no
+         prior equivalent existed) that inserts a &lt;sup id="fnref:N"&gt;&lt;a href="#fn:N"
+         class="footnote-ref"&gt; reference at the cursor and appends/extends a &lt;div
+         class="footnotes"&gt;&lt;ol&gt; block at the end of the page — deliberately reusing
+         the .footnote-ref/.footnotes/.footnote-back-ref class names DefaultStylesheet.cs
+         already defines from the old Markdig-footnote era, so no new CSS was needed. The
+         editor's AvaloniaEdit instance now uses AvaloniaEditCore's built-in "HTML" syntax
+         highlighting definition instead of Markdown (confirmed no Markdown highlighting was
+         ever actually wired in before this, so this is a net-new addition, not a swap). The
+         vendored-AvaloniaEdit-to-NuGet-package swap itself is deferred to land together with
+         Phase 8, per the plan's own explicit sequencing note. Updated the user manual: Writing
+         in the Editor and HTML Syntax Reference (renamed from Markdown Syntax Reference)
+         rewritten for HTML authoring and the new Insert Footnote command; Inserting Tables the
+         Easy Way updated for HTML table output; Tips/Limitations and Getting Started's stale
+         "raw Markdown"/".md"/no-CSS-engine references fixed to match Phase 5/6's real state. -->
+    <Version>2.10.0</Version>
   </PropertyGroup>
 </Project>

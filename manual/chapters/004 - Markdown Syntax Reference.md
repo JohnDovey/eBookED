@@ -1,40 +1,41 @@
 ---
-title: Markdown Syntax Reference
+title: HTML Syntax Reference
 subtitle: 
 numberMode: Auto
 numberOverride: 
 ---
 
-# Markdown Syntax Reference
+# HTML Syntax Reference
 
-Every chapter, and every front/back matter page, is written in **Markdown** — plain text with a small set of symbols that mean "make this bold," "make this a heading," and so on. This chapter covers everything eBook Editor understands, with a "how you type it" example next to each one. Click **Open Preview** at any time to see how your own text will actually look.
+Every chapter, and every front/back matter page, is written in **HTML** — the same markup used by every web page, wrapping your text in tags like `<p>` and `</p>` to say "this is a paragraph." This chapter covers everything eBook Editor understands, with a "how you type it" example next to each one. Click **Open Preview** at any time to see how your own text will actually look.
 
-## Headings
+## Paragraphs and headings
 
-Start a line with one to six `#` characters to make it a heading. eBook Editor maps the first three levels to a chapter's own structure, so keep `#` for a chapter's main title and use `##`/`###` for sections within it.
+Wrap each paragraph in `<p>...</p>`. Wrap a heading in `<h1>` through `<h6>`. eBook Editor maps the first three levels to a chapter's own structure, so keep `<h1>` for a chapter's main title and use `<h2>`/`<h3>` for sections within it.
 
 ```
-# Chapter Title
-## A Section
-### A Sub-section
+<h1>Chapter Title</h1>
+<p>An opening paragraph.</p>
+<h2>A Section</h2>
+<h3>A Sub-section</h3>
 ```
 
 ### Linking to a specific heading
 
-Give any heading its own ID by adding `{#your-id}` at the end of the line, then link to it from anywhere in the same file with `[link text](#your-id)`. This is how you'd build an in-chapter index or a "back to top" link.
+Give any heading its own ID with `id="..."`, then link to it from anywhere in the same file with `<a href="#your-id">`. This is how you'd build an in-chapter index or a "back to top" link.
 
 ```
-## Further Reading {#further-reading}
+<h2 id="further-reading">Further Reading</h2>
 
-See the [Further Reading](#further-reading) section below.
+<p>See the <a href="#further-reading">Further Reading</a> section below.</p>
 ```
 
-You can add a CSS class the same way with a dot (`{.myclass}`), or combine several: `{.myclass #further-reading lang=fr}`. This same `{...}` attribute syntax also works on fenced code blocks, links, and images — right after the closing parenthesis for links/images, e.g. `[link](url){.myclass}`.
+Any tag can carry a `class="..."` attribute to hook it to a CSS rule in the book's template — this is what **Apply Style** (below) does automatically for you.
 
 ## Emphasis
 
 ```
-Plain text, *italic text*, **bold text**, and ***bold italic text***.
+<p>Plain text, <em>italic text</em>, <strong>bold text</strong>, and <strong><em>bold italic text</em></strong>.</p>
 ```
 
 Plain text, *italic text*, **bold text**, and ***bold italic text***.
@@ -42,85 +43,72 @@ Plain text, *italic text*, **bold text**, and ***bold italic text***.
 ### Strikethrough, highlight, subscript, and superscript
 
 ```
-~~struck through~~, ==highlighted==, H~2~O, and E=mc^2^.
+<p><s>struck through</s>, <mark>highlighted</mark>, H<sub>2</sub>O, and E=mc<sup>2</sup>.</p>
 ```
 
 ~~struck through~~, ==highlighted==, H~2~O, and E=mc^2^.
 
 ## Lists
 
-Bullet lists start each line with `-` (or `*`); numbered lists start each line with a number and a period.
+Bullet lists use `<ul>`; numbered lists use `<ol>`. Either way, each item is an `<li>`.
 
 ```
-- First item
-- Second item
-- Third item
+<ul>
+<li>First item</li>
+<li>Second item</li>
+<li>Third item</li>
+</ul>
 
-1. Step one
-2. Step two
-3. Step three
+<ol>
+<li>Step one</li>
+<li>Step two</li>
+<li>Step three</li>
+</ol>
 ```
-
-### Task lists
-
-```
-- [x] Done task
-- [ ] Not done yet
-```
-
-- [x] Done task
-- [ ] Not done yet
-
-## Definition lists
-
-A term, then a colon and at least three spaces before its definition on the next line. Multiple `:` lines under the same term become multiple definitions.
-
-```
-Markdown
-:   A lightweight markup language for formatted plain text.
-```
-
-Markdown
-:   A lightweight markup language for formatted plain text.
 
 ## Links
 
 ```
-[eBook Editor on GitHub](https://github.com/JohnDovey/eBookED)
+<a href="https://github.com/JohnDovey/eBookED">eBook Editor on GitHub</a>
 ```
 
-The text in square brackets is what the reader sees; the URL in parentheses is where it goes.
+The text between the tags is what the reader sees; the `href` is where it goes.
 
 ## Images
 
 ```
-![A description of the image](../images/cover.jpg)
+<img src="../images/cover.jpg" alt="A description of the image">
 ```
 
 Image paths are relative to the file that references them — a chapter's images are typically stored in the project's `images/` folder and referenced as `../images/filename.jpg`.
 
 ## Blockquotes
 
-Start a line with `>` to set it off as a quotation.
+Wrap a quotation in `<blockquote>`.
 
 ```
-> The scariest moment is always just before you start.
-> — Stephen King
+<blockquote>
+<p>The scariest moment is always just before you start.</p>
+<p>— Stephen King</p>
+</blockquote>
 ```
 
 ## Footnotes
 
-Reference a footnote inline with `[^label]`, then define its text anywhere in the same file with `[^label]: text`. The label just has to match — it doesn't have to be a number, and the definition doesn't have to sit right next to where it's used.
+Right-click the editor and choose **Insert Footnote…** (see *Writing in the Editor → The right-click menu*) rather than typing this by hand — it writes both halves of the convention below and keeps the numbering consistent for you.
+
+A footnote reference is a superscript link pointing at the note's id; the note itself lives in a "Notes" list at the end of the page, with a return link back to where it was referenced:
 
 ```
-Markdown was created by John Gruber[^gruber], with input from Aaron Swartz.
+<p>Markdown was created by John Gruber<sup id="fnref:1"><a href="#fn:1" class="footnote-ref">1</a></sup>, with input from Aaron Swartz.</p>
 
-[^gruber]: Gruber is also known for the blog Daring Fireball.
+<div class="footnotes">
+<hr>
+<ol>
+<li id="fn:1"><p>Gruber is also known for the blog Daring Fireball. <a href="#fnref:1" class="footnote-back-ref">↩</a></p></li>
+</ol>
+</div>
 ```
-
-Markdown was created by John Gruber[^gruber], with input from Aaron Swartz.
-
-[^gruber]: Gruber is also known for the blog Daring Fireball.
 
 Where a footnote ends up depends on the export format:
 
@@ -128,18 +116,23 @@ Where a footnote ends up depends on the export format:
 - **PDF** — the same superscript number in the text, with the full text collected into a "Notes" section at the end of the chapter that references it.
 - **Word** — a real, native Word footnote, visible in Word's own footnote pane at the bottom of the page.
 
-You don't need to do anything differently for any of these — the same `[^label]` syntax produces the right result in all three.
+You don't need to write any of this by hand — **Insert Footnote…** produces the right result in all three export formats.
 
 ## Tables
 
-A table is a row of column headers, a row of dashes separating the headers from the data, then one row per data row — every row starts and ends with `|`, with `|` separating each cell.
+A table is `<table>` containing a `<thead>` of header cells (`<th>`) and a `<tbody>` of data rows (`<tr>` of `<td>`).
 
 ```
-| Format | Where footnotes go               |
-| ------ | --------------------------------- |
-| EPUB   | Clickable inline link              |
-| PDF    | "Notes" section at chapter end     |
-| Word   | Native Word footnote               |
+<table>
+<thead>
+<tr><th>Format</th><th>Where footnotes go</th></tr>
+</thead>
+<tbody>
+<tr><td>EPUB</td><td>Clickable inline link</td></tr>
+<tr><td>PDF</td><td>"Notes" section at chapter end</td></tr>
+<tr><td>Word</td><td>Native Word footnote</td></tr>
+</tbody>
+</table>
 ```
 
 | Format | Where footnotes go               |
@@ -150,55 +143,53 @@ A table is a row of column headers, a row of dashes separating the headers from 
 
 ### Aligning columns
 
-Add colons to the dashed separator row to control alignment: `:---` for left, `---:` for right, `:---:` for center. Without any colon, a column defaults to left alignment.
+Add a `style="text-align: left/center/right"` attribute to a header cell to control that column's alignment.
 
 ```
-| Left | Center | Right |
-| :--- | :----: | ----: |
-| a    |   b    |     c |
+<table>
+<thead>
+<tr><th style="text-align: left">Left</th><th style="text-align: center">Center</th><th style="text-align: right">Right</th></tr>
+</thead>
+<tbody>
+<tr><td>a</td><td>b</td><td>c</td></tr>
+</tbody>
+</table>
 ```
 
-You don't have to type tables by hand, either — right-click anywhere in the editor and choose **Insert Table…** for a visual table builder that writes this syntax for you. See *Inserting Tables the Easy Way*, next.
+You don't have to type tables by hand, either — right-click anywhere in the editor and choose **Insert Table…** for a visual table builder that writes this markup for you. See *Inserting Tables the Easy Way*, next.
 
 ## Code
 
-Wrap a word or short phrase in single backticks for inline code, like `` `this` ``. For a longer, multi-line block, use a fenced block: three backticks on their own line, your code, then three more backticks.
+Wrap a word or short phrase in `<code>` for inline code, like `<code>this</code>`. For a longer, multi-line block, wrap it in `<pre><code>`.
 
-````
 ```
-def greet(name):
-    return f"Hello, {name}!"
+<pre><code>def greet(name):
+    return f"Hello, {name}!"</code></pre>
 ```
-````
 
 ## Styled blocks
 
-Wrap a paragraph (or several) in a fenced block of colons with a class name to apply a named style, hooked to a matching CSS rule in the book's template:
+Wrap a span of text in `<span class="...">` (for inline styles) or a paragraph in `<div class="...">` (for block styles) to apply a named style, hooked to a matching CSS rule in the book's template:
 
 ```
-::: {.smallcaps}
-This paragraph renders in small caps.
-:::
+<span class="smallcaps">This text renders in small caps.</span>
 ```
 
-You don't have to remember this syntax — right-click any selected text in the editor and choose **Apply Style** for a menu of the styles eBook Editor ships with (Small Caps, Underline, Strikethrough, Monospace, Sans-serif, All Caps, Verse, Inset, Attribution, Drop Cap, Caption), and it writes the `:::` block around your selection for you. See *Book Metadata → Style* for how the underlying CSS classes are defined.
+You don't have to remember this syntax — right-click any selected text in the editor and choose **Apply Style** for a menu of the styles eBook Editor ships with (Small Caps, Underline, Strikethrough, Monospace, Sans-serif, All Caps, Verse, Inset, Attribution, Drop Cap, Caption), and it wraps your selection in the right tag and class for you. See *Book Metadata → Style* for how the underlying CSS classes are defined.
 
 ### Inserting images with a caption
 
-Right-click the editor and choose **Insert Image…** to pick a picture and add it with a caption underneath, styled half-size and italic (the **Caption** style above). Behind the scenes it's a nested block:
+Right-click the editor and choose **Insert Image…** to pick a picture and add it with a caption underneath, styled by the **Caption** style above. Behind the scenes it's a `<figure>`:
 
 ```
-::::
-![Alt text](../images/photo.jpg)
-
-::: {.caption}
-Caption text
-:::
-::::
+<figure>
+<img src="../images/photo.jpg" alt="Alt text">
+<figcaption class="caption">Caption text</figcaption>
+</figure>
 ```
 
-This isn't a Markdown table — attaching a style directly to a table breaks the table entirely, so the image and its caption are two nested blocks instead, which the **Insert Image…** menu writes for you. See *Writing in the Editor → The right-click menu*.
+See *Writing in the Editor → The right-click menu*.
 
 ## Line breaks
 
-A blank line between two lines of text starts a new paragraph. To force a line break *within* the same paragraph (without starting a new one), end the line with two trailing spaces, or an explicit `<br>`.
+A new `<p>` starts a new paragraph. To force a line break *within* the same paragraph (without starting a new one), use `<br>`.

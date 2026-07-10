@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -6,13 +7,16 @@ using Avalonia.Layout;
 namespace eBookEditor.App.Views;
 
 /// <summary>
-/// A Markdown table builder inspired by tablesgenerator.com/markdown_tables: an editable grid
-/// (first row is the header), per-column alignment dropdowns, a live Markdown preview, and
-/// Discard/Insert buttons. Insert sets <see cref="Result"/> to the generated GFM table text;
-/// the caller (MainWindow's editor context menu) inserts it at the caret and leaves it null on
-/// Discard. The grid is built imperatively in code-behind (not data-bound XAML) since its row/
-/// column count changes at runtime — simplest way to get a resizable spreadsheet-like editor
-/// out of Avalonia's Grid control.
+/// A table builder inspired by tablesgenerator.com: an editable grid (first row is the
+/// header), per-column alignment dropdowns, a live HTML preview, and Discard/Insert buttons.
+/// Insert sets <see cref="Result"/> to the generated HTML table markup; the caller (MainWindow's
+/// editor context menu) inserts it at the caret and leaves it null on Discard. Column alignment
+/// becomes an inline "style" attribute on each &lt;th&gt;/&lt;td&gt; in that column — EPUB (a
+/// real browser) honors it; PDF/Word don't render per-cell alignment (neither did this app's
+/// Markdown-table predecessor, via GFM's ":---:" markers), so it structurally survives there
+/// without a visible effect, the same limitation as before. The grid is built imperatively in
+/// code-behind (not data-bound XAML) since its row/column count changes at runtime — simplest
+/// way to get a resizable spreadsheet-like editor out of Avalonia's Grid control.
 /// </summary>
 public partial class InsertTableWindow : Window
 {
@@ -84,7 +88,7 @@ public partial class InsertTableWindow : Window
 
     private void OnInsertClick(object? sender, RoutedEventArgs e)
     {
-        Result = BuildMarkdownTable();
+        Result = BuildHtmlTable();
         Close();
     }
 
@@ -150,51 +154,38 @@ public partial class InsertTableWindow : Window
         UpdatePreview();
     }
 
-    private void UpdatePreview() => PreviewText.Text = BuildMarkdownTable();
+    private void UpdatePreview() => PreviewText.Text = BuildHtmlTable();
 
-    private string BuildMarkdownTable()
+    private string BuildHtmlTable()
     {
         var columnCount = _alignments.Count;
-        var escapedCells = _cells.Select(row => row.Select(EscapeCell).ToList()).ToList();
-
-        var columnWidths = new int[columnCount];
-        for (var col = 0; col < columnCount; col++)
-            columnWidths[col] = Math.Max(escapedCells.Max(row => row[col].Length), 3);
-
         var sb = new StringBuilder();
-        AppendRow(sb, escapedCells[0], columnWidths);
-        AppendSeparatorRow(sb, columnWidths);
-        for (var row = 1; row < escapedCells.Count; row++)
-            AppendRow(sb, escapedCells[row], columnWidths);
 
+        sb.Append("<table>\n<thead>\n<tr>");
+        for (var col = 0; col < columnCount; col++)
+            sb.Append("<th").Append(AlignAttribute(col)).Append('>').Append(EscapeCell(_cells[0][col])).Append("</th>");
+        sb.Append("</tr>\n</thead>\n<tbody>\n");
+
+        for (var row = 1; row < _cells.Count; row++)
+        {
+            sb.Append("<tr>");
+            for (var col = 0; col < columnCount; col++)
+                sb.Append("<td").Append(AlignAttribute(col)).Append('>').Append(EscapeCell(_cells[row][col])).Append("</td>");
+            sb.Append("</tr>\n");
+        }
+
+        sb.Append("</tbody>\n</table>");
         return sb.ToString();
     }
 
-    private static void AppendRow(StringBuilder sb, List<string> cells, int[] widths)
+    private string AlignAttribute(int column) => _alignments[column] switch
     {
-        sb.Append('|');
-        for (var col = 0; col < cells.Count; col++)
-            sb.Append(' ').Append(cells[col].PadRight(widths[col])).Append(' ').Append('|');
-        sb.Append('\n');
-    }
-
-    private void AppendSeparatorRow(StringBuilder sb, int[] widths)
-    {
-        sb.Append('|');
-        for (var col = 0; col < widths.Length; col++)
-        {
-            var marker = _alignments[col] switch
-            {
-                ColumnAlignment.Left => ":" + new string('-', widths[col] - 1),
-                ColumnAlignment.Right => new string('-', widths[col] - 1) + ":",
-                ColumnAlignment.Center => ":" + new string('-', widths[col] - 2) + ":",
-                _ => new string('-', widths[col])
-            };
-            sb.Append(' ').Append(marker).Append(' ').Append('|');
-        }
-        sb.Append('\n');
-    }
+        ColumnAlignment.Left => " style=\"text-align: left\"",
+        ColumnAlignment.Center => " style=\"text-align: center\"",
+        ColumnAlignment.Right => " style=\"text-align: right\"",
+        _ => "",
+    };
 
     private static string EscapeCell(string text) =>
-        text.Replace("|", "\\|").Replace("\r", "").Replace("\n", " ");
+        WebUtility.HtmlEncode(text).Replace("\r", "").Replace("\n", "<br>");
 }
