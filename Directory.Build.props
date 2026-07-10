@@ -139,9 +139,9 @@
          format change. Chapter/front-matter/back-matter body files now use a new ".ebhtml"
          extension instead of ".md" (ProjectPaths, ChapterFileNaming.BuildFileName,
          ChapterFileService.CreateNewChapterFile, OrphanChapterScanner's *.ebhtml glob) — the
-         ---\nYAML\n---\n\n<body> wrapper convention itself is unchanged, only the extension and,
-         starting in Phase 2, what the body actually contains. ProjectFile gained a
-         CurrentSchemaVersion = 2 constant (1 = legacy Markdown-bodied .md projects, 2 = HTML-
+         "YAML front matter, blank line, then body" wrapper convention itself is unchanged, only
+         the extension and, starting in Phase 2, what the body actually contains. ProjectFile
+         gained a CurrentSchemaVersion = 2 constant (1 = legacy Markdown-bodied .md projects, 2 = HTML-
          bodied .ebhtml projects going forward); new projects are created at version 2, but
          loading a version-1 project isn't gated yet — that belongs to the migration tool
          (Phase 6). ChapterImportService now recognizes .ebhtml alongside legacy .md, reusing the
@@ -150,6 +150,11 @@
          picked up and imported (a real gap: OrphanChapterScanner found .ebhtml orphans fine, but
          ChapterImportService's extension switch had no case for it and threw). No content-
          generation, import-conversion, or export code touched yet — that's Phases 2 through 5. -->
-    <Version>2.2.0</Version>
+    <!-- 2.2.1: hotfix, patch bump — the 2.2.0 changelog comment above accidentally contained a
+         run of three literal hyphen characters (illustrating the YAML front matter delimiter),
+         which is invalid inside an XML comment body and broke every build/restore off
+         origin/main with an MSB4024 error. Reworded to avoid consecutive hyphens. No code
+         changes otherwise. -->
+    <Version>2.2.1</Version>
   </PropertyGroup>
 </Project>
