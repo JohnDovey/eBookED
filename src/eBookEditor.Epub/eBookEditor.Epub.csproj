@@ -2,7 +2,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\eBookEditor.Core\eBookEditor.Core.csproj" />
-    <ProjectReference Include="..\eBookEditor.Markdown\eBookEditor.Markdown.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

@@ -46,13 +46,13 @@ public class EpubBuilderTests : IDisposable
         var relativePath = Path.GetRelativePath(project.DirectoryPath, chapterPath).Replace('\\', '/');
         _chapterFileService.WriteChapter(chapterPath,
             new ChapterFrontMatter { Title = "Chapter One" },
-            "Hello **world**, this is the first chapter.");
+            "<p>Hello <strong>world</strong>, this is the first chapter.</p>");
         _spineService.AddChapter(project, "Chapter One", relativePath);
         // Real usage always syncs filenames after adding a chapter (see
-        // MainWindowViewModel.AddChapter), which renames to "NNN - Title.md" — spaces and all.
-        // A slugged CreateNewChapterFile name alone ("chapter-one-abc123.md") never has spaces,
-        // so skipping this step let a real space-in-filename bug (broken TOC links) slip past
-        // this whole test suite untested.
+        // MainWindowViewModel.AddChapter), which renames to "NNN - Title.ebhtml" — spaces and
+        // all. A slugged CreateNewChapterFile name alone ("chapter-one-abc123.ebhtml") never has
+        // spaces, so skipping this step let a real space-in-filename bug (broken TOC links) slip
+        // past this whole test suite untested.
         _chapterFileService.SyncChapterFileNames(project);
 
         File.WriteAllText(project.BookMdPath, new BookIndexGenerator().GenerateBookMd(project));
@@ -103,14 +103,7 @@ public class EpubBuilderTests : IDisposable
         Assert.Equal(project.Spine.Count, itemRefs.Count);
     }
 
-    [Fact(Skip = "EpubInternalLinkResolver.RewriteChapterLinks still matches Markdown link " +
-        "syntax (\"[text](path)\"), applied to raw file content before Markdig conversion — " +
-        "but PageGeneratorService.GenerateTocPage (Phase 2 of the HTML refactor) now emits real " +
-        "<a href=\"...\"> HTML instead, so the resolver never matches and TOC links point at " +
-        "project-relative source paths instead of EPUB content document filenames. Rewriting " +
-        "EpubInternalLinkResolver to operate on real HTML anchors is Phase 4's job (\"EPUB export " +
-        "simplification\" — drops the whole MarkdownToHtmlConverter/link-rewrite-before-convert " +
-        "pipeline for stored HTML wrapping directly into the XHTML shell). Re-enable there.")]
+    [Fact]
     public void Build_TocPageLinksResolveToTheChaptersActualContentDocument()
     {
         var project = BuildSampleProject();
@@ -138,17 +131,15 @@ public class EpubBuilderTests : IDisposable
             .ToList();
 
         Assert.NotEmpty(anchors);
-        Assert.DoesNotContain(anchors, a => a.Href.Contains(".md", StringComparison.Ordinal));
+        Assert.DoesNotContain(anchors, a => a.Href.Contains(".ebhtml", StringComparison.Ordinal));
 
-        // Regression: the chapter's filename ("NNN - Chapter One.md", via SyncChapterFileNames)
-        // contains a space, which used to make this link parse as literal "[text](url)" text
-        // instead of an <a> element at all — every spine item except the TOC page itself must
-        // resolve to a real, clickable anchor, and none of the raw Markdown syntax should leak
-        // into the rendered HTML.
+        // Regression: the chapter's filename ("NNN - Chapter One.ebhtml", via
+        // SyncChapterFileNames) contains a space — every spine item except the TOC page itself
+        // must resolve to a real, clickable anchor pointing at the EPUB's own "content-NNN.xhtml"
+        // naming, not the raw project-relative source path.
         var expectedLinkCount = project.Spine.Count(i => !i.RelativePath.EndsWith(ProjectPaths.TocPageFileName, StringComparison.Ordinal));
         Assert.Equal(expectedLinkCount, anchors.Count);
         Assert.Contains(anchors, a => a.Text.Contains("Chapter One", StringComparison.Ordinal));
-        Assert.DoesNotContain("](", tocHtml);
 
         var linkedEntries = anchors
             .Select(a => archive.GetEntry($"OEBPS/{a.Href}"))
@@ -190,7 +181,8 @@ public class EpubBuilderTests : IDisposable
         var chapterItem = project.Spine.Single(i => i.Type == SpineItemType.Chapter);
         var chapterPath = project.ResolvePath(chapterItem);
         var (frontMatter, _) = _chapterFileService.ReadChapter(chapterPath);
-        _chapterFileService.WriteChapter(chapterPath, frontMatter, "See the diagram below.\n\n![A diagram](../images/diagram.jpg)");
+        _chapterFileService.WriteChapter(chapterPath, frontMatter,
+            "<p>See the diagram below.</p>\n<img src=\"../images/diagram.jpg\" alt=\"A diagram\">");
 
         var outputPath = Path.Combine(project.OutputDir, "book.epub");
         _epubBuilder.Build(project, outputPath);

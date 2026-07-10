@@ -200,6 +200,22 @@
          patterns. Known, expected regression from Phase 2, still deferred: EpubBuilderTests.
          Build_TocPageLinksResolveToTheChaptersActualContentDocument stays Skip-annotated —
          that's Phase 4's fix, not Phase 3's. -->
-    <Version>2.4.0</Version>
+    <!-- 2.5.0: Phase 4 of the HTML refactor (see 2.0.0 note / the plan doc) — EPUB export
+         simplification. EpubBuilder drops its MarkdownToHtmlConverter step entirely (and the
+         eBookEditor.Markdown project reference along with it) — the stored HTML body now wraps
+         directly into the XHTML shell. EpubInternalLinkResolver and EpubImageResolver rewritten
+         to match real HTML ("&lt;a href="..."&gt;", "&lt;img src="..."&gt;") instead of Markdown
+         link/image syntax, so the in-book TOC's chapter links and chapter images still resolve
+         correctly to the packaged EPUB's own content-document/images layout. The
+         EpubBuilderTests test that Phase 2 had to Skip-annotate now passes for real, unskipped.
+         Also fixed a real, previously-latent bug this phase's own tests surfaced in
+         HtmlXmlSafety (used to make stored HTML valid XHTML before XML-parsing it into the
+         content document): its void-element (img/br/hr) self-closing regex excluded "/"
+         entirely from the attribute-content group, so any void element with a "/" anywhere in
+         an attribute value (e.g. an ordinary "src="../images/x.jpg"" path) was never recognized
+         as needing self-closing and broke XML parsing outright. Never manifested before because
+         every &lt;img&gt; used to come from Markdig's own already-self-closing HTML renderer;
+         this app's own HTML (generators, DOCX/HTML importers) routinely has such paths. -->
+    <Version>2.5.0</Version>
   </PropertyGroup>
 </Project>

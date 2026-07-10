@@ -3,13 +3,11 @@ using System.Text;
 using eBookEditor.Core.Models;
 using eBookEditor.Core.Services;
 using eBookEditor.Epub.Models;
-using eBookEditor.Markdown.Services;
 
 namespace eBookEditor.Epub.Services;
 
 public class EpubBuilder
 {
-    private readonly MarkdownToHtmlConverter _htmlConverter = new();
     private readonly ChapterFileService _chapterFileService = new();
     private readonly TemplateService _templateService;
     private readonly FontService _fontService;
@@ -35,9 +33,9 @@ public class EpubBuilder
 
         var orderedSpine = project.Spine.OrderBy(i => i.Order).ToList();
 
-        // Assigned in a pass of its own (before any markdown->HTML conversion) so that
+        // Assigned in a pass of its own (before any link/image rewriting) so that
         // GenerateTocPage's links — written against each item's project-relative source path,
-        // e.g. "chapters/foo-abc123.md" — can be rewritten to the matching EPUB content
+        // e.g. "chapters/foo-abc123.ebhtml" — can be rewritten to the matching EPUB content
         // document filename regardless of where in the spine order that target falls.
         var contentFileNamesByRelativePath = new Dictionary<string, string>(StringComparer.Ordinal);
         var fileNameIndex = 0;
@@ -53,10 +51,13 @@ public class EpubBuilder
             var rawText = File.ReadAllText(sourcePath);
             var (_, body) = _chapterFileService.ParseChapter(rawText);
 
+            // The stored body is already HTML — no Markdown-to-HTML conversion step needed
+            // (that conversion, and this method's own project-relative-source-path/EPUB-
+            // content-document-filename link rewriting and image copying, were the only things
+            // this class ever did with it beyond wrapping it into the XHTML shell).
             var rewrittenLinks = EpubInternalLinkResolver.RewriteChapterLinks(body, contentFileNamesByRelativePath);
             var sourceDir = Path.GetDirectoryName(sourcePath)!;
-            var rewrittenMarkdown = EpubImageResolver.RewriteAndCollectImages(rewrittenLinks, sourceDir, imagesToCopy);
-            var html = _htmlConverter.ToHtml(rewrittenMarkdown);
+            var html = EpubImageResolver.RewriteAndCollectImages(rewrittenLinks, sourceDir, imagesToCopy);
 
             var fileName = contentFileNamesByRelativePath[item.RelativePath];
             var title = item.Title ?? metadata.Title;

@@ -1,33 +1,41 @@
+using System.Net;
 using System.Text.RegularExpressions;
 
 namespace eBookEditor.Epub.Services;
 
 /// <summary>
-/// Rewrites project-relative markdown image references (which vary depending on which
-/// subfolder — frontmatter/, chapters/, backmatter/ — the source file lives in) to a flat
+/// Rewrites project-relative HTML image references (which vary depending on which subfolder —
+/// frontmatter/, chapters/, backmatter/ — the source file lives in) to a flat
 /// "images/&lt;file&gt;" path matching the EPUB's OEBPS layout, and collects the resolved
 /// source files that need to be copied into the package.
 /// </summary>
 internal static partial class EpubImageResolver
 {
-    [GeneratedRegex(@"!\[([^\]]*)\]\(([^)\s]+)(?:\s+""[^""]*"")?\)")]
-    private static partial Regex ImageRegex();
+    [GeneratedRegex(@"<img\b[^>]*>", RegexOptions.IgnoreCase)]
+    private static partial Regex ImgTagRegex();
 
-    public static string RewriteAndCollectImages(string markdown, string sourceDir, Dictionary<string, string> imagesToCopy)
+    [GeneratedRegex(@"src=""([^""]*)""", RegexOptions.IgnoreCase)]
+    private static partial Regex SrcAttributeRegex();
+
+    public static string RewriteAndCollectImages(string html, string sourceDir, Dictionary<string, string> imagesToCopy)
     {
-        return ImageRegex().Replace(markdown, match =>
+        return ImgTagRegex().Replace(html, imgMatch =>
         {
-            var alt = match.Groups[1].Value;
-            var path = match.Groups[2].Value;
+            var imgTag = imgMatch.Value;
+            var srcMatch = SrcAttributeRegex().Match(imgTag);
+            if (!srcMatch.Success)
+                return imgTag;
+
+            var path = WebUtility.HtmlDecode(srcMatch.Groups[1].Value);
 
             if (path.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
                 path.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
                 path.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
-                return match.Value;
+                return imgTag;
 
             var absolutePath = Path.GetFullPath(Path.Combine(sourceDir, path));
             if (!File.Exists(absolutePath))
-                return match.Value;
+                return imgTag;
 
             if (!imagesToCopy.TryGetValue(absolutePath, out var destFileName))
             {
@@ -35,7 +43,7 @@ internal static partial class EpubImageResolver
                 imagesToCopy[absolutePath] = destFileName;
             }
 
-            return $"![{alt}](images/{destFileName})";
+            return SrcAttributeRegex().Replace(imgTag, $"src=\"images/{destFileName}\"", 1);
         });
     }
 
