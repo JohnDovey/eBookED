@@ -1,7 +1,7 @@
 using eBookEditor.Core.Services;
-using eBookEditor.Markdown.Services;
+using eBookEditor.Migration.Services;
 
-namespace eBookEditor.Tests.Markdown;
+namespace eBookEditor.Tests.Migration;
 
 public class MarkdownToHtmlConverterTests
 {
@@ -10,8 +10,9 @@ public class MarkdownToHtmlConverterTests
     [Fact]
     public void ToHtml_HeadingAttributeBlock_SetsIdAndClass()
     {
-        // Markdown Extra "special attributes" ({#id .class}) — used both for the manual's
-        // own documented syntax and, via Style ids, for editor-inserted heading anchors.
+        // Markdown Extra "special attributes" ({#id .class}) — a legacy-project author could
+        // have used this for in-book navigation before the HTML content-model refactor; the
+        // migration converter must still parse it correctly.
         const string markdown = "## Header 2 {.myclass #header2 lang=fr}";
 
         var html = _converter.ToHtml(markdown);
@@ -37,11 +38,12 @@ public class MarkdownToHtmlConverterTests
     }
 
     [Fact]
-    public void ToHtml_CustomContainer_MatchesTheStringFormatTheApplyStyleMenuInserts()
+    public void ToHtml_CustomContainer_MatchesTheLegacyApplyStyleShape()
     {
-        // MainWindow.OnApplyStyleClick wraps a selection as "::: {.class}\n<text>\n:::" —
-        // verify that exact shape parses to a real, class-hooked <div>, for every style in
-        // the catalog the menu actually offers.
+        // Before the HTML content-model refactor, MainWindow.OnApplyStyleClick wrapped a
+        // selection as "::: {.class}\n<text>\n:::" — a legacy project's ".md" files can still
+        // contain this shape, and the migration converter must still parse it correctly, for
+        // every style in the catalog the menu used to offer.
         foreach (var style in EditorStyleCatalog.Styles)
         {
             var markdown = $"::: {{.{style.ClassName}}}\nSome styled text.\n:::";
@@ -56,14 +58,16 @@ public class MarkdownToHtmlConverterTests
     [Fact]
     public void ToHtml_InsertImageContainerShape_RendersImageAndClassHookedCaption()
     {
-        // MainWindow.OnInsertImageClick wraps an inserted image exactly like this — a
-        // classless outer container (just a grouping <div>) holding the image and an inner
-        // ".caption"-classed container for the caption text. This is deliberately NOT a
-        // Markdown table: a trailing "{.class}" attribute block immediately after a table
-        // makes Markdig fail to recognize the table at all (falls back to literal pipe-
-        // character text) — verified directly against the pipeline, not documented anywhere.
-        // The outer fence must use more colons than the inner one, or Markdig emits a stray
-        // empty trailing <div></div> — also verified directly, not documented.
+        // Before the HTML content-model refactor, MainWindow.OnInsertImageClick wrapped an
+        // inserted image exactly like this — a classless outer container (just a grouping
+        // <div>) holding the image and an inner ".caption"-classed container for the caption
+        // text. This is deliberately NOT a Markdown table: a trailing "{.class}" attribute
+        // block immediately after a table makes Markdig fail to recognize the table at all
+        // (falls back to literal pipe-character text) — verified directly against the
+        // pipeline, not documented anywhere. The outer fence must use more colons than the
+        // inner one, or Markdig emits a stray empty trailing <div></div> — also verified
+        // directly, not documented. A legacy project's ".md" files can still contain this
+        // shape, and the migration converter must still parse it correctly.
         const string markdown = """
             ::::
             ![A photo](../images/photo.jpg)

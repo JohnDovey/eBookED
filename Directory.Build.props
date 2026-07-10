@@ -389,6 +389,27 @@
          solution-structure rows for eBookEditor.Markdown/DocxImport/ChapterImport) are pre-
          existing debt spun off as a separate follow-up task rather than folded into this
          commit. -->
-    <Version>2.11.0</Version>
+    <!-- 2.12.0: Phase 9 of the HTML refactor (see 2.0.0 note / the plan doc) — final cleanup,
+         completing the refactor. Deleted src/AvaloniaEdit/ entirely (the vendored copy Phase 8
+         made unreferenced by swapping eBookEditor.App to the real NuGet package) and removed its
+         eBookEditor.slnx entry. Retired eBookEditor.Markdown: its two remaining files
+         (MarkdownToHtmlConverter, MarkdownPipelineFactory — both migration-only since Phases 2-5
+         moved every other former consumer to HTML) moved into eBookEditor.Migration (the
+         project's own csproj already had a comment anticipating exactly this move, from Phase
+         6), which now depends on Markdig directly instead of transitively through the retired
+         project. MarkdownToHtmlConverterTests moved alongside them into
+         tests/eBookEditor.Tests/Migration/, with its comments reworded to describe what they
+         actually test now — a legacy project's on-disk Markdown syntax that the migration
+         converter must still parse correctly, not (as the comments previously implied) syntax
+         any current editor command still produces. Confirmed no source file, .csproj, or the
+         .slnx references eBookEditor.Markdown, AvaloniaEditCore, Markdown.Avalonia, or
+         ReverseMarkdown anywhere anymore. New feature is minor version is a bit of a stretch here
+         (a "new feature" bump per the repo's version-bump policy) but this is a substantial
+         structural change (two projects retired, one dependency graph simplified) rather than a
+         same-behavior patch, so it gets the same treatment the plan's other phases did.
+         Also fixed README.md's solution-structure table: removed the AvaloniaEdit and
+         eBookEditor.Markdown rows (both gone), added a row for eBookEditor.Html (added in Phase
+         2, never documented) and eBookEditor.Migration (added in Phase 6, never documented). -->
+    <Version>2.12.0</Version>
   </PropertyGroup>
 </Project>

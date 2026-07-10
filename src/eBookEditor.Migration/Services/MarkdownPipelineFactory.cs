@@ -1,6 +1,6 @@
 using Markdig;
 
-namespace eBookEditor.Markdown.Services;
+namespace eBookEditor.Migration.Services;
 
 public static class MarkdownPipelineFactory
 {

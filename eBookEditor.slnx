@@ -1,6 +1,5 @@
 <Solution>
   <Folder Name="/src/">
-    <Project Path="src/AvaloniaEdit/AvaloniaEdit.csproj" />
     <Project Path="src/eBookEditor.App/eBookEditor.App.csproj" />
     <Project Path="src/eBookEditor.ChapterImport/eBookEditor.ChapterImport.csproj" />
     <Project Path="src/eBookEditor.Pdf/eBookEditor.Pdf.csproj" />
@@ -8,7 +7,6 @@
     <Project Path="src/eBookEditor.DocxImport/eBookEditor.DocxImport.csproj" />
     <Project Path="src/eBookEditor.Epub/eBookEditor.Epub.csproj" />
     <Project Path="src/eBookEditor.Html/eBookEditor.Html.csproj" />
-    <Project Path="src/eBookEditor.Markdown/eBookEditor.Markdown.csproj" />
     <Project Path="src/eBookEditor.Migration/eBookEditor.Migration.csproj" />
   </Folder>
   <Folder Name="/tests/">

@@ -2,16 +2,17 @@
 
   <ItemGroup>
     <ProjectReference Include="..\eBookEditor.Core\eBookEditor.Core.csproj" />
-    <!-- MarkdownToHtmlConverter/MarkdownPipelineFactory — Markdig stays a NuGet-only,
-         migration-only dependency for this one-time batch conversion; reusing the existing
-         wrapper is better engineering than hand-rolling parsing for a rarely-run tool, and has
-         no relationship to the vendored-AvaloniaEdit problem (see AvaloniaEdit.csproj's own
-         comment). Phase 9 moves this converter (and MarkdownPipelineFactory) into this project
-         when eBookEditor.Markdown is retired. -->
-    <ProjectReference Include="..\eBookEditor.Markdown\eBookEditor.Markdown.csproj" />
     <!-- BookIndexGenerator, to regenerate the internal book.ebhtml navigation index (always
          auto-regenerated, never hand-edited) after migration. -->
     <ProjectReference Include="..\eBookEditor.Html\eBookEditor.Html.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- MarkdownToHtmlConverter/MarkdownPipelineFactory (this project's own Services/) need
+         Markdig as a NuGet-only, migration-only dependency for this one-time batch conversion —
+         the only place in the app that still touches Markdown, now that eBookEditor.Markdown
+         has been retired. -->
+    <PackageReference Include="Markdig" Version="1.3.2" />
   </ItemGroup>
 
   <PropertyGroup>
