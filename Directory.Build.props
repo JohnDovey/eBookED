@@ -114,8 +114,10 @@
          explicit user instruction, since this is a breaking change to the project file format
          itself, not an incremental feature/fix). No code changes in this commit — chapters are
          still Markdown; this bump exists purely to mark the plan's adoption point in history
-         before implementation begins. See /Users/admin/.claude/plans/dapper-hugging-lighthouse.md
-         for the full phased plan: HTML-native chapter storage (new .ebhtml extension), an
+         before implementation begins. See Docs/html-refactor-plan.md (originally authored at
+         /Users/admin/.claude/plans/dapper-hugging-lighthouse.md, copied into the repo so it
+         ships with the source it describes) for the full phased plan: HTML-native chapter
+         storage (new .ebhtml extension), an
          AngleSharp-driven HTML DOM replacing Markdig's AST across EPUB/PDF/Word export, a
          WebView-based (Avalonia.Controls.WebView) WYSIWYG editor mode alongside raw HTML
          editing, a matching WebView-based Preview window, and eventual removal of the vendored
