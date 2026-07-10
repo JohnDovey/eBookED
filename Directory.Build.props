@@ -121,6 +121,20 @@
          editing, a matching WebView-based Preview window, and eventual removal of the vendored
          AvaloniaEdit copy once Markdown.Avalonia (the reason it was vendored) is gone. Each
          phase gets its own minor bump, commit, and push as it lands. -->
-    <Version>2.0.0</Version>
+    <!-- 2.1.0: Phase 0 of the HTML refactor (see 2.0.0 note / the plan doc) — the WebView
+         spike. No production code changes; a standalone Avalonia.Controls.WebView +
+         contenteditable proof of concept (outside this repo, in scratch space) confirmed the
+         WYSIWYG approach is viable: an automated round-trip test (InvokeScript sets up a
+         contenteditable div, programmatically edits it to the exact <figure>/<figcaption>
+         markup shape planned for Insert Image, and dispatches an input event; the JS-global
+         invokeCSharpAction bridge — auto-injected, no manual setup needed — delivered the
+         edited HTML back to C# via WebMessageReceived, byte-for-byte correct) passed cleanly.
+         Found and fixed one real, reproducible native crash along the way: attaching a
+         NativeWebView to a Window before that window completes a real Avalonia layout pass
+         crashes with "Invalid view geometry: y is NaN" inside WKWebView's own init — fixed by
+         deferring Window.Content assignment and the first Navigate call to
+         Dispatcher.UIThread.Post(..., DispatcherPriority.Loaded). Phase 8 must apply this same
+         pattern for both the editor's WYSIWYG pane and PreviewWindow. -->
+    <Version>2.1.0</Version>
   </PropertyGroup>
 </Project>
