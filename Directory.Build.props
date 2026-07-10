@@ -110,6 +110,17 @@
          headless Avalonia harness (not just unit-tested in isolation) — Preview now shows clean
          plain text/images instead of broken syntax, though still without the actual CSS-driven
          styling, since Preview has no CSS engine of its own regardless. -->
-    <Version>1.11.0</Version>
+    <!-- 2.0.0: marks the start of the Markdown → HTML content-model refactor (major bump, per
+         explicit user instruction, since this is a breaking change to the project file format
+         itself, not an incremental feature/fix). No code changes in this commit — chapters are
+         still Markdown; this bump exists purely to mark the plan's adoption point in history
+         before implementation begins. See /Users/admin/.claude/plans/dapper-hugging-lighthouse.md
+         for the full phased plan: HTML-native chapter storage (new .ebhtml extension), an
+         AngleSharp-driven HTML DOM replacing Markdig's AST across EPUB/PDF/Word export, a
+         WebView-based (Avalonia.Controls.WebView) WYSIWYG editor mode alongside raw HTML
+         editing, a matching WebView-based Preview window, and eventual removal of the vendored
+         AvaloniaEdit copy once Markdown.Avalonia (the reason it was vendored) is gone. Each
+         phase gets its own minor bump, commit, and push as it lands. -->
+    <Version>2.0.0</Version>
   </PropertyGroup>
 </Project>
