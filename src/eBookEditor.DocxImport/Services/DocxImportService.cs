@@ -13,7 +13,7 @@ public class DocxImportService
         var mainPart = document.MainDocumentPart ?? throw new InvalidDataException("The document has no main content part.");
         var body = mainPart.Document?.Body ?? throw new InvalidDataException("The document has no body.");
 
-        var converter = new OpenXmlToMarkdownConverter();
+        var converter = new OpenXmlToHtmlConverter();
         var chapters = new List<ChapterDraft>();
 
         string? currentTitle = null;
@@ -24,12 +24,26 @@ public class DocxImportService
         // entry in such a list reads exactly like a chapter heading ("Chapter 1: Getting
         // Ready"), which would otherwise each get treated as the start of a new, empty chapter.
         var skippingHandTypedToc = false;
+        // Consecutive ListItem paragraphs of the same ordered/unordered kind are grouped into
+        // one wrapping <ul>/<ol> — null when no list is currently open, else "ul" or "ol".
+        string? openListTag = null;
+
+        void CloseOpenList()
+        {
+            if (openListTag is null)
+                return;
+
+            currentBody.AppendLine($"</{openListTag}>");
+            currentBody.AppendLine();
+            openListTag = null;
+        }
 
         void FlushCurrent()
         {
             if (currentTitle is null)
                 return;
 
+            CloseOpenList();
             chapters.Add(new ChapterDraft(currentTitle, currentBody.ToString().Trim(), currentImages));
             currentBody = new StringBuilder();
             currentImages = [];
@@ -72,24 +86,46 @@ public class DocxImportService
                     currentTitle = ExtractChapterTitle(paragraph);
                     continue;
                 }
+
+                var converted = converter.ConvertParagraph(paragraph, mainPart, currentImages);
+                if (converted.Kind == ParagraphKind.Empty)
+                    continue;
+
+                // Content appearing before the first detected chapter heading is kept as an
+                // implicit "Introduction" chapter rather than silently dropped.
+                if (converted.Kind == ParagraphKind.ListItem)
+                {
+                    var wantedTag = converted.Ordered ? "ol" : "ul";
+                    if (openListTag is not null && openListTag != wantedTag)
+                        CloseOpenList();
+
+                    if (openListTag is null)
+                    {
+                        currentTitle ??= "Introduction";
+                        currentBody.AppendLine($"<{wantedTag}>");
+                        openListTag = wantedTag;
+                    }
+
+                    currentBody.AppendLine(converted.Html);
+                    continue;
+                }
+
+                CloseOpenList();
+                currentTitle ??= "Introduction";
+                currentBody.AppendLine(converted.Html);
+                currentBody.AppendLine();
             }
-
-            var line = element switch
+            else if (element is Table table)
             {
-                Paragraph p => converter.ConvertParagraph(p, mainPart, currentImages),
-                Table table => converter.ConvertTable(table),
-                _ => null
-            };
+                var html = converter.ConvertTable(table);
+                if (string.IsNullOrEmpty(html))
+                    continue;
 
-            if (string.IsNullOrEmpty(line))
-                continue;
-
-            // Content appearing before the first detected chapter heading is kept as an
-            // implicit "Introduction" chapter rather than silently dropped.
-            currentTitle ??= "Introduction";
-
-            currentBody.AppendLine(line);
-            currentBody.AppendLine();
+                CloseOpenList();
+                currentTitle ??= "Introduction";
+                currentBody.AppendLine(html);
+                currentBody.AppendLine();
+            }
         }
 
         FlushCurrent();

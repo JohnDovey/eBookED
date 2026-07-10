@@ -6,7 +6,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="ReverseMarkdown" Version="6.1.0" />
+    <!-- HTML import is now a parse/sanitize/pass-through step (HtmlImportSanitizer), not a
+         format conversion, since the app's own storage format is HTML too. -->
+    <PackageReference Include="AngleSharp" Version="1.5.1" />
   </ItemGroup>
 
   <PropertyGroup>

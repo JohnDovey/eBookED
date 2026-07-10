@@ -454,7 +454,7 @@ public partial class MainWindow : Window
             AllowMultiple = true,
             FileTypeFilter =
             [
-                new FilePickerFileType("Chapter files") { Patterns = ["*.md", "*.docx", "*.html", "*.htm"] }
+                new FilePickerFileType("Chapter files") { Patterns = ["*.ebhtml", "*.md", "*.docx", "*.html", "*.htm"] }
             ]
         });
 

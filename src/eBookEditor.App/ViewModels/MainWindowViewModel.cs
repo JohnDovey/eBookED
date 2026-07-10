@@ -260,7 +260,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 foreach (var draft in drafts)
                 {
                     var path = _chapterFileService.CreateNewChapterFile(CurrentProject.ChaptersDir, draft.Title);
-                    _chapterFileService.WriteChapter(path, new ChapterFrontMatter { Title = draft.Title }, draft.BodyMarkdown);
+                    _chapterFileService.WriteChapter(path, new ChapterFrontMatter { Title = draft.Title }, draft.Body);
                     var relativePath = Path.GetRelativePath(CurrentProject.DirectoryPath, path).Replace('\\', '/');
                     _spineService.AddChapter(CurrentProject, draft.Title, relativePath, draft.PositionHint);
 
@@ -501,7 +501,7 @@ public partial class MainWindowViewModel : ViewModelBase
             foreach (var draft in chapterDrafts)
             {
                 var path = _chapterFileService.CreateNewChapterFile(CurrentProject.ChaptersDir, draft.Title);
-                _chapterFileService.WriteChapter(path, new ChapterFrontMatter { Title = draft.Title }, draft.BodyMarkdown);
+                _chapterFileService.WriteChapter(path, new ChapterFrontMatter { Title = draft.Title }, draft.Body);
                 var relativePath = Path.GetRelativePath(CurrentProject.DirectoryPath, path).Replace('\\', '/');
                 _spineService.AddChapter(CurrentProject, draft.Title, relativePath);
 

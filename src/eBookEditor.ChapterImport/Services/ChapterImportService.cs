@@ -11,14 +11,14 @@ namespace eBookEditor.ChapterImport.Services;
 /// this project's own chapters/ directory, come back through here), .md (legacy, also used
 /// as-is for now — see the HTML content-model refactor's migration tooling for real .md
 /// project upgrades), .docx (reuses the whole-manuscript importer's chapter-boundary
-/// detection), and .html/.htm (converted via HtmlToMarkdownConverter). The source file's name
-/// supplies both the chapter title and an optional position hint (see
+/// detection, emitting HTML), and .html/.htm (sanitized pass-through via HtmlImportSanitizer).
+/// The source file's name supplies both the chapter title and an optional position hint (see
 /// ChapterFileNaming.ParseHint), e.g. "23. What Now.md" -> chapter 23, titled "What Now".
 /// </summary>
 public class ChapterImportService
 {
     private readonly DocxImportService _docxImportService = new();
-    private readonly HtmlToMarkdownConverter _htmlConverter = new();
+    private readonly HtmlImportSanitizer _htmlSanitizer = new();
     private readonly ChapterFileService _chapterFileService = new();
 
     public IReadOnlyList<ChapterImportDraft> ImportFile(string filePath)
@@ -44,8 +44,8 @@ public class ChapterImportService
 
     private ChapterImportDraft ImportHtmlFile(string filePath, int? hintNumber, string hintTitle)
     {
-        var markdown = _htmlConverter.Convert(File.ReadAllText(filePath));
-        return new ChapterImportDraft(hintTitle, markdown, hintNumber, []);
+        var html = _htmlSanitizer.Convert(File.ReadAllText(filePath));
+        return new ChapterImportDraft(hintTitle, html, hintNumber, []);
     }
 
     private IReadOnlyList<ChapterImportDraft> ImportDocxFile(string filePath, int? hintNumber)
@@ -58,8 +58,8 @@ public class ChapterImportService
         // keeps its own internal order instead — a single hint wouldn't make sense across
         // several resulting chapters.
         if (drafts.Count == 1)
-            return [new ChapterImportDraft(drafts[0].Title, drafts[0].BodyMarkdown, hintNumber, drafts[0].Images)];
+            return [new ChapterImportDraft(drafts[0].Title, drafts[0].Body, hintNumber, drafts[0].Images)];
 
-        return drafts.Select(d => new ChapterImportDraft(d.Title, d.BodyMarkdown, null, d.Images)).ToList();
+        return drafts.Select(d => new ChapterImportDraft(d.Title, d.Body, null, d.Images)).ToList();
     }
 }

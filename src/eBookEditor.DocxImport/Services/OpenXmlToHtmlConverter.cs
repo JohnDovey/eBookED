@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -6,11 +7,22 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace eBookEditor.DocxImport.Services;
 
+internal enum ParagraphKind { Empty, Paragraph, Subheading, ListItem }
+
+/// <summary>A converted paragraph's HTML and enough shape information for the caller
+/// (DocxImportService) to group consecutive ListItem paragraphs into a wrapping
+/// &lt;ul&gt;/&lt;ol&gt; — a single paragraph only knows about itself, not its neighbors.</summary>
+internal readonly record struct ConvertedParagraph(string Html, ParagraphKind Kind, bool Ordered = false)
+{
+    public static readonly ConvertedParagraph Empty = new("", ParagraphKind.Empty);
+}
+
 /// <summary>
 /// Covers the common manuscript formatting cases (bold/italic, H2/H3 subheadings, simple
-/// single-level bullet/numbered lists, inline images, hyperlinks, and tables).
+/// single-level bullet/numbered lists, inline images, hyperlinks, and tables), emitting HTML
+/// fragments instead of Markdown.
 /// </summary>
-internal class OpenXmlToMarkdownConverter
+internal class OpenXmlToHtmlConverter
 {
     public string ConvertTable(Table table)
     {
@@ -19,47 +31,50 @@ internal class OpenXmlToMarkdownConverter
             return string.Empty;
 
         var sb = new StringBuilder();
-        var headerCells = ExtractCells(rows[0]);
-        sb.Append("| ").Append(string.Join(" | ", headerCells)).Append(" |").AppendLine();
-        sb.Append("| ").Append(string.Join(" | ", headerCells.Select(_ => "---"))).Append(" |").AppendLine();
+        sb.Append("<table>\n<thead>\n<tr>");
+        foreach (var cell in ExtractCells(rows[0]))
+            sb.Append("<th>").Append(cell).Append("</th>");
+        sb.Append("</tr>\n</thead>\n<tbody>\n");
 
         foreach (var row in rows.Skip(1))
         {
-            var cells = ExtractCells(row);
-            sb.Append("| ").Append(string.Join(" | ", cells)).Append(" |").AppendLine();
+            sb.Append("<tr>");
+            foreach (var cell in ExtractCells(row))
+                sb.Append("<td>").Append(cell).Append("</td>");
+            sb.Append("</tr>\n");
         }
 
-        return sb.ToString().TrimEnd();
+        sb.Append("</tbody>\n</table>");
+        return sb.ToString();
     }
 
     private static List<string> ExtractCells(TableRow row) => row.Elements<TableCell>()
         .Select(cell => string.Join("<br>", cell.Elements<Paragraph>()
-                .Select(p => string.Concat(p.Descendants<Text>().Select(t => t.Text)).Trim())
-                .Where(text => text.Length > 0))
-            .Replace("|", "\\|"))
+                .Select(p => Encode(string.Concat(p.Descendants<Text>().Select(t => t.Text)).Trim()))
+                .Where(text => text.Length > 0)))
         .ToList();
 
-    public string ConvertParagraph(Paragraph paragraph, MainDocumentPart mainPart, List<ExtractedImage> images)
+    public ConvertedParagraph ConvertParagraph(Paragraph paragraph, MainDocumentPart mainPart, List<ExtractedImage> images)
     {
-        var runText = ConvertRuns(paragraph, mainPart, images);
-        if (string.IsNullOrWhiteSpace(runText))
-            return string.Empty;
+        var runHtml = ConvertRuns(paragraph, mainPart, images);
+        if (string.IsNullOrWhiteSpace(runHtml))
+            return ConvertedParagraph.Empty;
 
         if (ChapterBoundaryDetector.IsSubheading(paragraph))
         {
             var styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
-            var prefix = string.Equals(styleId, "Heading2", StringComparison.OrdinalIgnoreCase) ? "## " : "### ";
-            return prefix + runText.Trim();
+            var level = string.Equals(styleId, "Heading2", StringComparison.OrdinalIgnoreCase) ? "h2" : "h3";
+            return new ConvertedParagraph($"<{level}>{runHtml.Trim()}</{level}>", ParagraphKind.Subheading);
         }
 
         var numberingProperties = paragraph.ParagraphProperties?.NumberingProperties;
         if (numberingProperties is not null)
         {
-            var marker = IsOrderedList(mainPart, numberingProperties) ? "1. " : "- ";
-            return marker + runText.Trim();
+            var ordered = IsOrderedList(mainPart, numberingProperties);
+            return new ConvertedParagraph($"<li>{runHtml.Trim()}</li>", ParagraphKind.ListItem, ordered);
         }
 
-        return runText;
+        return new ConvertedParagraph($"<p>{runHtml}</p>", ParagraphKind.Paragraph);
     }
 
     private static string ConvertRuns(Paragraph paragraph, MainDocumentPart mainPart, List<ExtractedImage> images)
@@ -89,30 +104,31 @@ internal class OpenXmlToMarkdownConverter
             return string.Empty;
 
         // Internal bookmark links (Anchor, no relationship Id) have nowhere meaningful to
-        // point in a standalone Markdown/EPUB chapter, so only the link text is kept.
+        // point in a standalone chapter, so only the link text is kept.
         var relationshipId = hyperlink.Id?.Value;
         var url = relationshipId is null
             ? null
             : mainPart.HyperlinkRelationships.FirstOrDefault(r => r.Id == relationshipId)?.Uri.ToString();
 
-        return url is null ? text : $"[{text}]({url})";
+        return url is null ? text : $"<a href=\"{Encode(url)}\">{text}</a>";
     }
 
     private static string ConvertRun(Run run, MainDocumentPart mainPart, List<ExtractedImage> images)
     {
         var drawing = run.Elements<Drawing>().FirstOrDefault();
-        var imageMarkdown = drawing is not null ? TryExtractImage(drawing, mainPart, images) : null;
-        if (imageMarkdown is not null)
-            return imageMarkdown;
+        var imageHtml = drawing is not null ? TryExtractImage(drawing, mainPart, images) : null;
+        if (imageHtml is not null)
+            return imageHtml;
 
         var text = string.Concat(run.Elements<Text>().Select(t => t.Text));
         if (text.Length == 0)
             return string.Empty;
 
+        var encoded = Encode(text);
         var bold = run.RunProperties?.Bold is not null && run.RunProperties.Bold.Val?.Value != false;
         var italic = run.RunProperties?.Italic is not null && run.RunProperties.Italic.Val?.Value != false;
 
-        return bold && italic ? $"***{text}***" : bold ? $"**{text}**" : italic ? $"*{text}*" : text;
+        return bold && italic ? $"<strong><em>{encoded}</em></strong>" : bold ? $"<strong>{encoded}</strong>" : italic ? $"<em>{encoded}</em>" : encoded;
     }
 
     private static string? TryExtractImage(Drawing drawing, MainDocumentPart mainPart, List<ExtractedImage> images)
@@ -135,7 +151,7 @@ internal class OpenXmlToMarkdownConverter
         var fileName = $"image-{images.Count + 1}.{ext}";
         images.Add(new ExtractedImage(fileName, memoryStream.ToArray()));
 
-        return $"![](../images/{fileName})";
+        return $"<img src=\"../images/{fileName}\" alt=\"\">";
     }
 
     private static bool IsOrderedList(MainDocumentPart mainPart, NumberingProperties numberingProperties)
@@ -157,4 +173,6 @@ internal class OpenXmlToMarkdownConverter
 
         return firstLevel?.NumberingFormat?.Val?.Value == NumberFormatValues.Decimal;
     }
+
+    private static string Encode(string text) => WebUtility.HtmlEncode(text);
 }

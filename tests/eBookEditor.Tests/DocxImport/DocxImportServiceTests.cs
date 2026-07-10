@@ -39,29 +39,38 @@ public class DocxImportServiceTests : IDisposable
 
         var chapters = _importService.Import(docxPath);
 
-        Assert.Contains("**bold**", chapters[0].BodyMarkdown);
-        Assert.Contains("*italic*", chapters[0].BodyMarkdown);
+        Assert.Contains("<strong>bold</strong>", chapters[0].Body);
+        Assert.Contains("<em>italic</em>", chapters[0].Body);
     }
 
     [Fact]
-    public void Import_ConvertsHeading2ToMarkdownSubheading()
+    public void Import_ConvertsHeading2ToHtmlSubheading()
     {
         var docxPath = DocxFixtureBuilder.BuildSimpleDocx(Path.Combine(_tempDir, "sample.docx"));
 
         var chapters = _importService.Import(docxPath);
 
-        Assert.Contains("## A Subsection", chapters[0].BodyMarkdown);
+        Assert.Contains("<h2>A Subsection</h2>", chapters[0].Body);
     }
 
     [Fact]
-    public void Import_ConvertsNumberingListItemsToBulletMarkdown()
+    public void Import_WrapsConsecutiveListItemsInAUnorderedList()
     {
         var docxPath = DocxFixtureBuilder.BuildSimpleDocx(Path.Combine(_tempDir, "sample.docx"));
 
         var chapters = _importService.Import(docxPath);
+        var body = chapters[0].Body;
 
-        Assert.Contains("- First bullet", chapters[0].BodyMarkdown);
-        Assert.Contains("- Second bullet", chapters[0].BodyMarkdown);
+        Assert.Contains("<li>First bullet</li>", body);
+        Assert.Contains("<li>Second bullet</li>", body);
+
+        var ulIndex = body.IndexOf("<ul>", StringComparison.Ordinal);
+        var closeUlIndex = body.IndexOf("</ul>", StringComparison.Ordinal);
+        var firstIndex = body.IndexOf("<li>First bullet</li>", StringComparison.Ordinal);
+        var secondIndex = body.IndexOf("<li>Second bullet</li>", StringComparison.Ordinal);
+
+        Assert.True(ulIndex >= 0 && ulIndex < firstIndex, "A <ul> should wrap the list items.");
+        Assert.True(firstIndex < secondIndex && secondIndex < closeUlIndex, "Both bullets should be inside the same <ul>...</ul>.");
     }
 
     [Fact]
@@ -73,40 +82,43 @@ public class DocxImportServiceTests : IDisposable
 
         Assert.Equal(2, chapters.Count);
         Assert.Equal("Introduction", chapters[0].Title);
-        Assert.Contains("Some preamble text", chapters[0].BodyMarkdown);
+        Assert.Contains("Some preamble text", chapters[0].Body);
         Assert.Equal("Chapter One", chapters[1].Title);
     }
 
     [Fact]
-    public void Import_ExtractsEmbeddedImageAndRewritesMarkdownReference()
+    public void Import_ExtractsEmbeddedImageAndRewritesHtmlReference()
     {
         var imageBytes = new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 };
         var docxPath = DocxFixtureBuilder.BuildSimpleDocx(Path.Combine(_tempDir, "with-image.docx"), imageBytes);
 
         var chapters = _importService.Import(docxPath);
 
-        Assert.True(chapters[0].BodyMarkdown.Contains("![](../images/image-1.jpg)"), chapters[0].BodyMarkdown);
+        Assert.Contains("<img src=\"../images/image-1.jpg\" alt=\"\">", chapters[0].Body);
         var image = Assert.Single(chapters[0].Images);
         Assert.Equal("image-1.jpg", image.FileName);
         Assert.Equal(imageBytes, image.Bytes);
     }
 
     [Fact]
-    public void Import_ConvertsTableToMarkdownPipeTable()
+    public void Import_ConvertsTableToHtmlTable()
     {
         var docxPath = DocxFixtureBuilder.BuildDocxWithTable(Path.Combine(_tempDir, "with-table.docx"));
 
         var chapters = _importService.Import(docxPath);
 
-        var body = chapters[0].BodyMarkdown;
+        var body = chapters[0].Body;
         Assert.Contains("Before the table.", body);
-        Assert.Contains("| Name | Role |", body);
-        Assert.Contains("| --- | --- |", body);
-        Assert.Contains("| Jane Doe | Author |", body);
-        Assert.Contains("| Ed Itor | Editor |", body);
+        Assert.Contains("<table>", body);
+        Assert.Contains("<th>Name</th>", body);
+        Assert.Contains("<th>Role</th>", body);
+        Assert.Contains("<td>Jane Doe</td>", body);
+        Assert.Contains("<td>Author</td>", body);
+        Assert.Contains("<td>Ed Itor</td>", body);
+        Assert.Contains("<td>Editor</td>", body);
         Assert.Contains("After the table.", body);
 
-        var tableIndex = body.IndexOf("| Name", StringComparison.Ordinal);
+        var tableIndex = body.IndexOf("<table>", StringComparison.Ordinal);
         var beforeIndex = body.IndexOf("Before the table.", StringComparison.Ordinal);
         var afterIndex = body.IndexOf("After the table.", StringComparison.Ordinal);
         Assert.True(beforeIndex < tableIndex);
@@ -114,13 +126,13 @@ public class DocxImportServiceTests : IDisposable
     }
 
     [Fact]
-    public void Import_PreservesHyperlinkTargetAsMarkdownLink()
+    public void Import_PreservesHyperlinkTargetAsHtmlLink()
     {
         var docxPath = DocxFixtureBuilder.BuildDocxWithHyperlink(Path.Combine(_tempDir, "with-link.docx"));
 
         var chapters = _importService.Import(docxPath);
 
-        Assert.Contains("[our site](https://example.com/)", chapters[0].BodyMarkdown);
+        Assert.Contains("<a href=\"https://example.com/\">our site</a>", chapters[0].Body);
     }
 
     [Fact]
@@ -136,9 +148,9 @@ public class DocxImportServiceTests : IDisposable
 
         Assert.Equal(2, chapters.Count);
         Assert.Equal("Chapter 1: Getting Ready", chapters[0].Title);
-        Assert.Contains("Real content for chapter one.", chapters[0].BodyMarkdown);
+        Assert.Contains("Real content for chapter one.", chapters[0].Body);
         Assert.Equal("Chapter 2: Starting Out", chapters[1].Title);
-        Assert.Contains("Real content for chapter two.", chapters[1].BodyMarkdown);
+        Assert.Contains("Real content for chapter two.", chapters[1].Body);
     }
 
     [Fact]
@@ -152,8 +164,8 @@ public class DocxImportServiceTests : IDisposable
 
         Assert.Equal(2, chapters.Count);
         Assert.Equal("Chapter 1: Getting Ready", chapters[0].Title);
-        Assert.Contains("Real content for chapter one.", chapters[0].BodyMarkdown);
+        Assert.Contains("Real content for chapter one.", chapters[0].Body);
         Assert.Equal("Chapter 2: Starting Out", chapters[1].Title);
-        Assert.Contains("Real content for chapter two.", chapters[1].BodyMarkdown);
+        Assert.Contains("Real content for chapter two.", chapters[1].Body);
     }
 }

@@ -181,6 +181,25 @@
          filenames. Rewriting EpubBuilder/EpubInternalLinkResolver to consume real HTML anchors
          is Phase 4's job ("EPUB export simplification") — fixing it here would mean doing Phase
          4's work inside Phase 2's commit. -->
-    <Version>2.3.0</Version>
+    <!-- 2.4.0: Phase 3 of the HTML refactor (see 2.0.0 note / the plan doc) — import pipeline
+         rewrite. OpenXmlToMarkdownConverter -> OpenXmlToHtmlConverter: same DOM-walking approach
+         (bold/italic, H2/H3 subheadings, single-level bullet/numbered lists, inline images,
+         hyperlinks, tables), now emitting HTML instead of Markdown, with list-item grouping into
+         a wrapping &lt;ul&gt;/&lt;ol&gt; (a new concern HTML has that Markdown's flat "- item"
+         lines never needed) tracked by DocxImportService across consecutive paragraphs. Deleted
+         HtmlToMarkdownConverter and its ReverseMarkdown NuGet dependency entirely — replaced by
+         HtmlImportSanitizer (new AngleSharp dependency), a parse/sanitize/pass-through step
+         rather than a format conversion, since the app's own storage format is HTML too now.
+         Sanitizing strips &lt;script&gt;/&lt;style&gt; elements, head content, "javascript:"
+         URLs, and inline "on*" event handler attributes — a real new security concern once
+         imported content renders in a WYSIWYG WebView (Phase 8), not just an editor text box.
+         ChapterImportService now routes .ebhtml/.md to the unchanged native pass-through, .docx
+         to the new HTML-emitting converter, and .html/.htm to the sanitizer. ChapterDraft and
+         ChapterImportDraft's BodyMarkdown property renamed to Body (format-neutral) throughout.
+         The "Import Chapters" file picker filter gained "*.ebhtml" alongside the existing
+         patterns. Known, expected regression from Phase 2, still deferred: EpubBuilderTests.
+         Build_TocPageLinksResolveToTheChaptersActualContentDocument stays Skip-annotated —
+         that's Phase 4's fix, not Phase 3's. -->
+    <Version>2.4.0</Version>
   </PropertyGroup>
 </Project>
