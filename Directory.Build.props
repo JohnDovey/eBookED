@@ -226,6 +226,16 @@
          brand new native .ebhtml chapter file, added to the spine — and only once that new file
          is safely in place is the original non-native file deleted, so orphan pickup can't
          leave a project with two copies of the same chapter in two formats. -->
-    <Version>2.6.0</Version>
+    <!-- 2.7.0: new feature, so a minor bump. Chapter file names built by
+         ChapterFileNaming.BuildFileName never contain spaces anymore — "023 - What Now.ebhtml"
+         is now "023-What-Now.ebhtml". Whitespace runs in the title portion collapse to a single
+         hyphen (alongside the existing cross-platform-invalid-character handling), and the
+         number/title separator changed from " - " to "-" to match. Plain filesystem hygiene,
+         and one less thing to percent-encode wherever a chapter's relative path ends up as an
+         HTML href or asset URL (EPUB content documents, the future WYSIWYG editor's WebView).
+         ChapterFileNaming.ParseHint (which reads position/title hints back out of a file name)
+         is unchanged — it still accepts space, period, hyphen, underscore, or colon as the
+         number/title separator, so old space-containing file names remain readable. -->
+    <Version>2.7.0</Version>
   </PropertyGroup>
 </Project>

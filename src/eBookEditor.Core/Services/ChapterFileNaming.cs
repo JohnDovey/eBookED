@@ -5,13 +5,16 @@ namespace eBookEditor.Core.Services;
 /// <summary>
 /// Shared naming rules for chapter files on disk, used both when importing/dropping files
 /// (to guess where a file like "23. What Now.md" belongs) and when syncing chapter file
-/// names to match their resolved position (so "023 - What Now.md" sorts correctly in a file
+/// names to match their resolved position (so "023-What-Now.ebhtml" sorts correctly in a file
 /// browser, matching the book's actual order).
 /// </summary>
 public static partial class ChapterFileNaming
 {
     [GeneratedRegex(@"^(\d+)[\s\.\-_:]+(.+)$")]
     private static partial Regex NumberedNameRegex();
+
+    [GeneratedRegex(@"\s+")]
+    private static partial Regex WhitespaceRunRegex();
 
     /// <summary>
     /// Parses a leading number out of a chapter file's name (without extension), e.g.
@@ -27,11 +30,11 @@ public static partial class ChapterFileNaming
         return (null, fileNameWithoutExtension.Trim());
     }
 
-    /// <summary>Builds the on-disk file name for a chapter at its resolved number, e.g. (23, "What Now") -> "023 - What Now.ebhtml".</summary>
+    /// <summary>Builds the on-disk file name for a chapter at its resolved number, e.g. (23, "What Now") -> "023-What-Now.ebhtml".</summary>
     public static string BuildFileName(int? number, string title)
     {
         var safeTitle = SanitizeForFileName(title);
-        return number is { } n ? $"{n:D3} - {safeTitle}.ebhtml" : $"{safeTitle}.ebhtml";
+        return number is { } n ? $"{n:D3}-{safeTitle}.ebhtml" : $"{safeTitle}.ebhtml";
     }
 
     // Path.GetInvalidFileNameChars() only reflects the *current* OS's restrictions (on
@@ -43,7 +46,16 @@ public static partial class ChapterFileNaming
 
     private static string SanitizeForFileName(string title)
     {
-        var sanitized = new string(title.Select(c => CrossPlatformInvalidChars.Contains(c) || char.IsControl(c) ? '-' : c).ToArray()).Trim();
+        var withInvalidCharsReplaced = new string(title.Select(c => CrossPlatformInvalidChars.Contains(c) || char.IsControl(c) ? '-' : c).ToArray()).Trim();
+
+        // Chapter file names never contain spaces — filesystem hygiene, and one less thing to
+        // percent-encode wherever a chapter's relative path ends up as an HTML href or asset
+        // URL (EPUB content documents, the WYSIWYG editor's WebView, etc.).
+        var withoutSpaces = WhitespaceRunRegex().Replace(withInvalidCharsReplaced, "-");
+        while (withoutSpaces.Contains("--", StringComparison.Ordinal))
+            withoutSpaces = withoutSpaces.Replace("--", "-");
+        var sanitized = withoutSpaces.Trim('-');
+
         return string.IsNullOrWhiteSpace(sanitized) ? "Untitled" : sanitized;
     }
 }

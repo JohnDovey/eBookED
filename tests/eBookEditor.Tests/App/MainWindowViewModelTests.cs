@@ -396,7 +396,7 @@ public class MainWindowViewModelTests : IDisposable
         // on-disk storage extension), but what gets written internally always uses this
         // project's own chapter-file convention — ".ebhtml" as of the HTML content-model
         // refactor.
-        Assert.Equal("chapters/001 - Imported First.ebhtml", chapters[0].RelativePath);
+        Assert.Equal("chapters/001-Imported-First.ebhtml", chapters[0].RelativePath);
         Assert.Contains("Imported body text.", File.ReadAllText(vm.CurrentProject.ResolvePath(chapters[0])));
     }
 

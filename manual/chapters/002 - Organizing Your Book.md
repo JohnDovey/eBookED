@@ -23,7 +23,7 @@ Click **+ Add Chapter** at the top of the sidebar. A new, empty chapter is creat
 
 Chapters can be dragged up and down within the sidebar to reorder them. Front matter and back matter stay fixed in place — you can't drag a chapter above the title page or below the About the Author page.
 
-Whenever chapters are reordered, added, or removed, eBook Editor renames the chapter files on disk to match their new position (e.g. `003 - Chapter Title.md`) so they sort correctly in Finder or Explorer too. This is a rename, not a content rewrite — your chapter's text and any images it references are untouched.
+Whenever chapters are reordered, added, or removed, eBook Editor renames the chapter files on disk to match their new position (e.g. `003-Chapter-Title.ebhtml` — chapter file names never contain spaces) so they sort correctly in Finder or Explorer too. This is a rename, not a content rewrite — your chapter's text and any images it references are untouched.
 
 ## Setting a chapter's title and number
 
@@ -33,17 +33,17 @@ With a chapter selected, two fields appear above the editor: **Chapter title** a
 
 New chapters can come from three places, all producing the same result:
 
-1. **File → Import Chapters…** — a file picker. Select one or more `.md`, `.docx`, or `.html`/`.htm` files.
+1. **File → Import Chapters…** — a file picker. Select one or more `.ebhtml`, `.md`, `.docx`, or `.html`/`.htm` files.
 2. **Drag files directly onto the sidebar.**
 3. **Drop files into the project's `chapters/` folder** using Finder/Explorer while the project is open — eBook Editor notices them the next time the project opens.
 
-`.docx` files go through the same chapter-boundary detection as **File → Import DOCX…** (splitting on Heading 1 styles or "Chapter N" text, if present). `.html`/`.htm` files are cleaned up automatically (embedded scripts and styling are stripped) rather than converted to a different format. Either way, and for legacy `.md` files too, the result is always written out as this app's own native chapter format — for files dropped straight into `chapters/` (method 3 above), the original `.md`/`.docx`/`.html`/`.htm` file is deleted once its content has been safely converted and added to the book, so you don't end up with two copies of the same chapter sitting side by side.
+`.ebhtml` files are already this app's own native chapter format and are used as-is, no conversion needed. `.docx` files go through the same chapter-boundary detection as **File → Import DOCX…** (splitting on Heading 1 styles or "Chapter N" text, if present). `.html`/`.htm` files are cleaned up automatically (embedded scripts and styling are stripped) rather than converted to a different format. Legacy `.md` files are also accepted and used as-is. For files dropped straight into `chapters/` (method 3 above): a `.md`/`.docx`/`.html`/`.htm` file is converted, written out as a new native chapter file, and the original deleted once its content has been safely added to the book, so you don't end up with two copies of the same chapter sitting side by side — a `.ebhtml` file, needing no conversion, is simply left where it is and renamed to match its resolved position.
 
 A file's name can hint at where it belongs: naming a file `"23. What Now.md"` or `"007 - Foo.md"` tells eBook Editor roughly where in the chapter order to place it.
 
 ## Importing a whole manuscript
 
-**File → Import DOCX…** takes a single large `.docx` file (a whole manuscript) and splits it into multiple chapters automatically, detecting boundaries by Heading 1 style or "Chapter N" text patterns. Bold/italic formatting, headings, lists, images, tables, and hyperlinks are all converted to Markdown.
+**File → Import DOCX…** takes a single large `.docx` file (a whole manuscript) and splits it into multiple chapters automatically, detecting boundaries by Heading 1 style or "Chapter N" text patterns. Bold/italic formatting, headings, lists, images, tables, and hyperlinks are all converted to HTML.
 
 A "Table of Contents" section — whether a Word-generated field or a hand-typed list of chapter titles — is recognized and skipped rather than split into a run of bogus, empty chapters, since each entry would otherwise read exactly like a real chapter heading.
 

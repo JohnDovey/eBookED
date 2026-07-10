@@ -49,10 +49,12 @@ public class EpubBuilderTests : IDisposable
             "<p>Hello <strong>world</strong>, this is the first chapter.</p>");
         _spineService.AddChapter(project, "Chapter One", relativePath);
         // Real usage always syncs filenames after adding a chapter (see
-        // MainWindowViewModel.AddChapter), which renames to "NNN - Title.ebhtml" — spaces and
-        // all. A slugged CreateNewChapterFile name alone ("chapter-one-abc123.ebhtml") never has
-        // spaces, so skipping this step let a real space-in-filename bug (broken TOC links) slip
-        // past this whole test suite untested.
+        // MainWindowViewModel.AddChapter), which renames to "NNN-Title.ebhtml" — this step
+        // matters because it's the difference between the slugged CreateNewChapterFile name
+        // ("chapter-one-abc123.ebhtml") and the real resolved-position name every exported book
+        // actually ships with; skipping it let real filename-shape bugs (e.g. the historical
+        // space-in-filename TOC-link regression, before chapter file names were made
+        // space-free) slip past this whole test suite untested.
         _chapterFileService.SyncChapterFileNames(project);
 
         File.WriteAllText(project.BookMdPath, new BookIndexGenerator().GenerateBookMd(project));
@@ -133,10 +135,9 @@ public class EpubBuilderTests : IDisposable
         Assert.NotEmpty(anchors);
         Assert.DoesNotContain(anchors, a => a.Href.Contains(".ebhtml", StringComparison.Ordinal));
 
-        // Regression: the chapter's filename ("NNN - Chapter One.ebhtml", via
-        // SyncChapterFileNames) contains a space — every spine item except the TOC page itself
-        // must resolve to a real, clickable anchor pointing at the EPUB's own "content-NNN.xhtml"
-        // naming, not the raw project-relative source path.
+        // Every spine item except the TOC page itself must resolve to a real, clickable anchor
+        // pointing at the EPUB's own "content-NNN.xhtml" naming, not the raw project-relative
+        // source path (e.g. "chapters/NNN-Chapter-One.ebhtml", via SyncChapterFileNames).
         var expectedLinkCount = project.Spine.Count(i => !i.RelativePath.EndsWith(ProjectPaths.TocPageFileName, StringComparison.Ordinal));
         Assert.Equal(expectedLinkCount, anchors.Count);
         Assert.Contains(anchors, a => a.Text.Contains("Chapter One", StringComparison.Ordinal));

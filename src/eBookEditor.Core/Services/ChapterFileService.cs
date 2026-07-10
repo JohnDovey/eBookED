@@ -56,7 +56,7 @@ public class ChapterFileService
     }
 
     /// <summary>
-    /// Renames chapter files on disk to match their resolved position ("023 - Chapter
+    /// Renames chapter files on disk to match their resolved position ("023-Chapter-
     /// Name.ebhtml"), so they sort correctly in a file browser too. Renames happen in two
     /// passes — first to unique temp names, then to their final names — so that swapping
     /// two chapters' positions (which briefly makes their desired file names collide with

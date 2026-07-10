@@ -80,7 +80,7 @@ public class ChapterFileServiceTests : IDisposable
         _service.SyncChapterFileNames(project);
 
         var updated = project.Spine.Single(i => i.Id == item.Id);
-        Assert.Equal("chapters/001 - First Chapter.ebhtml", updated.RelativePath);
+        Assert.Equal("chapters/001-First-Chapter.ebhtml", updated.RelativePath);
         Assert.True(File.Exists(project.ResolvePath(updated)));
         Assert.False(File.Exists(path));
     }
@@ -105,8 +105,8 @@ public class ChapterFileServiceTests : IDisposable
 
         var updatedA = project.Spine.Single(i => i.Id == itemA.Id);
         var updatedB = project.Spine.Single(i => i.Id == itemB.Id);
-        Assert.Equal("chapters/002 - Alpha.ebhtml", updatedA.RelativePath);
-        Assert.Equal("chapters/001 - Beta.ebhtml", updatedB.RelativePath);
+        Assert.Equal("chapters/002-Alpha.ebhtml", updatedA.RelativePath);
+        Assert.Equal("chapters/001-Beta.ebhtml", updatedB.RelativePath);
         Assert.True(File.Exists(project.ResolvePath(updatedA)));
         Assert.True(File.Exists(project.ResolvePath(updatedB)));
     }

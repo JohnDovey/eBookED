@@ -29,13 +29,13 @@ public class ChapterFileNamingTests
     [Fact]
     public void BuildFileName_ZeroPadsNumberToThreeDigits()
     {
-        Assert.Equal("023 - What Now.ebhtml", ChapterFileNaming.BuildFileName(23, "What Now"));
+        Assert.Equal("023-What-Now.ebhtml", ChapterFileNaming.BuildFileName(23, "What Now"));
     }
 
     [Fact]
     public void BuildFileName_OmitsNumberPrefixWhenNumberIsNull()
     {
-        Assert.Equal("Untitled Draft.ebhtml", ChapterFileNaming.BuildFileName(null, "Untitled Draft"));
+        Assert.Equal("Untitled-Draft.ebhtml", ChapterFileNaming.BuildFileName(null, "Untitled Draft"));
     }
 
     [Fact]
@@ -46,5 +46,17 @@ public class ChapterFileNamingTests
         Assert.DoesNotContain('?', fileName);
         Assert.DoesNotContain('/', fileName);
         Assert.DoesNotContain(':', fileName);
+    }
+
+    [Theory]
+    [InlineData("What   Now")]
+    [InlineData("What\tNow")]
+    [InlineData(" Leading and trailing ")]
+    public void BuildFileName_NeverContainsSpacesOrOtherWhitespace(string title)
+    {
+        var fileName = ChapterFileNaming.BuildFileName(1, title);
+
+        Assert.DoesNotContain(' ', fileName);
+        Assert.DoesNotContain('\t', fileName);
     }
 }

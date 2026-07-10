@@ -148,9 +148,11 @@ public class PageGeneratorServiceTests : IDisposable
     public void GenerateTocPage_ListsChaptersWithResolvedNumbersAndExcludesTocItself()
     {
         var project = _projectService.CreateProject(_tempDir, "Toc Test", SampleMetadata());
-        // Real chapter filenames follow "NNN - Title.ebhtml" (see ChapterFileNaming.BuildFileName)
-        // and contain spaces — unlike Markdown link syntax, an HTML href attribute handles
-        // spaces without any special escaping, so no angle-bracket workaround is needed here.
+        // Chapter file names built fresh by ChapterFileNaming.BuildFileName never contain spaces,
+        // but GenerateTocPage must still link correctly to any relative path a spine item happens
+        // to have (e.g. a legacy project, or a file renamed by hand in Finder) — unlike Markdown
+        // link syntax, an HTML href attribute handles spaces without any special escaping, so no
+        // angle-bracket workaround is needed here regardless.
         File.WriteAllText(Path.Combine(project.ChaptersDir, "001 - The Beginning.ebhtml"), "One");
         _spineService.AddChapter(project, "The Beginning", "chapters/001 - The Beginning.ebhtml");
 
