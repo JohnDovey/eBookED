@@ -44,4 +44,21 @@ public class BookIndexGeneratorTests : IDisposable
         var secondIndex = html.IndexOf("Chapter 2", StringComparison.Ordinal);
         Assert.True(firstIndex < secondIndex);
     }
+
+    [Fact]
+    public void GenerateBookMd_DividerAndCustomMatterItemsRenderUnnumbered()
+    {
+        var project = _projectService.CreateProject(_tempDir, "Index Test", new BookMetadata { Title = "Index Test" });
+        File.WriteAllText(Path.Combine(project.ChaptersDir, "one.ebhtml"), "One");
+        File.WriteAllText(Path.Combine(project.ChaptersDir, "divider.ebhtml"), "Divider");
+        _spineService.AddChapter(project, "First Chapter", "chapters/one.ebhtml");
+        _spineService.AddChapterDivider(project, "Part Two", "chapters/divider.ebhtml");
+        _spineService.AddFrontMatterItem(project, "Acknowledgements", "frontmatter/acknowledgements.ebhtml");
+
+        var html = _bookIndexGenerator.GenerateBookMd(project);
+
+        Assert.Contains("<li><a href=\"chapters/divider.ebhtml\">Part Two</a></li>", html);
+        Assert.DoesNotContain("Chapter Part Two", html);
+        Assert.Contains("<li><a href=\"frontmatter/acknowledgements.ebhtml\">Acknowledgements</a></li>", html);
+    }
 }

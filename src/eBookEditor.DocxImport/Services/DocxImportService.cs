@@ -1,6 +1,7 @@
 using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using eBookEditor.Core.Models;
 using eBookEditor.DocxImport.Models;
 
 namespace eBookEditor.DocxImport.Services;
@@ -17,6 +18,7 @@ public class DocxImportService
         var chapters = new List<ChapterDraft>();
 
         string? currentTitle = null;
+        var currentClassification = (Type: SpineItemType.Chapter, NumberMode: ChapterNumberMode.Auto);
         var currentBody = new StringBuilder();
         var currentImages = new List<ExtractedImage>();
         // Whether we're inside a hand-typed "Table of Contents" list (as opposed to Word's own
@@ -44,9 +46,10 @@ public class DocxImportService
                 return;
 
             CloseOpenList();
-            chapters.Add(new ChapterDraft(currentTitle, currentBody.ToString().Trim(), currentImages));
+            chapters.Add(new ChapterDraft(currentTitle, currentBody.ToString().Trim(), currentImages, currentClassification.Type, currentClassification.NumberMode));
             currentBody = new StringBuilder();
             currentImages = [];
+            currentClassification = (SpineItemType.Chapter, ChapterNumberMode.Auto);
         }
 
         foreach (var element in body.ChildElements)
@@ -84,6 +87,7 @@ public class DocxImportService
                 {
                     FlushCurrent();
                     currentTitle = ExtractChapterTitle(paragraph);
+                    currentClassification = SpecialPageClassifier.Classify(currentTitle);
                     continue;
                 }
 

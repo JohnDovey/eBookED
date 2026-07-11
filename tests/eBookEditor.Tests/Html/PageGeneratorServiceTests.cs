@@ -163,6 +163,24 @@ public class PageGeneratorServiceTests : IDisposable
     }
 
     [Fact]
+    public void GenerateTocPage_DividerRendersUnnumberedAndDoesNotShiftFollowingChapterNumbers()
+    {
+        var project = _projectService.CreateProject(_tempDir, "Toc Test", SampleMetadata());
+        File.WriteAllText(Path.Combine(project.ChaptersDir, "one.ebhtml"), "One");
+        File.WriteAllText(Path.Combine(project.ChaptersDir, "divider.ebhtml"), "Divider");
+        File.WriteAllText(Path.Combine(project.ChaptersDir, "two.ebhtml"), "Two");
+        _spineService.AddChapter(project, "First", "chapters/one.ebhtml");
+        _spineService.AddChapterDivider(project, "Part Two", "chapters/divider.ebhtml");
+        _spineService.AddChapter(project, "Second", "chapters/two.ebhtml");
+
+        var html = _pageGenerator.GenerateTocPage(project.Spine);
+
+        Assert.Contains("<li><a href=\"chapters/divider.ebhtml\">Part Two</a></li>", html);
+        Assert.Contains("<li><a href=\"chapters/one.ebhtml\">Chapter 1: First</a></li>", html);
+        Assert.Contains("<li><a href=\"chapters/two.ebhtml\">Chapter 2: Second</a></li>", html);
+    }
+
+    [Fact]
     public void RegenerateAllGeneratedPages_WritesAllFourFiles()
     {
         var project = _projectService.CreateProject(_tempDir, "Regen Test", SampleMetadata());

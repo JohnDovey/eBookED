@@ -94,6 +94,40 @@ public class EpubBuilderTests : IDisposable
     }
 
     [Fact]
+    public void Build_DividerRendersUnnumberedAndCustomMatterPagesAreValid()
+    {
+        var project = BuildSampleProject();
+
+        var frontMatterPath = _chapterFileService.CreateNewChapterFile(project.FrontMatterDir, "Preface");
+        _chapterFileService.WriteChapter(frontMatterPath, new ChapterFrontMatter { Title = "Preface" }, "<p>A preface.</p>");
+        _spineService.AddFrontMatterItem(project, "Preface", Path.GetRelativePath(project.DirectoryPath, frontMatterPath).Replace('\\', '/'));
+
+        var dividerPath = _chapterFileService.CreateNewChapterFile(project.ChaptersDir, "Part Two");
+        _chapterFileService.WriteChapter(dividerPath, new ChapterFrontMatter { Title = "Part Two" }, "");
+        _spineService.AddChapterDivider(project, "Part Two", Path.GetRelativePath(project.DirectoryPath, dividerPath).Replace('\\', '/'));
+        _chapterFileService.SyncChapterFileNames(project);
+
+        File.WriteAllText(project.BookMdPath, new BookIndexGenerator().GenerateBookMd(project));
+        _projectService.SaveProject(project);
+        var outputPath = Path.Combine(project.OutputDir, "book.epub");
+
+        _epubBuilder.Build(project, outputPath);
+
+        var result = EpubValidationHelper.Validate(outputPath);
+        Assert.True(result.IsValid, string.Join("; ", result.Errors));
+
+        using var archive = ZipFile.OpenRead(outputPath);
+        var contentDocsText = archive.Entries
+            .Where(e => e.FullName.StartsWith("OEBPS/content-", StringComparison.Ordinal))
+            .Select(e => { using var reader = new StreamReader(e.Open()); return reader.ReadToEnd(); })
+            .ToList();
+
+        Assert.Contains(contentDocsText, text => text.Contains("<h1>Part Two</h1>", StringComparison.Ordinal));
+        Assert.DoesNotContain(contentDocsText, text => text.Contains("Chapter Part Two", StringComparison.Ordinal));
+        Assert.Contains(contentDocsText, text => text.Contains("A preface.", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Build_ImprintPageIncludesACreatedWithLineBeforeTheCopyrightStatement()
     {
         var project = BuildSampleProject();

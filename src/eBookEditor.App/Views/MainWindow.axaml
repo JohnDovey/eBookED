@@ -60,7 +60,8 @@
 
     <Grid ColumnDefinitions="260,*">
 
-      <!-- Sidebar: chapters can be dragged to reorder; front/back matter are fixed.
+      <!-- Sidebar: chapters can be dragged to reorder; front/back matter items reposition via
+           each item's own "Move Up"/"Move Down" context-menu entries instead.
            Also accepts external file drops (.md/.docx/.html) to import as new chapters. -->
       <Border Grid.Column="0" Background="{DynamicResource SystemAltHighColor}" BorderThickness="0,0,1,0" BorderBrush="Gray"
               DragDrop.AllowDrop="True" DragDrop.DragOver="OnSidebarDragOver" DragDrop.Drop="OnSidebarDrop">
@@ -68,7 +69,7 @@
           <TextBlock DockPanel.Dock="Top" Text="{Binding CurrentProject.Metadata.Title}"
                      FontWeight="Bold" FontSize="16" Margin="0,0,0,8" TextWrapping="Wrap" />
 
-          <Button DockPanel.Dock="Top" Content="+ Add Chapter" Command="{Binding AddChapterCommand}"
+          <Button x:Name="AddItemButton" DockPanel.Dock="Top" Content="+ Add ▾" Click="OnAddItemButtonClick"
                   HorizontalAlignment="Stretch" Margin="0,0,0,8" />
 
           <ListBox x:Name="SpineListBox" ItemsSource="{Binding SpineItems}"
@@ -88,7 +89,10 @@
                         DragDrop.DragOver="OnSpineItemDragOver"
                         DragDrop.Drop="OnSpineItemDrop">
                   <Border.ContextMenu>
-                    <ContextMenu>
+                    <ContextMenu Opened="OnSpineItemContextMenuOpened">
+                      <MenuItem Header="Move Up" Click="OnMoveItemUpClick" />
+                      <MenuItem Header="Move Down" Click="OnMoveItemDownClick" />
+                      <Separator />
                       <MenuItem Header="Delete Chapter" Click="OnDeleteChapterClick" />
                       <MenuItem Header="Export Chapter as Word…" Click="OnExportChapterAsWordClick" />
                     </ContextMenu>
@@ -119,9 +123,9 @@
           <Button x:Name="ApplyStyleButton" Content="Apply Style ▾" Click="OnApplyStyleButtonClick" />
         </StackPanel>
 
-        <Grid DockPanel.Dock="Top" ColumnDefinitions="*,*,Auto" IsVisible="{Binding IsChapterSelected}" Margin="0,0,0,8">
-          <TextBox Grid.Column="0" Watermark="Chapter title" Text="{Binding ChapterTitleInput}" Margin="0,0,4,0" />
-          <TextBox Grid.Column="1" Watermark="Chapter subheading" Text="{Binding ChapterSubtitleInput}" Margin="4,0" />
+        <Grid DockPanel.Dock="Top" ColumnDefinitions="*,*,Auto" IsVisible="{Binding IsRenamableItemSelected}" Margin="0,0,0,8">
+          <TextBox Grid.Column="0" Watermark="Title" Text="{Binding ChapterTitleInput}" Margin="0,0,4,0" />
+          <TextBox Grid.Column="1" Watermark="Subheading" Text="{Binding ChapterSubtitleInput}" Margin="4,0" />
           <Button Grid.Column="2" Content="Apply" Click="OnSaveChapterHeaderClick" Margin="4,0,0,0" />
         </Grid>
 

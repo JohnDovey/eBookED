@@ -29,7 +29,7 @@ public class ChapterImportService
         return extension switch
         {
             ".ebhtml" or ".md" => [ImportNativeChapterFile(filePath, hintNumber, hintTitle)],
-            ".docx" => ImportDocxFile(filePath, hintNumber),
+            ".docx" => ImportDocxFile(filePath, hintNumber, hintTitle),
             ".html" or ".htm" => [ImportHtmlFile(filePath, hintNumber, hintTitle)],
             _ => throw new NotSupportedException($"Unsupported chapter file type: '{extension}'. Expected .ebhtml, .md, .docx, .html, or .htm.")
         };
@@ -39,27 +39,35 @@ public class ChapterImportService
     {
         var (frontMatter, body) = _chapterFileService.ParseChapter(File.ReadAllText(filePath));
         var title = string.IsNullOrWhiteSpace(frontMatter.Title) ? hintTitle : frontMatter.Title!;
-        return new ChapterImportDraft(title, body.Trim(), hintNumber, []);
+        var (type, numberMode) = SpecialPageClassifier.Classify(title);
+        return new ChapterImportDraft(title, body.Trim(), hintNumber, [], type, numberMode);
     }
 
     private ChapterImportDraft ImportHtmlFile(string filePath, int? hintNumber, string hintTitle)
     {
         var html = _htmlSanitizer.Convert(File.ReadAllText(filePath));
-        return new ChapterImportDraft(hintTitle, html, hintNumber, []);
+        var (type, numberMode) = SpecialPageClassifier.Classify(hintTitle);
+        return new ChapterImportDraft(hintTitle, html, hintNumber, [], type, numberMode);
     }
 
-    private IReadOnlyList<ChapterImportDraft> ImportDocxFile(string filePath, int? hintNumber)
+    private IReadOnlyList<ChapterImportDraft> ImportDocxFile(string filePath, int? hintNumber, string hintTitle)
     {
         var drafts = _docxImportService.Import(filePath);
 
         // A dropped .docx with no internal chapter-heading structure comes back as a single
-        // draft; the file name's position hint applies to it. A .docx that DID auto-split
-        // into multiple chapters (same heading detection as the whole-manuscript import)
-        // keeps its own internal order instead — a single hint wouldn't make sense across
-        // several resulting chapters.
+        // draft; the file name's position hint applies to it, and since such a file typically
+        // has no internal heading for SpecialPageClassifier to have already looked at (see
+        // DocxImportService), classify off the file name's own title instead — so dropping a
+        // file literally named "Preface.docx" still lands as a front-matter page. A .docx that
+        // DID auto-split into multiple chapters (same heading detection as the whole-manuscript
+        // import) keeps its own internal order and per-heading classification instead — a
+        // single hint (or the file name's title) wouldn't make sense across several results.
         if (drafts.Count == 1)
-            return [new ChapterImportDraft(drafts[0].Title, drafts[0].Body, hintNumber, drafts[0].Images)];
+        {
+            var (type, numberMode) = SpecialPageClassifier.Classify(hintTitle);
+            return [new ChapterImportDraft(drafts[0].Title, drafts[0].Body, hintNumber, drafts[0].Images, type, numberMode)];
+        }
 
-        return drafts.Select(d => new ChapterImportDraft(d.Title, d.Body, null, d.Images)).ToList();
+        return drafts.Select(d => new ChapterImportDraft(d.Title, d.Body, null, d.Images, d.Type, d.NumberMode)).ToList();
     }
 }

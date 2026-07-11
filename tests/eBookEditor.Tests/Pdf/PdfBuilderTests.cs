@@ -88,6 +88,40 @@ public class PdfBuilderTests : IDisposable
     }
 
     [Fact]
+    public void Build_DividerAndCustomMatterPagesRenderCorrectly()
+    {
+        var project = BuildSampleProject();
+
+        var frontMatterPath = _chapterFileService.CreateNewChapterFile(project.FrontMatterDir, "Acknowledgements");
+        _chapterFileService.WriteChapter(frontMatterPath, new ChapterFrontMatter { Title = "Acknowledgements" }, "<p>Thanks to everyone.</p>");
+        _spineService.AddFrontMatterItem(project, "Acknowledgements", Path.GetRelativePath(project.DirectoryPath, frontMatterPath).Replace('\\', '/'));
+
+        var dividerPath = _chapterFileService.CreateNewChapterFile(project.ChaptersDir, "Part Two");
+        _chapterFileService.WriteChapter(dividerPath, new ChapterFrontMatter { Title = "Part Two" }, "");
+        _spineService.AddChapterDivider(project, "Part Two", Path.GetRelativePath(project.DirectoryPath, dividerPath).Replace('\\', '/'));
+
+        var secondChapterPath = _chapterFileService.CreateNewChapterFile(project.ChaptersDir, "Chapter Two");
+        _chapterFileService.WriteChapter(secondChapterPath, new ChapterFrontMatter { Title = "Chapter Two" }, "<p>Second chapter body.</p>");
+        _spineService.AddChapter(project, "Chapter Two", Path.GetRelativePath(project.DirectoryPath, secondChapterPath).Replace('\\', '/'));
+
+        _pageGenerator.RegenerateAllGeneratedPages(project);
+        _projectService.SaveProject(project);
+        var outputPath = Path.Combine(project.OutputDir, "book.pdf");
+
+        var result = _pdfBuilder.Build(project, outputPath);
+
+        using var document = PdfDocument.Open(outputPath);
+        var allText = string.Join(" ", Enumerable.Range(1, document.NumberOfPages).Select(i => document.GetPage(i).Text));
+
+        Assert.Contains("Acknowledgements", allText);
+        Assert.Contains("Part Two", allText);
+        Assert.DoesNotContain("Chapter Part Two", allText);
+        Assert.Contains("Chapter 1: Chapter One", allText);
+        Assert.Contains("Chapter 2: Chapter Two", allText);
+        Assert.True(result.PageCount >= project.Spine.Count);
+    }
+
+    [Fact]
     public void Build_ReturnsAtLeastOnePagePerSpineItem()
     {
         var project = BuildSampleProject();

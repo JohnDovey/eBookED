@@ -1,3 +1,4 @@
+using eBookEditor.Core.Models;
 using eBookEditor.DocxImport.Services;
 
 namespace eBookEditor.Tests.DocxImport;
@@ -167,5 +168,29 @@ public class DocxImportServiceTests : IDisposable
         Assert.Contains("Real content for chapter one.", chapters[0].Body);
         Assert.Equal("Chapter 2: Starting Out", chapters[1].Title);
         Assert.Contains("Real content for chapter two.", chapters[1].Body);
+    }
+
+    [Fact]
+    public void Import_ClassifiesRecognizedHeadingsAsFrontBackMatterAndDividers()
+    {
+        var docxPath = DocxFixtureBuilder.BuildDocxWithSpecialPages(Path.Combine(_tempDir, "special-pages.docx"));
+
+        var chapters = _importService.Import(docxPath);
+
+        Assert.Equal(4, chapters.Count);
+
+        Assert.Equal("Preface", chapters[0].Title);
+        Assert.Equal(SpineItemType.FrontMatter, chapters[0].Type);
+
+        Assert.Equal("Part One", chapters[1].Title);
+        Assert.Equal(SpineItemType.Chapter, chapters[1].Type);
+        Assert.Equal(ChapterNumberMode.None, chapters[1].NumberMode);
+
+        Assert.Equal("Chapter One", chapters[2].Title);
+        Assert.Equal(SpineItemType.Chapter, chapters[2].Type);
+        Assert.Equal(ChapterNumberMode.Auto, chapters[2].NumberMode);
+
+        Assert.Equal("Afterword", chapters[3].Title);
+        Assert.Equal(SpineItemType.BackMatter, chapters[3].Type);
     }
 }

@@ -571,6 +571,25 @@
          inject); PDF renders the imprint page directly from metadata already (bypassing the
          stored HTML entirely, to pin the copyright block to the physical page bottom — see
          2.8.0's note), so it just adds the line as its own QuestPDF text item in the same spot. -->
-    <Version>2.16.0</Version>
+    <!-- 2.17.0: new feature, so a minor bump. Adds three new kinds of spine item beyond a plain
+         numbered chapter: an unnumbered mid-book divider ("Part One", "Part Two" — reuses
+         ChapterNumberMode.None, which SpineService.RenumberChapters/every TOC renderer already
+         special-cased into exactly this behavior, so no exporter changes were needed), and
+         custom, optional front-matter/back-matter pages (Acknowledgements, Preface,
+         Dedication… / Afterword, Postscript, Index, Also By the Author…), reusing
+         SpineItemType.FrontMatter/BackMatter — already numbered with roman numerals (front) or
+         left unnumbered (back) generically by every exporter, since that logic counts "how many
+         FrontMatter items sit at the front of the spine," not the 4 fixed generated pages by
+         name. New SpineService methods: AddChapterDivider, AddFrontMatterItem/AddBackMatterItem,
+         and MoveItem (Up/Down within a group — front/back-matter pages reposition this way
+         rather than via drag-and-drop, which stays chapter-only). The sidebar's "+ Add Chapter"
+         button became a "+ Add ▾" menu covering all four kinds; the chapter-header rename form
+         (previously gated to Type==Chapter only) now also covers custom, non-generated front/
+         back-matter pages. DOCX import gained SpecialPageClassifier, recognizing "Part One"-
+         style headings and a curated list of front/back-matter titles so they land as the right
+         spine item kind automatically instead of every heading becoming a numbered chapter;
+         deliberately leaves Introduction/Prologue as regular chapters (commonly numbered in
+         real books — guessing wrong silently is worse than the existing safe default). -->
+    <Version>2.17.0</Version>
   </PropertyGroup>
 </Project>

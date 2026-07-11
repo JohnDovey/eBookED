@@ -169,6 +169,30 @@ internal static class DocxFixtureBuilder
         return path;
     }
 
+    public static string BuildDocxWithSpecialPages(string path)
+    {
+        using var document = WordprocessingDocument.Create(path, DocumentFormat.OpenXml.WordprocessingDocumentType.Document);
+        var mainPart = document.AddMainDocumentPart();
+        mainPart.Document = new Document();
+        var body = new Body();
+        mainPart.Document.Append(body);
+
+        body.Append(Heading("Preface", "Heading1"));
+        body.Append(Paragraph(Run("Preface content.")));
+
+        body.Append(Heading("Part One", "Heading1"));
+        body.Append(Paragraph(Run("Part divider content.")));
+
+        body.Append(Heading("Chapter One", "Heading1"));
+        body.Append(Paragraph(Run("Chapter one content.")));
+
+        body.Append(Heading("Afterword", "Heading1"));
+        body.Append(Paragraph(Run("Afterword content.")));
+
+        mainPart.Document.Save();
+        return path;
+    }
+
     private static Paragraph Heading(string text, string styleId) => new(
         new ParagraphProperties(new ParagraphStyleId { Val = styleId }),
         new Run(new Text(text)));

@@ -54,6 +54,12 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public bool IsChapterSelected => SelectedSpineItem?.Type == SpineItemType.Chapter;
 
+    /// <summary>Gates the title/subheading rename form: any chapter (including unnumbered
+    /// dividers), or a custom front/back-matter page — but not the fixed generated pages
+    /// (title/copyright/TOC/about-author), whose titles come from metadata, not free text.</summary>
+    public bool IsRenamableItemSelected => SelectedSpineItem is { } item &&
+        (item.Type == SpineItemType.Chapter || (item.Type is SpineItemType.FrontMatter or SpineItemType.BackMatter && !item.IsGenerated));
+
     public IReadOnlyList<SpineItem> SpineItems => CurrentProject.Spine.OrderBy(i => i.Order).ToList();
 
     public MainWindowViewModel(
@@ -102,6 +108,27 @@ public partial class MainWindowViewModel : ViewModelBase
         Editor.FilePath = CurrentProject.ResolvePath(refreshed);
     }
 
+    /// <summary>The directory a newly-imported item's file should be written to, based on its
+    /// classified type (see SpecialPageClassifier) — chapters and unnumbered dividers alike
+    /// live in chapters/, since a divider is still a Chapter-type spine item.</summary>
+    private string ChapterDirFor(SpineItemType type) => type switch
+    {
+        SpineItemType.FrontMatter => CurrentProject.FrontMatterDir,
+        SpineItemType.BackMatter => CurrentProject.BackMatterDir,
+        _ => CurrentProject.ChaptersDir
+    };
+
+    /// <summary>Routes an imported draft to the right SpineService Add* method based on its
+    /// classified type/number mode (see SpecialPageClassifier) — a regular numbered chapter,
+    /// an unnumbered mid-book divider, or a custom front/back-matter page.</summary>
+    private SpineItem AddImportedItemToSpine(string title, string relativePath, SpineItemType type, ChapterNumberMode numberMode, int? positionHint = null) => type switch
+    {
+        SpineItemType.FrontMatter => _spineService.AddFrontMatterItem(CurrentProject, title, relativePath),
+        SpineItemType.BackMatter => _spineService.AddBackMatterItem(CurrentProject, title, relativePath),
+        _ when numberMode == ChapterNumberMode.None => _spineService.AddChapterDivider(CurrentProject, title, relativePath, positionHint),
+        _ => _spineService.AddChapter(CurrentProject, title, relativePath, positionHint)
+    };
+
     /// <summary>
     /// Picks up chapter-shaped files sitting in chapters/ that aren't referenced by any spine
     /// item — e.g. dropped into the folder directly via Finder/Explorer — and adds them to the
@@ -130,14 +157,14 @@ public partial class MainWindowViewModel : ViewModelBase
                 if (isNative)
                 {
                     var relativePath = Path.GetRelativePath(CurrentProject.DirectoryPath, filePath).Replace('\\', '/');
-                    _spineService.AddChapter(CurrentProject, draft.Title, relativePath, draft.PositionHint);
+                    AddImportedItemToSpine(draft.Title, relativePath, draft.Type, draft.NumberMode, draft.PositionHint);
                     continue;
                 }
 
-                var newPath = _chapterFileService.CreateNewChapterFile(CurrentProject.ChaptersDir, draft.Title);
+                var newPath = _chapterFileService.CreateNewChapterFile(ChapterDirFor(draft.Type), draft.Title);
                 _chapterFileService.WriteChapter(newPath, new ChapterFrontMatter { Title = draft.Title }, draft.Body);
                 var newRelativePath = Path.GetRelativePath(CurrentProject.DirectoryPath, newPath).Replace('\\', '/');
-                _spineService.AddChapter(CurrentProject, draft.Title, newRelativePath, draft.PositionHint);
+                AddImportedItemToSpine(draft.Title, newRelativePath, draft.Type, draft.NumberMode, draft.PositionHint);
 
                 foreach (var image in draft.Images)
                     File.WriteAllBytes(Path.Combine(CurrentProject.ImagesDir, image.FileName), image.Bytes);
@@ -153,6 +180,15 @@ public partial class MainWindowViewModel : ViewModelBase
         StatusMessage = $"Found and added {orphanPaths.Count} chapter file(s) not previously in the book.";
     }
 
+    /// <summary>Repositions a custom front/back-matter page one step within its own group —
+    /// see SpineService.MoveItem.</summary>
+    public void MoveItem(SpineItem item, SpineMoveDirection direction)
+    {
+        _spineService.MoveItem(CurrentProject, item.Id, direction);
+        _projectService.SaveProject(CurrentProject);
+        RegenerateGeneratedContent();
+    }
+
     public IReadOnlyList<string> GetRecentProjectPaths() => _appSettingsService.Load().RecentProjectPaths;
 
     /// <summary>Called when this window closes, so the next app launch doesn't try to restore it.</summary>
@@ -161,6 +197,7 @@ public partial class MainWindowViewModel : ViewModelBase
     partial void OnSelectedSpineItemChanged(SpineItem? value)
     {
         OnPropertyChanged(nameof(IsChapterSelected));
+        OnPropertyChanged(nameof(IsRenamableItemSelected));
         ChapterTitleInput = value?.Title ?? string.Empty;
         ChapterSubtitleInput = value?.Subtitle ?? string.Empty;
     }
@@ -259,6 +296,56 @@ public partial class MainWindowViewModel : ViewModelBase
         OpenSpineItem(item);
     }
 
+    /// <summary>Adds an unnumbered mid-book divider ("Part One", "Part Two") — see
+    /// SpineService.AddChapterDivider.</summary>
+    [RelayCommand]
+    private void AddPartBreak()
+    {
+        const string title = "New Part";
+        var path = _chapterFileService.CreateNewChapterFile(CurrentProject.ChaptersDir, title);
+        var relativePath = Path.GetRelativePath(CurrentProject.DirectoryPath, path).Replace('\\', '/');
+
+        var item = _spineService.AddChapterDivider(CurrentProject, title, relativePath);
+        _chapterFileService.SyncChapterFileNames(CurrentProject);
+        item = CurrentProject.Spine.First(i => i.Id == item.Id);
+
+        _projectService.SaveProject(CurrentProject);
+        RegenerateGeneratedContent();
+        OpenSpineItem(item);
+    }
+
+    /// <summary>Adds a custom, optional front-matter page (Acknowledgements, Preface,
+    /// Dedication, etc.) — see SpineService.AddFrontMatterItem.</summary>
+    [RelayCommand]
+    private void AddFrontMatterPage()
+    {
+        const string title = "New Front Matter Page";
+        var path = _chapterFileService.CreateNewChapterFile(CurrentProject.FrontMatterDir, title);
+        var relativePath = Path.GetRelativePath(CurrentProject.DirectoryPath, path).Replace('\\', '/');
+
+        var item = _spineService.AddFrontMatterItem(CurrentProject, title, relativePath);
+
+        _projectService.SaveProject(CurrentProject);
+        RegenerateGeneratedContent();
+        OpenSpineItem(item);
+    }
+
+    /// <summary>Adds a custom, optional back-matter page (Afterword, Postscript, Index, Also
+    /// By the Author, etc.) — see SpineService.AddBackMatterItem.</summary>
+    [RelayCommand]
+    private void AddBackMatterPage()
+    {
+        const string title = "New Back Matter Page";
+        var path = _chapterFileService.CreateNewChapterFile(CurrentProject.BackMatterDir, title);
+        var relativePath = Path.GetRelativePath(CurrentProject.DirectoryPath, path).Replace('\\', '/');
+
+        var item = _spineService.AddBackMatterItem(CurrentProject, title, relativePath);
+
+        _projectService.SaveProject(CurrentProject);
+        RegenerateGeneratedContent();
+        OpenSpineItem(item);
+    }
+
     /// <summary>
     /// Imports one or more dropped/picked files as new chapters: .ebhtml/.md are used as-is,
     /// .docx reuses the whole-manuscript importer's chapter-boundary detection, and .html/.htm
@@ -290,10 +377,10 @@ public partial class MainWindowViewModel : ViewModelBase
 
                 foreach (var draft in drafts)
                 {
-                    var path = _chapterFileService.CreateNewChapterFile(CurrentProject.ChaptersDir, draft.Title);
+                    var path = _chapterFileService.CreateNewChapterFile(ChapterDirFor(draft.Type), draft.Title);
                     _chapterFileService.WriteChapter(path, new ChapterFrontMatter { Title = draft.Title }, draft.Body);
                     var relativePath = Path.GetRelativePath(CurrentProject.DirectoryPath, path).Replace('\\', '/');
-                    _spineService.AddChapter(CurrentProject, draft.Title, relativePath, draft.PositionHint);
+                    AddImportedItemToSpine(draft.Title, relativePath, draft.Type, draft.NumberMode, draft.PositionHint);
 
                     foreach (var image in draft.Images)
                         File.WriteAllBytes(Path.Combine(CurrentProject.ImagesDir, image.FileName), image.Bytes);
@@ -523,10 +610,10 @@ public partial class MainWindowViewModel : ViewModelBase
 
             foreach (var draft in chapterDrafts)
             {
-                var path = _chapterFileService.CreateNewChapterFile(CurrentProject.ChaptersDir, draft.Title);
+                var path = _chapterFileService.CreateNewChapterFile(ChapterDirFor(draft.Type), draft.Title);
                 _chapterFileService.WriteChapter(path, new ChapterFrontMatter { Title = draft.Title }, draft.Body);
                 var relativePath = Path.GetRelativePath(CurrentProject.DirectoryPath, path).Replace('\\', '/');
-                _spineService.AddChapter(CurrentProject, draft.Title, relativePath);
+                AddImportedItemToSpine(draft.Title, relativePath, draft.Type, draft.NumberMode);
 
                 foreach (var image in draft.Images)
                     File.WriteAllBytes(Path.Combine(CurrentProject.ImagesDir, image.FileName), image.Bytes);

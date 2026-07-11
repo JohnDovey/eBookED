@@ -751,6 +751,81 @@ public partial class MainWindow : Window
             ViewModel.DeleteChapter(item);
     }
 
+    /// <summary>The sidebar's "+ Add ▾" button — mirrors OnApplyStyleButtonClick's
+    /// programmatically-built MenuFlyout pattern, since each option maps to its own
+    /// no-argument RelayCommand on the view model.</summary>
+    private void OnAddItemButtonClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null)
+            return;
+
+        var flyout = new MenuFlyout();
+
+        var chapter = new MenuItem { Header = "Chapter" };
+        chapter.Click += (_, _) => ViewModel.AddChapterCommand.Execute(null);
+        flyout.Items.Add(chapter);
+
+        var partBreak = new MenuItem { Header = "Part Break" };
+        partBreak.Click += (_, _) => ViewModel.AddPartBreakCommand.Execute(null);
+        flyout.Items.Add(partBreak);
+
+        var frontMatterPage = new MenuItem { Header = "Front Matter Page" };
+        frontMatterPage.Click += (_, _) => ViewModel.AddFrontMatterPageCommand.Execute(null);
+        flyout.Items.Add(frontMatterPage);
+
+        var backMatterPage = new MenuItem { Header = "Back Matter Page" };
+        backMatterPage.Click += (_, _) => ViewModel.AddBackMatterPageCommand.Execute(null);
+        flyout.Items.Add(backMatterPage);
+
+        flyout.ShowAt(AddItemButton);
+    }
+
+    /// <summary>Shows "Move Up"/"Move Down" only for custom front/back-matter pages (chapters
+    /// reposition via drag-and-drop instead — see OnSpineItemPointerMoved), and disables
+    /// whichever direction would move past its group's edge.</summary>
+    private void OnSpineItemContextMenuOpened(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null || sender is not ContextMenu { PlacementTarget: Control { DataContext: SpineItem item } } contextMenu)
+            return;
+
+        var canMove = item.Type is SpineItemType.FrontMatter or SpineItemType.BackMatter;
+        var ordered = ViewModel.CurrentProject.Spine.OrderBy(i => i.Order).ToList();
+        var index = ordered.FindIndex(i => i.Id == item.Id);
+        var canMoveUp = canMove && index > 0 && ordered[index - 1].Type == item.Type;
+        var canMoveDown = canMove && index < ordered.Count - 1 && ordered[index + 1].Type == item.Type;
+
+        foreach (var menuItem in contextMenu.Items.OfType<MenuItem>())
+        {
+            switch (menuItem.Header as string)
+            {
+                case "Move Up":
+                    menuItem.IsVisible = canMove;
+                    menuItem.IsEnabled = canMoveUp;
+                    break;
+                case "Move Down":
+                    menuItem.IsVisible = canMove;
+                    menuItem.IsEnabled = canMoveDown;
+                    break;
+            }
+        }
+    }
+
+    private void OnMoveItemUpClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null || sender is not Control { DataContext: SpineItem item })
+            return;
+
+        ViewModel.MoveItem(item, SpineMoveDirection.Up);
+    }
+
+    private void OnMoveItemDownClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null || sender is not Control { DataContext: SpineItem item })
+            return;
+
+        ViewModel.MoveItem(item, SpineMoveDirection.Down);
+    }
+
     private async void OnUpgradeProjectToHtmlClick(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is null)
