@@ -18,8 +18,14 @@
         <TextBox Watermark="Copyright holder" Text="{Binding CopyrightHolder}" />
         <TextBox Watermark="Copyright year" Text="{Binding CopyrightYear}" />
         <TextBox Watermark="Publisher name" Text="{Binding PublisherName}" />
-        <TextBox Watermark="Publisher logo path (relative to project)" Text="{Binding PublisherLogoPath}" />
-        <TextBox Watermark="Cover image path (relative to project)" Text="{Binding CoverImagePath}" />
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBox Grid.Column="0" Watermark="Publisher logo path (relative to project)" Text="{Binding PublisherLogoPath}" Margin="0,0,4,0" />
+          <Button Grid.Column="1" Content="Browse…" Click="OnBrowsePublisherLogoClick" />
+        </Grid>
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBox Grid.Column="0" Watermark="Cover image path (relative to project)" Text="{Binding CoverImagePath}" Margin="0,0,4,0" />
+          <Button Grid.Column="1" Content="Browse…" Click="OnBrowseCoverImageClick" />
+        </Grid>
         <TextBox Watermark="Publication date (yyyy-MM-dd)" Text="{Binding PublicationDate}" />
         <TextBox Watermark="ISBN-13" Text="{Binding Isbn13}" />
         <TextBox Watermark="ISBN-10" Text="{Binding Isbn10}" />

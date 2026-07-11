@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using eBookEditor.App.Services;
 using eBookEditor.App.ViewModels;
 
 namespace eBookEditor.App.Views;
@@ -20,6 +21,26 @@ public partial class CopyrightPublishingWindow : Window
     {
         _mainViewModel = mainViewModel;
         DataContext = mainViewModel.Metadata;
+    }
+
+    private async void OnBrowsePublisherLogoClick(object? sender, RoutedEventArgs e)
+    {
+        var fileName = await ProjectImagePicker.PickAndCopyIntoImagesDirAsync(
+            StorageProvider, _mainViewModel.CurrentProject.ImagesDir, "Choose Publisher Logo");
+        if (fileName is null)
+            return;
+
+        _mainViewModel.Metadata.PublisherLogoPath = $"images/{fileName}";
+    }
+
+    private async void OnBrowseCoverImageClick(object? sender, RoutedEventArgs e)
+    {
+        var fileName = await ProjectImagePicker.PickAndCopyIntoImagesDirAsync(
+            StorageProvider, _mainViewModel.CurrentProject.ImagesDir, "Choose Cover Image");
+        if (fileName is null)
+            return;
+
+        _mainViewModel.Metadata.CoverImagePath = $"images/{fileName}";
     }
 
     private void OnSaveClick(object? sender, RoutedEventArgs e)

@@ -537,6 +537,15 @@
          the button is a faster alternative, not a replacement. Cover image path and publisher
          logo path (Copyright & Publishing) have the identical "bare path text field" gap — left
          for a follow-up, since only Author Photo was actually asked for. -->
-    <Version>2.14.0</Version>
+    <!-- 2.15.0: new feature, so a minor bump. The "Cover image path" and "Publisher logo path"
+         fields (Copyright & Publishing) get the same "Browse..." button 2.14.0 added to About
+         the Author's Author photo path — the follow-up that release's own changelog note
+         flagged as left over. Both reuse ProjectImagePicker.PickAndCopyIntoImagesDirAsync
+         unchanged; CopyrightPublishingWindow.axaml.cs gained two click handlers
+         (OnBrowsePublisherLogoClick, OnBrowseCoverImageClick) mirroring
+         AboutTheAuthorWindow.axaml.cs's OnBrowseAuthorPhotoClick exactly, each setting its
+         metadata property to the project-root-relative "images/{fileName}" result. The text
+         fields themselves are unchanged and still accept a hand-typed/edited path. -->
+    <Version>2.15.0</Version>
   </PropertyGroup>
 </Project>
