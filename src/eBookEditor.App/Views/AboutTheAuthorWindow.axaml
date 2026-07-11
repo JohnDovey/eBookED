@@ -19,6 +19,7 @@
           <TextBox Grid.Column="0" Watermark="Author photo path (relative to project)" Text="{Binding AuthorPhotoPath}" Margin="0,0,4,0" />
           <Button Grid.Column="1" Content="Browse…" Click="OnBrowseAuthorPhotoClick" />
         </Grid>
+        <TextBox Watermark="Photo caption (defaults to the author's name)" Text="{Binding AuthorPhotoCaption}" />
         <TextBox Watermark="Author bio" Text="{Binding AuthorBio}"
                  AcceptsReturn="True" TextWrapping="Wrap" Height="90" />
 

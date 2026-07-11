@@ -694,6 +694,16 @@
          file:// base URI from the project's own directory instead, used by both PreviewWindow
          (which now takes the project directory as a parameter on UpdateContent, since it was
          previously fully decoupled from CurrentProject) and MainWindow's WYSIWYG navigation. -->
-    <Version>2.20.1</Version>
+    <!-- 2.21.0: new feature, so a minor bump.
+         About the Author photo now gets a real caption: AboutAuthorInfo gained PhotoCaption,
+         a new "Photo caption" field on the About the Author window (defaults, in the UI's
+         watermark text only, to the author's name — the actual fallback logic lives in
+         PageGeneratorService.GenerateAboutAuthorPage, computed fresh at generation time from
+         metadata.Authors.FirstOrDefault() so it tracks a later author-name edit even if the
+         user never typed a caption). The generated page now wraps the photo in
+         &lt;figure&gt;/&lt;figcaption class="caption"&gt; instead of a bare &lt;img&gt;, using
+         the explicit caption when the user set one, else falling back to the primary author's
+         name, and omitting the figcaption entirely when neither is available. -->
+    <Version>2.21.0</Version>
   </PropertyGroup>
 </Project>

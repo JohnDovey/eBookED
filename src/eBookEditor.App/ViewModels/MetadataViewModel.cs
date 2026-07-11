@@ -23,6 +23,7 @@ public partial class MetadataViewModel : ViewModelBase
     [ObservableProperty] private string _isbn13 = string.Empty;
     [ObservableProperty] private string _authorBio = string.Empty;
     [ObservableProperty] private string _authorPhotoPath = string.Empty;
+    [ObservableProperty] private string _authorPhotoCaption = string.Empty;
     [ObservableProperty] private string _copyrightDisclaimer = BookMetadata.DefaultDisclaimerText;
     [ObservableProperty] private string _selectedTemplate = TemplateService.DefaultTemplateName;
     [ObservableProperty] private string _pdfPageSize = PdfPageSizeCatalog.DefaultName;
@@ -102,6 +103,7 @@ public partial class MetadataViewModel : ViewModelBase
         Isbn13 = metadata.Isbn13 ?? "";
         AuthorBio = metadata.AboutAuthor?.Bio ?? "";
         AuthorPhotoPath = metadata.AboutAuthor?.PhotoPath ?? "";
+        AuthorPhotoCaption = metadata.AboutAuthor?.PhotoCaption ?? "";
 
         SocialLinks.Clear();
         foreach (var link in metadata.AboutAuthor?.SocialLinks ?? [])
@@ -145,6 +147,7 @@ public partial class MetadataViewModel : ViewModelBase
             {
                 Bio = AuthorBio,
                 PhotoPath = string.IsNullOrWhiteSpace(AuthorPhotoPath) ? null : AuthorPhotoPath.Trim(),
+                PhotoCaption = string.IsNullOrWhiteSpace(AuthorPhotoCaption) ? null : AuthorPhotoCaption.Trim(),
                 SocialLinks = SocialLinks
                     .Where(s => !string.IsNullOrWhiteSpace(s.Platform) && !string.IsNullOrWhiteSpace(s.Url))
                     .Select(s => new SocialLink(s.Platform.Trim(), s.Url.Trim()))

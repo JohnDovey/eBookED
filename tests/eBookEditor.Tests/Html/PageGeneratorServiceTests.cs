@@ -118,6 +118,41 @@ public class PageGeneratorServiceTests : IDisposable
     }
 
     [Fact]
+    public void GenerateAboutAuthorPage_PhotoCaptionDefaultsToThePrimaryAuthorsName()
+    {
+        var html = _pageGenerator.GenerateAboutAuthorPage(SampleMetadata());
+
+        Assert.Contains("<figcaption class=\"caption\">Jane Doe</figcaption>", html);
+    }
+
+    [Fact]
+    public void GenerateAboutAuthorPage_ExplicitPhotoCaptionOverridesTheAuthorNameFallback()
+    {
+        var metadata = SampleMetadata() with
+        {
+            AboutAuthor = SampleMetadata().AboutAuthor! with { PhotoCaption = "Photo by Jane's sister" }
+        };
+
+        var html = _pageGenerator.GenerateAboutAuthorPage(metadata);
+
+        Assert.Contains("<figcaption class=\"caption\">Photo by Jane's sister</figcaption>".Replace("'", "&#39;"), html);
+        Assert.DoesNotContain(">Jane Doe</figcaption>", html);
+    }
+
+    [Fact]
+    public void GenerateAboutAuthorPage_NoPhotoNoFigureRendered()
+    {
+        var metadata = SampleMetadata() with
+        {
+            AboutAuthor = new AboutAuthorInfo { Bio = "Just a bio." }
+        };
+
+        var html = _pageGenerator.GenerateAboutAuthorPage(metadata);
+
+        Assert.DoesNotContain("<figure>", html);
+    }
+
+    [Fact]
     public void GenerateAboutAuthorPage_OmitsConnectSectionWhenNoSocialLinks()
     {
         var metadata = SampleMetadata() with

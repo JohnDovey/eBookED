@@ -59,6 +59,7 @@ public class MetadataViewModelTests
             AboutAuthor = new AboutAuthorInfo
             {
                 Bio = "Bio text",
+                PhotoCaption = "Photo by Sam",
                 SocialLinks = [new SocialLink("Twitter", "https://twitter.com/janedoe")]
             },
             StoreLinks = [new StoreLink(StoreName.KindleStore, "https://amazon.com/dp/xyz")]
@@ -81,6 +82,7 @@ public class MetadataViewModelTests
         Assert.Equal(["Fantasy", "Adventure"], roundTripped.GenreTags);
         Assert.Equal(["debut"], roundTripped.FreeTags);
         Assert.Equal("Twitter", roundTripped.AboutAuthor!.SocialLinks.Single().Platform);
+        Assert.Equal("Photo by Sam", roundTripped.AboutAuthor!.PhotoCaption);
         Assert.Equal(StoreName.KindleStore, roundTripped.StoreLinks.Single().Store);
     }
 

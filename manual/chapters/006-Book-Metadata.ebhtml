@@ -39,6 +39,7 @@ numberOverride:
 <p><strong>Meta Data → About the Author…</strong></p>
 <ul>
 <li><strong>Author photo</strong> — click <strong>Browse…</strong> to pick an image; it's copied into the project's <code>images/</code> folder automatically (if it isn't there already) and the path field updates to point at the copy. You can still type or edit the path by hand instead, if you prefer.</li>
+<li><strong>Photo caption</strong> — shown under the photo on the auto-generated About the Author page. Leave it blank to use the primary author's name automatically; type your own text (e.g. a photo credit) to override that fallback.</li>
 <li><strong>Author bio</strong> — a multi-line paragraph.</li>
 <li><strong>Social Links</strong> — a growable list of platform/URL pairs, shown on the auto-generated About the Author page.</li>
 </ul>

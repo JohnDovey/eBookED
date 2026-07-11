@@ -125,7 +125,15 @@ public class PageGeneratorService
         sb.AppendLine("<h1>About the Author</h1>");
 
         if (metadata.AboutAuthor?.PhotoPath is { Length: > 0 } photoPath)
-            sb.AppendLine($"<p><img src=\"../{Encode(photoPath)}\" alt=\"Author photo\"></p>");
+        {
+            var caption = metadata.AboutAuthor.PhotoCaption is { Length: > 0 } explicitCaption
+                ? explicitCaption
+                : metadata.Authors.FirstOrDefault()?.Name;
+
+            sb.AppendLine(caption is { Length: > 0 }
+                ? $"<figure><img src=\"../{Encode(photoPath)}\" alt=\"Author photo\"><figcaption class=\"caption\">{Encode(caption)}</figcaption></figure>"
+                : $"<figure><img src=\"../{Encode(photoPath)}\" alt=\"Author photo\"></figure>");
+        }
 
         if (!string.IsNullOrWhiteSpace(metadata.AboutAuthor?.Bio))
             sb.AppendLine(WrapParagraphs(metadata.AboutAuthor.Bio));
