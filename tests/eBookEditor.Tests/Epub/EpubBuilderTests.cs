@@ -94,6 +94,25 @@ public class EpubBuilderTests : IDisposable
     }
 
     [Fact]
+    public void Build_ImprintPageIncludesACreatedWithLineBeforeTheCopyrightStatement()
+    {
+        var project = BuildSampleProject();
+        var outputPath = Path.Combine(project.OutputDir, "book.epub");
+        _epubBuilder.Build(project, outputPath);
+
+        using var archive = ZipFile.OpenRead(outputPath);
+        var imprintText = archive.Entries
+            .Where(e => e.FullName.StartsWith("OEBPS/content-", StringComparison.Ordinal))
+            .Select(e => { using var reader = new StreamReader(e.Open()); return reader.ReadToEnd(); })
+            .Single(text => text.Contains("Copyright ©", StringComparison.Ordinal));
+
+        var creditIndex = imprintText.IndexOf("Created with eBook Editor", StringComparison.Ordinal);
+        var copyrightIndex = imprintText.IndexOf("Copyright ©", StringComparison.Ordinal);
+        Assert.True(creditIndex >= 0, "expected a \"Created with eBook Editor\" credit line on the imprint page");
+        Assert.True(creditIndex < copyrightIndex, "the credit line must appear before the copyright statement");
+    }
+
+    [Fact]
     public void Build_MimetypeIsFirstEntryAndStoredUncompressed()
     {
         var project = BuildSampleProject();

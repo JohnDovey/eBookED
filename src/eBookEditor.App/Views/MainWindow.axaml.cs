@@ -161,7 +161,8 @@ public partial class MainWindow : Window
         }
 
         var title = ViewModel.Editor.FilePath is { } path ? Path.GetFileNameWithoutExtension(path) : null;
-        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), CurrentBodyOnly(), title, CurrentChapterHeadingHtml());
+        var body = CurrentBodyOnly();
+        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), body, title, ChapterHeadingHtmlFor(body));
         ScrollPreviewToCaret();
     }
 
@@ -170,19 +171,21 @@ public partial class MainWindow : Window
         if (_previewWindow is null || ViewModel is null)
             return;
 
-        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), bodyHtml, title, CurrentChapterHeadingHtml());
+        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), bodyHtml, title, ChapterHeadingHtmlFor(bodyHtml));
         ScrollPreviewToCaret();
     }
 
     /// <summary>
     /// The synthesized "&lt;h1&gt;Chapter N: Title&lt;/h1&gt;" for whatever's currently
     /// selected in the sidebar (see ChapterHeadingHtml) — null for front/back matter (their
-    /// heading is already baked into the generated body) or when nothing's selected. Rendering
-    /// this is what makes Preview/Rich Text mode show the same heading every export produces,
-    /// even though it's never actually part of the stored chapter body.
+    /// heading is already baked into the generated body), when nothing's selected, or when the
+    /// given body already opens with its own &lt;h1&gt; (some chapters are authored with their
+    /// own heading typed directly into the body — synthesizing another one on top would
+    /// duplicate it). Rendering this is what makes Preview/Rich Text mode show the same heading
+    /// every export produces for a chapter that doesn't already have one of its own.
     /// </summary>
-    private string? CurrentChapterHeadingHtml() =>
-        ViewModel?.SelectedSpineItem is { } item ? ChapterHeadingHtml.Build(item) : null;
+    private string? ChapterHeadingHtmlFor(string body) =>
+        ViewModel?.SelectedSpineItem is { } item ? ChapterHeadingHtml.Build(item, body) : null;
 
     /// <summary>
     /// Saves the chapter title/subtitle fields, then refreshes whichever of Preview/Rich Text
@@ -267,7 +270,7 @@ public partial class MainWindow : Window
 
         EnsureWysiwygWebView();
         _wysiwygNavigated = false;
-        var html = HtmlPageShell.Wrap(ViewModel.GetCurrentTemplateCss(), bodyHtml, editable: true, CurrentChapterHeadingHtml());
+        var html = HtmlPageShell.Wrap(ViewModel.GetCurrentTemplateCss(), bodyHtml, editable: true, ChapterHeadingHtmlFor(bodyHtml));
         _wysiwygWebView!.NavigateToString(html, new Uri("about:blank"));
     }
 

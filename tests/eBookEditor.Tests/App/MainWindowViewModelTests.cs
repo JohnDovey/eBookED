@@ -199,6 +199,23 @@ public class MainWindowViewModelTests : IDisposable
     }
 
     [Fact]
+    public void ExportWordWholeBook_ImprintPageIncludesACreatedWithLineBeforeTheCopyrightStatement()
+    {
+        var vm = NewViewModel();
+
+        vm.ExportWordWholeBookCommand.Execute(null);
+
+        var expectedPath = Path.Combine(vm.CurrentProject.OutputDir, "vm-test-book.docx");
+        using var document = DocumentFormat.OpenXml.Packaging.WordprocessingDocument.Open(expectedPath, false);
+        var bodyText = document.MainDocumentPart!.Document!.Body!.InnerText;
+
+        var creditIndex = bodyText.IndexOf("Created with eBook Editor", StringComparison.Ordinal);
+        var copyrightIndex = bodyText.IndexOf("Copyright ©", StringComparison.Ordinal);
+        Assert.True(creditIndex >= 0, "expected a \"Created with eBook Editor\" credit line on the imprint page");
+        Assert.True(creditIndex < copyrightIndex, "the credit line must appear before the copyright statement");
+    }
+
+    [Fact]
     public void ImportDocx_AddsDetectedChaptersToSpineAndRegeneratesToc()
     {
         var vm = NewViewModel();

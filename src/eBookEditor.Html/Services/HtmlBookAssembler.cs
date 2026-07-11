@@ -39,7 +39,10 @@ public class HtmlBookAssembler
         var rawText = File.ReadAllText(path);
         var (_, body) = _chapterFileService.ParseChapter(rawText);
 
-        if (ChapterHeadingHtml.Build(item) is not { } heading)
+        if (item.RelativePath.EndsWith(ProjectPaths.CopyrightPageFileName, StringComparison.Ordinal))
+            body = GeneratedByLine.InsertBeforeCopyrightStatement(body, DateTime.Now);
+
+        if (ChapterHeadingHtml.Build(item, body) is not { } heading)
             return body.TrimEnd() + "\n";
 
         var sb = new StringBuilder();

@@ -251,6 +251,23 @@ public class PdfBuilderTests : IDisposable
     }
 
     [Fact]
+    public void Build_ImprintPageIncludesACreatedWithLineBeforeTheCopyrightStatement()
+    {
+        var project = BuildSampleProject();
+        var outputPath = Path.Combine(project.OutputDir, "book.pdf");
+
+        _pdfBuilder.Build(project, outputPath);
+
+        using var document = PdfDocument.Open(outputPath);
+        var imprintText = document.GetPage(2).Text; // page 1 = title, page 2 = imprint
+
+        var creditIndex = imprintText.IndexOf("Created with eBook Editor", StringComparison.Ordinal);
+        var copyrightIndex = imprintText.IndexOf("Copyright", StringComparison.Ordinal);
+        Assert.True(creditIndex >= 0, "expected a \"Created with eBook Editor\" credit line on the imprint page");
+        Assert.True(creditIndex < copyrightIndex, "the credit line must appear before the copyright statement");
+    }
+
+    [Fact]
     public void Build_ImprintPageStaysOnOnePhysicalPage()
     {
         // Front matter (title, imprint, toc) + 1 chapter + back matter (about-author) = 5

@@ -101,7 +101,7 @@ public class PdfBuilder
                         if (item.Type == SpineItemType.Chapter)
                             wordCount += HtmlText.CountWords(body);
 
-                        if (ChapterHeadingHtml.Build(item) is { } heading)
+                        if (ChapterHeadingHtml.Build(item, body) is { } heading)
                             body = heading + "\n" + body;
 
                         var sourceDir = Path.GetDirectoryName(project.ResolvePath(item));
@@ -162,6 +162,8 @@ public class PdfBuilder
             // achieving nothing).
             imprint.Item().ExtendVertical().AlignBottom().Column(bottom =>
             {
+                bottom.Item().PaddingBottom(4).Text(GeneratedByLine.Build(DateTime.Now)).Italic().FontSize(8);
+
                 var year = metadata.CopyrightYear ?? metadata.PublicationDate?.Year;
                 var holder = string.IsNullOrWhiteSpace(metadata.CopyrightHolder)
                     ? string.Join(", ", metadata.Authors.Select(a => a.Name))

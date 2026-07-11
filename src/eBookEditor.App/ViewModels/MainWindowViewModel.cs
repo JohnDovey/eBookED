@@ -381,7 +381,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 Editor.Save();
 
             var (_, body) = _chapterFileService.ReadChapter(CurrentProject.ResolvePath(item));
-            if (ChapterHeadingHtml.Build(item) is { } heading)
+            if (ChapterHeadingHtml.Build(item, body) is { } heading)
                 body = heading + "\n" + body;
 
             var fileName = Slug.Create(item.Title ?? "chapter", "chapter") + ".docx";

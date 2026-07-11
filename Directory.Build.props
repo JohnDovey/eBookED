@@ -546,6 +546,31 @@
          AboutTheAuthorWindow.axaml.cs's OnBrowseAuthorPhotoClick exactly, each setting its
          metadata property to the project-root-relative "images/{fileName}" result. The text
          fields themselves are unchanged and still accept a hand-typed/edited path. -->
-    <Version>2.15.0</Version>
+    <!-- 2.16.0: two changes bundled together, so a minor bump (the second is a new feature).
+         (1) User-reported bug fix: a chapter whose body already opens with its own hand-typed
+         "&lt;h1&gt;" (confirmed against this app's own real manual/ project — every one of its
+         chapters is authored that way) got a duplicate heading after 2.12.3's "chapter heading
+         never rendering" fix, since that fix synthesized one unconditionally from front matter
+         regardless of whether the body already had its own. ChapterHeadingHtml.Build now takes
+         the chapter's body and skips synthesis when it already opens with an "&lt;h1&gt;" (a
+         leading-whitespace-tolerant regex match on the body's start, not a body-wide search —
+         an "&lt;h1&gt;" appearing deeper in the content for some unrelated reason shouldn't
+         suppress the real heading). Every call site (PdfBuilder, EpubBuilder,
+         HtmlBookAssembler, MainWindowViewModel.ExportChapterAsWord, MainWindow's Preview/Rich
+         Text push) now passes the body through.
+         (2) New feature: every export (EPUB, PDF, Word) now adds a "Created with eBook Editor
+         X.Y.Z on yyyy-MM-dd HH:mm" line to the imprint page, immediately before the copyright
+         statement (see GeneratedByLine, eBookEditor.Html). Computed fresh at the moment each
+         export actually runs, not baked into the stored copyright.ebhtml at front-matter-
+         regeneration time — a project can be exported many times between metadata edits, and a
+         timestamp frozen at the last regeneration would go stale across every one of them.
+         EPUB and whole-book Word both consume the same stored, generically-walked HTML, so both
+         locate the "&lt;p&gt;Copyright ©" paragraph GenerateCopyrightPage always produces and
+         insert the credit line immediately before it (falling back to leaving a hand-rewritten
+         imprint page unchanged if that exact marker isn't found, rather than guessing where to
+         inject); PDF renders the imprint page directly from metadata already (bypassing the
+         stored HTML entirely, to pin the copyright block to the physical page bottom — see
+         2.8.0's note), so it just adds the line as its own QuestPDF text item in the same spot. -->
+    <Version>2.16.0</Version>
   </PropertyGroup>
 </Project>
