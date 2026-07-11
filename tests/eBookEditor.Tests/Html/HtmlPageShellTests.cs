@@ -113,4 +113,25 @@ public class HtmlPageShellTests
 
         Assert.Equal("about:blank", uri.ToString());
     }
+
+    [Fact]
+    public void RewriteAssetPathsForProjectRootBase_StripsLeadingDotDotFromImgSrc()
+    {
+        var body = "<p><img src=\"../images/cover.jpg\" alt=\"Cover\"></p>";
+
+        var rewritten = HtmlPageShell.RewriteAssetPathsForProjectRootBase(body);
+
+        Assert.Equal("<p><img src=\"images/cover.jpg\" alt=\"Cover\"></p>", rewritten);
+    }
+
+    [Fact]
+    public void RestoreAssetPathsAfterProjectRootBase_IsTheExactInverseOfTheRewrite()
+    {
+        var original = "<p><img src=\"../images/cover.jpg\" alt=\"Cover\"><br>\n<img src=\"../images/logo.png\"></p>";
+
+        var roundTripped = HtmlPageShell.RestoreAssetPathsAfterProjectRootBase(
+            HtmlPageShell.RewriteAssetPathsForProjectRootBase(original));
+
+        Assert.Equal(original, roundTripped);
+    }
 }

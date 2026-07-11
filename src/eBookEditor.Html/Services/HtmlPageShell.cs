@@ -279,6 +279,38 @@ public static class HtmlPageShell
             ? new Uri(Path.GetFullPath(projectDirectory) + Path.DirectorySeparatorChar)
             : new Uri("about:blank");
 
+    /// <summary>
+    /// Rewrites a stored body's "../images/foo.jpg"-style asset references (always exactly one
+    /// level up from a front/back-matter or chapter file's own directory, this app's one
+    /// consistent stored-content convention) into project-root-relative form
+    /// ("images/foo.jpg") for WebView rendering specifically, paired with a project-root
+    /// BuildFileBaseUri call rather than the referencing file's own directory. Needed because
+    /// WKWebView's file-URL sandboxing for a loadHTMLString(_:baseURL:)-style navigation only
+    /// grants read access within the base URL's own directory and its subdirectories — a base
+    /// at the file's own directory computes the mathematically correct "../images/..." path but
+    /// still can't actually read it, since "images/" is a sibling of "frontmatter/"/
+    /// "backmatter/"/"chapters/", not a descendant. Stripping the leading "../" and using the
+    /// project root as the base instead keeps every referenced asset within the granted
+    /// subtree. Only affects the copy of the body handed to the WebView — stored file content,
+    /// EPUB/PDF/Word export are untouched, since none of them resolve images through this HTML
+    /// convention (EPUB packages its own relative paths; PDF/Word resolve straight from the
+    /// underlying metadata field via Path.Combine(project.DirectoryPath, ...), never by parsing
+    /// "../" out of HTML).
+    /// </summary>
+    public static string RewriteAssetPathsForProjectRootBase(string bodyHtml) =>
+        bodyHtml.Replace("src=\"../", "src=\"", StringComparison.Ordinal);
+
+    /// <summary>
+    /// The exact inverse of RewriteAssetPathsForProjectRootBase — restores the leading "../"
+    /// WYSIWYG mode's project-root-relative display rewrite strips, before an edited body syncs
+    /// back into the stored chapter file. Without this, editing anything in WYSIWYG mode would
+    /// permanently bake the project-root-relative form into the saved file the next time it
+    /// synced, breaking every other renderer (EPUB/PDF/Word, and even Preview/WYSIWYG's own next
+    /// load) that still expects the file-relative "../images/..." convention.
+    /// </summary>
+    public static string RestoreAssetPathsAfterProjectRootBase(string bodyHtml) =>
+        bodyHtml.Replace("src=\"images/", "src=\"../images/", StringComparison.Ordinal);
+
     public static string Wrap(string css, string bodyHtml, bool editable, string? headingHtml = null) =>
         $"""
         <!doctype html>

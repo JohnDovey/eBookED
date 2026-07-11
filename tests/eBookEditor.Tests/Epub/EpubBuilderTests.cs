@@ -76,6 +76,39 @@ public class EpubBuilderTests : IDisposable
     }
 
     [Fact]
+    public void Build_BodyContainsABareAmpersandInAHref_DoesNotThrowAndEscapesIt()
+    {
+        // Regression test: a hand-typed/pasted mailto (or any) href with a raw, unescaped "&"
+        // in its query string (e.g. "?subject=X&body=Y") is valid, working HTML — browsers
+        // tolerate it fine — but content docs are parsed as strict XML, where a bare "&" isn't
+        // the start of a valid entity reference and throws
+        // "'=' is an unexpected token. The expected token is ';'." the moment the parser hits
+        // the "=" of the next query parameter. HtmlXmlSafety.MakeXmlSafe must escape it to
+        // "&amp;" before the fragment reaches XElement.Parse.
+        var project = BuildSampleProject();
+        var chapterItem = project.Spine.Single(i => i.Title == "Chapter One");
+        var chapterPath = project.ResolvePath(chapterItem);
+        _chapterFileService.WriteChapter(chapterPath,
+            new ChapterFrontMatter { Title = "Chapter One" },
+            "<p><a href=\"mailto:jane@example.com?subject=Hi&body=Hello there.\">Email me</a></p>");
+
+        File.WriteAllText(project.BookMdPath, new BookIndexGenerator().GenerateBookMd(project));
+        _projectService.SaveProject(project);
+        var outputPath = Path.Combine(project.OutputDir, "book.epub");
+
+        var exception = Record.Exception(() => _epubBuilder.Build(project, outputPath));
+
+        Assert.Null(exception);
+        using var archive = ZipFile.OpenRead(outputPath);
+        var contentDocsText = archive.Entries
+            .Where(e => e.FullName.StartsWith("OEBPS/content-", StringComparison.Ordinal))
+            .Select(e => { using var reader = new StreamReader(e.Open()); return reader.ReadToEnd(); })
+            .ToList();
+
+        Assert.Contains(contentDocsText, text => text.Contains("subject=Hi&amp;body=Hello", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Build_RendersTheChaptersTitleAsAHeading()
     {
         // Chapter files store the title only in front matter, never in the body (see

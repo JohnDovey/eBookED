@@ -878,6 +878,35 @@
          to/from BookMetadata's DateOnly? simplified accordingly (DateOnly.ToDateTime/
          DateOnly.FromDateTime both already work directly against DateTime, no DateTimeOffset
          wrapping needed). -->
-    <Version>2.27.1</Version>
+    <!-- 2.27.2: two more user-reported bug fixes, no new features, so a patch bump.
+         (1) EPUB export failed outright — "'=' is an unexpected token. The expected token is
+         ';'." — on any page containing a hand-typed/pasted href with a raw, unescaped "&" in
+         its query string (e.g. a mailto link's "?subject=X&body=Y", confirmed present in the
+         manual project's own "Introduction" page). Valid, working HTML tolerates a bare "&"
+         fine; content docs are parsed as strict XML, where it isn't the start of a valid entity
+         reference and throws the moment the parser reaches the next "=". HtmlXmlSafety.
+         MakeXmlSafe now escapes any "&" that isn't already followed by what looks like a real
+         entity reference (named, numeric, or hex) to "&amp;", alongside its existing void-
+         element and named-entity normalization.
+         (2) The Publisher Logo (and, it turns out, every other relative chapter/page image —
+         cover image, author photo — sharing the identical convention) rendered as a broken
+         image icon in Preview/WYSIWYG specifically, still, even after an earlier session's fix
+         (2.x, "Fix: Author photo still not showing in Preview") that switched the WebView
+         navigation's base URI from the project root to the currently-open file's own directory.
+         That fix corrected the URL *math* (a stored "../images/foo.jpg" now resolves to the
+         right absolute path) but not the real constraint: a loadHTMLString(_:baseURL:)-style
+         WebView navigation's file-read sandboxing only grants access within the base URL's own
+         directory and its subdirectories, never a sibling reached by "../" — "images/" is a
+         sibling of "frontmatter/"/"backmatter/"/"chapters/", not a descendant of any of them,
+         so the path resolved correctly but still couldn't actually be read. Fixed by using the
+         project root as the base URI instead (which does contain "images/" as a real
+         descendant) paired with a new HtmlPageShell.RewriteAssetPathsForProjectRootBase that
+         strips the leading "../" from every "src" so the two stay consistent — applied only to
+         the copy of the body handed to the WebView, not the stored file, EPUB/PDF/Word export
+         (none of which resolve images through this HTML convention at all). WYSIWYG mode's
+         edit-sync-back path needed the exact inverse (RestoreAssetPathsAfterProjectRootBase)
+         to avoid permanently baking the project-root-relative form into the saved chapter file
+         the next time an edit synced. -->
+    <Version>2.27.2</Version>
   </PropertyGroup>
 </Project>

@@ -163,7 +163,8 @@ public partial class MainWindow : Window
 
         var title = ViewModel.Editor.FilePath is { } path ? Path.GetFileNameWithoutExtension(path) : null;
         var body = CurrentBodyOnly();
-        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), body, title, ChapterHeadingHtmlFor(body), CurrentFileDirectory);
+        var previewBody = HtmlPageShell.RewriteAssetPathsForProjectRootBase(body);
+        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), previewBody, title, ChapterHeadingHtmlFor(body), CurrentProjectRootDirectory);
         ScrollPreviewToCaret();
     }
 
@@ -172,23 +173,27 @@ public partial class MainWindow : Window
         if (_previewWindow is null || ViewModel is null)
             return;
 
-        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), bodyHtml, title, ChapterHeadingHtmlFor(bodyHtml), CurrentFileDirectory);
+        var previewBody = HtmlPageShell.RewriteAssetPathsForProjectRootBase(bodyHtml);
+        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), previewBody, title, ChapterHeadingHtmlFor(bodyHtml), CurrentProjectRootDirectory);
         ScrollPreviewToCaret();
     }
 
     /// <summary>
-    /// The currently-open chapter/page's own directory (e.g. ".../backmatter", not the project
-    /// root) — every stored body's relative image src (e.g. "../images/foo.jpg") is written
-    /// relative to wherever that specific file lives, one directory below the project root, not
-    /// relative to the project root itself. Passing the bare project root as the WebView base
-    /// URI (an earlier, incomplete fix) left "../images/..." resolving one level ABOVE the
-    /// project root instead of back down into images/ — every relative image in every front/
-    /// back-matter page and chapter failed to load regardless of which subdirectory it lived
-    /// in, since only a file stored directly at the project root (never a real case) would have
-    /// resolved correctly against that base.
+    /// The current project's root directory — paired with
+    /// HtmlPageShell.RewriteAssetPathsForProjectRootBase at every call site below, since a
+    /// WebView navigation's file-URL sandboxing only grants read access within the base URI's
+    /// own directory and its subdirectories. An earlier fix used the currently-open file's own
+    /// directory instead (mathematically correct for resolving a stored "../images/foo.jpg"
+    /// reference), but "images/" is a sibling of "frontmatter/"/"backmatter/"/"chapters/", not
+    /// a descendant of any of them — the resolved path was right, but still outside what the
+    /// WebView was allowed to actually read, so the image loaded as broken regardless. Using
+    /// the project root instead (which does contain "images/" as a real descendant) requires
+    /// every "../"-prefixed reference in the body to be rewritten to a project-root-relative
+    /// one first — see RewriteAssetPathsForProjectRootBase's own doc comment for the full
+    /// reasoning.
     /// </summary>
-    private string? CurrentFileDirectory =>
-        ViewModel?.Editor.FilePath is { } path ? Path.GetDirectoryName(path) : null;
+    private string? CurrentProjectRootDirectory =>
+        ViewModel?.CurrentProject.DirectoryPath;
 
     /// <summary>
     /// The synthesized "&lt;h1&gt;Chapter N: Title&lt;/h1&gt;" for whatever's currently
@@ -285,8 +290,9 @@ public partial class MainWindow : Window
 
         EnsureWysiwygWebView();
         _wysiwygNavigated = false;
-        var html = HtmlPageShell.Wrap(ViewModel.GetCurrentTemplateCss(), bodyHtml, editable: true, ChapterHeadingHtmlFor(bodyHtml));
-        _wysiwygWebView!.NavigateToString(html, HtmlPageShell.BuildFileBaseUri(CurrentFileDirectory));
+        var wysiwygBody = HtmlPageShell.RewriteAssetPathsForProjectRootBase(bodyHtml);
+        var html = HtmlPageShell.Wrap(ViewModel.GetCurrentTemplateCss(), wysiwygBody, editable: true, ChapterHeadingHtmlFor(bodyHtml));
+        _wysiwygWebView!.NavigateToString(html, HtmlPageShell.BuildFileBaseUri(CurrentProjectRootDirectory));
     }
 
     /// <summary>
@@ -310,7 +316,8 @@ public partial class MainWindow : Window
             if (message.RootElement.GetProperty("event").GetString() != "change")
                 return;
 
-            var editedBody = message.RootElement.GetProperty("html").GetString() ?? string.Empty;
+            var editedBody = HtmlPageShell.RestoreAssetPathsAfterProjectRootBase(
+                message.RootElement.GetProperty("html").GetString() ?? string.Empty);
             _suppressWysiwygPush = true;
             ViewModel.Editor.CurrentText = _chapterFileService.ReplaceBody(ViewModel.Editor.CurrentText, editedBody);
             _suppressWysiwygPush = false;
