@@ -15,7 +15,10 @@
     <ScrollViewer Grid.Row="0" Padding="16">
       <StackPanel Spacing="10">
 
-        <TextBox Watermark="Author photo path (relative to project)" Text="{Binding AuthorPhotoPath}" />
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBox Grid.Column="0" Watermark="Author photo path (relative to project)" Text="{Binding AuthorPhotoPath}" Margin="0,0,4,0" />
+          <Button Grid.Column="1" Content="Browse…" Click="OnBrowseAuthorPhotoClick" />
+        </Grid>
         <TextBox Watermark="Author bio" Text="{Binding AuthorBio}"
                  AcceptsReturn="True" TextWrapping="Wrap" Height="90" />
 

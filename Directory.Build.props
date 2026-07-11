@@ -524,6 +524,19 @@
          while leaving the existing front matter block's exact original text untouched (not
          re-serialized through ChapterFrontMatter, which could reformat it even when nothing the
          user actually touched changed). -->
-    <Version>2.13.1</Version>
+    <!-- 2.14.0: new feature, so a minor bump. About the Author's "Author photo path" field gets
+         a "Browse…" button (see ProjectImagePicker, eBookEditor.App/Services — a new shared
+         helper factored out of MainWindow's Insert Image command, which used the identical
+         "pick a file, copy it into the project's images/ folder if it isn't there already,
+         auto-rename on a name collision" logic inline; MainWindow now calls the shared helper
+         too, rather than keeping two copies of the same pattern to drift apart later). Picking a
+         file copies it into the project the same way Insert Image already does, and sets
+         AuthorPhotoPath to the project-root-relative result — matching how
+         PageGeneratorService.GenerateAboutAuthorPage already resolves that path. The text field
+         itself still works exactly as before for anyone who'd rather type/edit the path by hand;
+         the button is a faster alternative, not a replacement. Cover image path and publisher
+         logo path (Copyright & Publishing) have the identical "bare path text field" gap — left
+         for a follow-up, since only Author Photo was actually asked for. -->
+    <Version>2.14.0</Version>
   </PropertyGroup>
 </Project>

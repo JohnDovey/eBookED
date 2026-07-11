@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using eBookEditor.App.Services;
 using eBookEditor.App.ViewModels;
 using eBookEditor.Core.Models;
 using eBookEditor.Core.Services;
@@ -359,31 +360,9 @@ public partial class MainWindow : Window
         if (ViewModel is null)
             return;
 
-        var imagesDir = ViewModel.CurrentProject.ImagesDir;
-        Directory.CreateDirectory(imagesDir);
-
-        var startLocation = await StorageProvider.TryGetFolderFromPathAsync(imagesDir);
-        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
-        {
-            Title = "Insert Image",
-            AllowMultiple = false,
-            SuggestedStartLocation = startLocation,
-            FileTypeFilter = [new FilePickerFileType("Images") { Patterns = ["*.png", "*.jpg", "*.jpeg", "*.gif", "*.svg", "*.webp"] }]
-        });
-
-        var file = files.FirstOrDefault();
-        if (file?.TryGetLocalPath() is not { } sourcePath)
+        var fileName = await ProjectImagePicker.PickAndCopyIntoImagesDirAsync(StorageProvider, ViewModel.CurrentProject.ImagesDir, "Insert Image");
+        if (fileName is null)
             return;
-
-        var fileName = Path.GetFileName(sourcePath);
-        var destinationPath = Path.Combine(imagesDir, fileName);
-
-        if (!string.Equals(Path.GetFullPath(sourcePath), Path.GetFullPath(destinationPath), StringComparison.OrdinalIgnoreCase))
-        {
-            destinationPath = UniqueDestinationPath(imagesDir, fileName);
-            File.Copy(sourcePath, destinationPath);
-            fileName = Path.GetFileName(destinationPath);
-        }
 
         var altText = System.Net.WebUtility.HtmlEncode(Path.GetFileNameWithoutExtension(fileName));
         var html = $"""
@@ -394,25 +373,6 @@ public partial class MainWindow : Window
             """;
 
         InsertAtCursor(html);
-    }
-
-    private static string UniqueDestinationPath(string directory, string fileName)
-    {
-        var path = Path.Combine(directory, fileName);
-        if (!File.Exists(path))
-            return path;
-
-        var nameWithoutExtension = Path.GetFileNameWithoutExtension(fileName);
-        var extension = Path.GetExtension(fileName);
-        var counter = 2;
-        string candidate;
-        do
-        {
-            candidate = Path.Combine(directory, $"{nameWithoutExtension} ({counter}){extension}");
-            counter++;
-        } while (File.Exists(candidate));
-
-        return candidate;
     }
 
     private void OnEditorContextMenuOpened(object? sender, RoutedEventArgs e)
