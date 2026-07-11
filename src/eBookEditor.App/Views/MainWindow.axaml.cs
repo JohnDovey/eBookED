@@ -541,6 +541,25 @@ public partial class MainWindow : Window
             OpenProjectInNewWindow(project);
     }
 
+    private async void OnCreateProjectFromEpubClick(object? sender, RoutedEventArgs e)
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Choose an ePub File",
+            AllowMultiple = false,
+            FileTypeFilter = [new FilePickerFileType("EPUB") { Patterns = ["*.epub"] }]
+        });
+
+        if (files.FirstOrDefault()?.TryGetLocalPath() is not { } epubPath)
+            return;
+
+        var wizard = new EpubImportWizardWindow(epubPath);
+        await wizard.ShowDialog(this);
+
+        if (wizard.CreatedProject is { } project)
+            OpenProjectInNewWindow(project);
+    }
+
     private async void OnOpenProjectClick(object? sender, RoutedEventArgs e)
     {
         var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions

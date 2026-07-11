@@ -15,9 +15,12 @@
   <Grid RowDefinitions="*,Auto">
     <StackPanel Grid.Row="0" Spacing="10" Margin="16">
       <TextBlock Text="EPUB stylesheet template" FontWeight="SemiBold" />
-      <ComboBox ItemsSource="{Binding AvailableTemplates}" SelectedItem="{Binding SelectedTemplate}"
-                DropDownOpened="OnTemplateDropDownOpened" SelectionChanged="OnTemplateSelectionChanged"
-                HorizontalAlignment="Stretch" />
+      <Grid ColumnDefinitions="*,Auto">
+        <ComboBox Grid.Column="0" ItemsSource="{Binding AvailableTemplates}" SelectedItem="{Binding SelectedTemplate}"
+                  DropDownOpened="OnTemplateDropDownOpened" SelectionChanged="OnTemplateSelectionChanged"
+                  HorizontalAlignment="Stretch" />
+        <Button Grid.Column="1" Content="Preview…" Click="OnPreviewTemplateClick" Margin="8,0,0,0" />
+      </Grid>
     </StackPanel>
 
     <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right"

@@ -23,6 +23,7 @@
       <Menu Grid.Column="0">
         <MenuItem Header="_File">
           <MenuItem Header="New Project…" Click="OnNewProjectClick" />
+          <MenuItem Header="Create Project from ePub…" Click="OnCreateProjectFromEpubClick" />
           <MenuItem Header="Open Project…" Click="OnOpenProjectClick" />
           <MenuItem Header="Recent Projects" x:Name="RecentProjectsMenuItem" SubmenuOpened="OnRecentProjectsSubmenuOpened" />
           <MenuItem Header="Save Project" Command="{Binding SaveProjectCommand}" InputGesture="Ctrl+S" />

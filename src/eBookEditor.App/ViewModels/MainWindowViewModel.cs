@@ -16,6 +16,7 @@ public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly ProjectService _projectService = new();
     private readonly SpineService _spineService = new();
+    private readonly SpineImportRouter _spineImportRouter;
     private readonly ChapterFileService _chapterFileService = new();
     private readonly PageGeneratorService _pageGenerator = new();
     private readonly BookIndexGenerator _bookIndexGenerator = new();
@@ -70,6 +71,7 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         _currentProject = project;
         _appSettingsService = appSettingsService ?? new AppSettingsService(new AppPaths());
+        _spineImportRouter = new SpineImportRouter(_spineService);
         _templateService = templateService ?? new TemplateService();
         _epubBuilder = new EpubBuilder(_templateService);
         _pdfBuilder = new PdfBuilder(_templateService);
@@ -108,27 +110,6 @@ public partial class MainWindowViewModel : ViewModelBase
         Editor.FilePath = CurrentProject.ResolvePath(refreshed);
     }
 
-    /// <summary>The directory a newly-imported item's file should be written to, based on its
-    /// classified type (see SpecialPageClassifier) — chapters and unnumbered dividers alike
-    /// live in chapters/, since a divider is still a Chapter-type spine item.</summary>
-    private string ChapterDirFor(SpineItemType type) => type switch
-    {
-        SpineItemType.FrontMatter => CurrentProject.FrontMatterDir,
-        SpineItemType.BackMatter => CurrentProject.BackMatterDir,
-        _ => CurrentProject.ChaptersDir
-    };
-
-    /// <summary>Routes an imported draft to the right SpineService Add* method based on its
-    /// classified type/number mode (see SpecialPageClassifier) — a regular numbered chapter,
-    /// an unnumbered mid-book divider, or a custom front/back-matter page.</summary>
-    private SpineItem AddImportedItemToSpine(string title, string relativePath, SpineItemType type, ChapterNumberMode numberMode, int? positionHint = null) => type switch
-    {
-        SpineItemType.FrontMatter => _spineService.AddFrontMatterItem(CurrentProject, title, relativePath),
-        SpineItemType.BackMatter => _spineService.AddBackMatterItem(CurrentProject, title, relativePath),
-        _ when numberMode == ChapterNumberMode.None => _spineService.AddChapterDivider(CurrentProject, title, relativePath, positionHint),
-        _ => _spineService.AddChapter(CurrentProject, title, relativePath, positionHint)
-    };
-
     /// <summary>
     /// Picks up chapter-shaped files sitting in chapters/ that aren't referenced by any spine
     /// item — e.g. dropped into the folder directly via Finder/Explorer — and adds them to the
@@ -157,14 +138,14 @@ public partial class MainWindowViewModel : ViewModelBase
                 if (isNative)
                 {
                     var relativePath = Path.GetRelativePath(CurrentProject.DirectoryPath, filePath).Replace('\\', '/');
-                    AddImportedItemToSpine(draft.Title, relativePath, draft.Type, draft.NumberMode, draft.PositionHint);
+                    _spineImportRouter.AddImportedItemToSpine(CurrentProject, draft.Title, relativePath, draft.Type, draft.NumberMode, draft.PositionHint);
                     continue;
                 }
 
-                var newPath = _chapterFileService.CreateNewChapterFile(ChapterDirFor(draft.Type), draft.Title);
+                var newPath = _chapterFileService.CreateNewChapterFile(SpineImportRouter.ChapterDirFor(CurrentProject, draft.Type), draft.Title);
                 _chapterFileService.WriteChapter(newPath, new ChapterFrontMatter { Title = draft.Title }, draft.Body);
                 var newRelativePath = Path.GetRelativePath(CurrentProject.DirectoryPath, newPath).Replace('\\', '/');
-                AddImportedItemToSpine(draft.Title, newRelativePath, draft.Type, draft.NumberMode, draft.PositionHint);
+                _spineImportRouter.AddImportedItemToSpine(CurrentProject, draft.Title, newRelativePath, draft.Type, draft.NumberMode, draft.PositionHint);
 
                 foreach (var image in draft.Images)
                     File.WriteAllBytes(Path.Combine(CurrentProject.ImagesDir, image.FileName), image.Bytes);
@@ -207,6 +188,11 @@ public partial class MainWindowViewModel : ViewModelBase
     /// <summary>The current project's selected CSS template, for the WYSIWYG editor pane and
     /// Preview window (both render via HtmlPageShell, real CSS, real browser engine).</summary>
     public string GetCurrentTemplateCss() => _templateService.GetTemplateCss(CurrentProject.Metadata.SelectedTemplate);
+
+    /// <summary>An arbitrary named template's CSS — unlike GetCurrentTemplateCss, not tied to
+    /// the project's saved SelectedTemplate, so the Style window's "Preview" button can render
+    /// whatever the template picker currently has selected, even if it hasn't been saved yet.</summary>
+    public string GetTemplateCss(string? templateName) => _templateService.GetTemplateCss(templateName);
 
     /// <summary>
     /// Installs any fonts the given template's stylesheet requires onto the host system if
@@ -377,10 +363,10 @@ public partial class MainWindowViewModel : ViewModelBase
 
                 foreach (var draft in drafts)
                 {
-                    var path = _chapterFileService.CreateNewChapterFile(ChapterDirFor(draft.Type), draft.Title);
+                    var path = _chapterFileService.CreateNewChapterFile(SpineImportRouter.ChapterDirFor(CurrentProject, draft.Type), draft.Title);
                     _chapterFileService.WriteChapter(path, new ChapterFrontMatter { Title = draft.Title }, draft.Body);
                     var relativePath = Path.GetRelativePath(CurrentProject.DirectoryPath, path).Replace('\\', '/');
-                    AddImportedItemToSpine(draft.Title, relativePath, draft.Type, draft.NumberMode, draft.PositionHint);
+                    _spineImportRouter.AddImportedItemToSpine(CurrentProject, draft.Title, relativePath, draft.Type, draft.NumberMode, draft.PositionHint);
 
                     foreach (var image in draft.Images)
                         File.WriteAllBytes(Path.Combine(CurrentProject.ImagesDir, image.FileName), image.Bytes);
@@ -610,10 +596,10 @@ public partial class MainWindowViewModel : ViewModelBase
 
             foreach (var draft in chapterDrafts)
             {
-                var path = _chapterFileService.CreateNewChapterFile(ChapterDirFor(draft.Type), draft.Title);
+                var path = _chapterFileService.CreateNewChapterFile(SpineImportRouter.ChapterDirFor(CurrentProject, draft.Type), draft.Title);
                 _chapterFileService.WriteChapter(path, new ChapterFrontMatter { Title = draft.Title }, draft.Body);
                 var relativePath = Path.GetRelativePath(CurrentProject.DirectoryPath, path).Replace('\\', '/');
-                AddImportedItemToSpine(draft.Title, relativePath, draft.Type, draft.NumberMode);
+                _spineImportRouter.AddImportedItemToSpine(CurrentProject, draft.Title, relativePath, draft.Type, draft.NumberMode);
 
                 foreach (var image in draft.Images)
                     File.WriteAllBytes(Path.Combine(CurrentProject.ImagesDir, image.FileName), image.Bytes);

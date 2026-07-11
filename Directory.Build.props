@@ -605,6 +605,33 @@
          fonts already use — no code changes needed for it to appear in the template picker or
          get its fonts installed/embedded, since TemplateService/FontService already discover
          and parse any *.css file in templates/ generically. -->
-    <Version>2.18.0</Version>
+    <!-- 2.19.0: two new features, so a minor bump.
+         (1) Stylesheet Preview: a "Preview" button on the Style window's template picker opens
+         a standalone Preview window rendering a generated showcase document (TemplateShowcaseHtml,
+         eBookEditor.Html) exercising every selector Vellum Serif.css/RoyalRoad.css define —
+         headings, paragraphs, a blockquote, lists, a table, a footnote, an image caption, and
+         one worked example of each EditorStyleCatalog style class, all original placeholder
+         prose — against the template picker's live, uncommitted selection (a new
+         MainWindowViewModel.GetTemplateCss(name) method, distinct from the existing
+         GetCurrentTemplateCss, which is hardcoded to the saved value), so a candidate template
+         can be judged before clicking Save &amp; Regenerate.
+         (2) Create Project from ePub: File menu gains "Create Project from ePub…", picking an
+         existing .epub file and generating a brand-new project from its metadata, chapters, and
+         cover image (new eBookEditor.EpubImport project — EpubPackageReader/EpubNavigationReader
+         parse the container/OPF/nav-or-NCX documents without assuming this app's own export
+         layout, EpubImportService classifies each item front/chapter/back-matter via nav
+         landmarks first and SpecialPageClassifier as a fallback — reused as-is from DOCX
+         import — and EpubProjectImporter writes the result to a new project directory).
+         Deliberate, documented scope limits: the source EPUB's own CSS isn't imported (new
+         projects use this app's own template system), internal cross-chapter hyperlinks are
+         left as inert relative links, footnote markup is imported as plain inline HTML
+         verbatim, and the source's own table-of-contents/cover-wrapper pages are skipped
+         (identified via nav landmarks, not guessed) since title/copyright pages already get
+         freshly generated versions from the parsed metadata. The dispatch logic routing an
+         imported draft to the right SpineService Add* method/directory (previously private
+         methods on MainWindowViewModel, added for DOCX/HTML import) is extracted into a new
+         shared SpineImportRouter (eBookEditor.Core), since EPUB import needs the identical
+         dispatch before any MainWindowViewModel exists yet — it's still creating the project. -->
+    <Version>2.19.0</Version>
   </PropertyGroup>
 </Project>

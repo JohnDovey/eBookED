@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using eBookEditor.App.ViewModels;
+using eBookEditor.Html.Services;
 
 namespace eBookEditor.App.Views;
 
@@ -38,4 +39,16 @@ public partial class StyleWindow : Window
 
     private void OnTemplateSelectionChanged(object? sender, SelectionChangedEventArgs e) =>
         _mainViewModel.EnsureTemplateFontsInstalled(_mainViewModel.Metadata.SelectedTemplate);
+
+    /// <summary>Renders the template picker's live (possibly unsaved) selection against a
+    /// generated showcase document exercising every style the template targets — see
+    /// TemplateShowcaseHtml — in a standalone Preview window, so the user can judge a
+    /// candidate template before clicking Save &amp; Regenerate.</summary>
+    private void OnPreviewTemplateClick(object? sender, RoutedEventArgs e)
+    {
+        var css = _mainViewModel.GetTemplateCss(_mainViewModel.Metadata.SelectedTemplate);
+        var preview = new PreviewWindow();
+        preview.Show(this);
+        preview.UpdateContent(css, TemplateShowcaseHtml.Build(), $"Template Preview — {_mainViewModel.Metadata.SelectedTemplate}");
+    }
 }

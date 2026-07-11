@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\eBookEditor.Core\eBookEditor.Core.csproj" />
+    <!-- SpecialPageClassifier (Part/front-matter/back-matter title recognition), reused as-is. -->
+    <ProjectReference Include="..\eBookEditor.DocxImport\eBookEditor.DocxImport.csproj" />
+    <!-- HtmlImportSanitizer (script/style/event-handler stripping) and ChapterImportDraft,
+         reused as-is rather than duplicated. -->
+    <ProjectReference Include="..\eBookEditor.ChapterImport\eBookEditor.ChapterImport.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Chapter XHTML body parsing/cleanup (mirrors HtmlImportSanitizer's own usage). -->
+    <PackageReference Include="AngleSharp" Version="1.5.1" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

@@ -6,6 +6,7 @@
     <Project Path="src/eBookEditor.Core/eBookEditor.Core.csproj" />
     <Project Path="src/eBookEditor.DocxImport/eBookEditor.DocxImport.csproj" />
     <Project Path="src/eBookEditor.Epub/eBookEditor.Epub.csproj" />
+    <Project Path="src/eBookEditor.EpubImport/eBookEditor.EpubImport.csproj" />
     <Project Path="src/eBookEditor.Html/eBookEditor.Html.csproj" />
     <Project Path="src/eBookEditor.Migration/eBookEditor.Migration.csproj" />
   </Folder>
