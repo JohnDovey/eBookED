@@ -775,6 +775,18 @@
          with a chapter prefix). Now splits the fragment off before the lookup and reattaches it
          after rewriting the base path, fixing this for Phase C's own "dest:" links retroactively
          too, not just the new "idx:" ones. -->
-    <Version>2.24.0</Version>
+    <!-- 2.25.0: new feature, so a minor bump.
+         DOCX import preserves existing Word index (XE field) markers: OpenXmlToHtmlConverter's
+         ConvertRuns now recognizes both shapes Word uses for a field (the simple
+         &lt;w:fldSimple w:instr="..."&gt; form, and the complex begin/instrText/end
+         &lt;w:fldChar&gt;/&lt;w:instrText&gt; run-sequence form — Word switches between them
+         depending on how the field was inserted/edited, and both appear in real documents),
+         parses an "XE" instruction's quoted term argument, and converts it into an empty
+         index-entry marker using this app's own convention (the same one "Mark as Index
+         Entry…" itself produces) instead of silently dropping it as an unrecognized field code.
+         An XE field has no visible display text of its own, so there's no real "marked text" to
+         wrap the way a user's own selection-based marking wraps something — the empty marker is
+         still a real, resolvable link target for "Generate/Regenerate Index" to point at. -->
+    <Version>2.25.0</Version>
   </PropertyGroup>
 </Project>

@@ -117,6 +117,50 @@ internal static class DocxFixtureBuilder
         return path;
     }
 
+    /// <summary>An "XE" (index entry) field in Word's simple-field form: a single
+    /// &lt;w:fldSimple w:instr="..."&gt; element, no separate begin/instrText/end run
+    /// sequence.</summary>
+    public static string BuildDocxWithSimpleFieldIndexEntry(string path)
+    {
+        using var document = WordprocessingDocument.Create(path, DocumentFormat.OpenXml.WordprocessingDocumentType.Document);
+        var mainPart = document.AddMainDocumentPart();
+        mainPart.Document = new Document();
+        var body = new Body();
+        mainPart.Document.Append(body);
+
+        body.Append(Heading("Chapter One", "Heading1"));
+        var paragraph = new Paragraph(new Run(new Text("Meet Captain Reyes.")));
+        paragraph.Append(new SimpleField { Instruction = " XE \"Captain\" " });
+        body.Append(paragraph);
+
+        mainPart.Document.Save();
+        return path;
+    }
+
+    /// <summary>An "XE" (index entry) field in Word's complex-field form: a
+    /// begin/instrText/end &lt;w:fldChar&gt;/&lt;w:instrText&gt; run sequence — the shape Word
+    /// actually produces for a field inserted via Insert &gt; Index &gt; Mark Entry, as opposed
+    /// to the simpler fldSimple form.</summary>
+    public static string BuildDocxWithComplexFieldIndexEntry(string path)
+    {
+        using var document = WordprocessingDocument.Create(path, DocumentFormat.OpenXml.WordprocessingDocumentType.Document);
+        var mainPart = document.AddMainDocumentPart();
+        mainPart.Document = new Document();
+        var body = new Body();
+        mainPart.Document.Append(body);
+
+        body.Append(Heading("Chapter One", "Heading1"));
+        var paragraph = new Paragraph(
+            new Run(new Text("Meet Captain Reyes.")),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+            new Run(new FieldCode(" XE \"Captain\" ")),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+        body.Append(paragraph);
+
+        mainPart.Document.Save();
+        return path;
+    }
+
     private static Table BuildTable(string[] header, string[][] rows)
     {
         var table = new Table();

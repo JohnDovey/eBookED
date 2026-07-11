@@ -3,6 +3,7 @@ using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using eBookEditor.DocxImport.Models;
+using eBookEditor.Html.Services;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace eBookEditor.DocxImport.Services;
@@ -103,9 +104,28 @@ internal class OpenXmlToHtmlConverter
         return bookmarkName is null ? "" : $" id=\"{Encode(bookmarkName)}\"";
     }
 
+    /// <summary>
+    /// A Word "XE" (index entry) field — Insert &gt; Index &gt; Mark Entry, or typed by hand as
+    /// a field code — survives import as an empty index-entry marker (see
+    /// InternalLinkConvention), the same convention "Mark as Index Entry…" itself produces,
+    /// rather than being silently dropped as an unrecognized field code. An XE field has no
+    /// visible display text of its own (it exists purely for Word's own Index-compilation
+    /// feature), so there's no real "marked text" to wrap the way a user's own selection-based
+    /// marking wraps something — an empty marker at the field's position is still a real,
+    /// resolvable link target for PageGeneratorService.GenerateIndexPage to point at, just with
+    /// nothing visibly highlighted in the chapter text.
+    ///
+    /// Word represents a field two ways, both handled here: the simple form (a single
+    /// <c>&lt;w:fldSimple w:instr="..."&gt;</c> element), and the complex form (a
+    /// begin/instrText.../separate/end sequence of &lt;w:fldChar&gt;/&lt;w:instrText&gt;
+    /// elements spread across several &lt;w:r&gt; runs) — Word itself switches between these
+    /// forms depending on how the field was inserted/edited, and both appear in real documents.
+    /// </summary>
     private static string ConvertRuns(Paragraph paragraph, MainDocumentPart mainPart, List<ExtractedImage> images)
     {
         var sb = new StringBuilder();
+        var fieldInstruction = new StringBuilder();
+        var accumulatingInstruction = false;
 
         foreach (var child in paragraph.ChildElements)
         {
@@ -114,13 +134,75 @@ internal class OpenXmlToHtmlConverter
                 case Hyperlink hyperlink:
                     sb.Append(ConvertHyperlink(hyperlink, mainPart, images));
                     break;
+
+                case SimpleField simpleField:
+                    if (TryGetXeIndexTerm(simpleField.Instruction?.Value, out var simpleFieldTerm))
+                        sb.Append(BuildIndexEntryMarker(simpleFieldTerm));
+                    break;
+
                 case Run run:
+                    var fieldCharType = run.Elements<FieldChar>().FirstOrDefault()?.FieldCharType?.Value;
+                    if (fieldCharType == FieldCharValues.Begin)
+                    {
+                        accumulatingInstruction = true;
+                        fieldInstruction.Clear();
+                        break;
+                    }
+
+                    if (accumulatingInstruction)
+                    {
+                        if (fieldCharType is null)
+                        {
+                            foreach (var code in run.Elements<FieldCode>())
+                                fieldInstruction.Append(code.Text);
+                            break;
+                        }
+
+                        accumulatingInstruction = false;
+                        if (TryGetXeIndexTerm(fieldInstruction.ToString(), out var complexFieldTerm))
+                            sb.Append(BuildIndexEntryMarker(complexFieldTerm));
+                    }
+
                     sb.Append(ConvertRun(run, mainPart, images));
                     break;
             }
         }
 
         return sb.ToString();
+    }
+
+    /// <summary>True if <paramref name="instruction"/> is an "XE" field instruction (e.g.
+    /// <c>XE "Captain"</c>), with <paramref name="term"/> set to its first quoted argument — a
+    /// multi-level term (<c>XE "Captain:Reyes"</c>) or a "See also" switch (<c>\t</c>) is kept
+    /// as literal text within that one argument rather than parsed further; only the primary
+    /// term is preserved, a reasonable "best effort" scope given how rarely multi-level index
+    /// entries are actually used.</summary>
+    private static bool TryGetXeIndexTerm(string? instruction, out string term)
+    {
+        term = "";
+        if (string.IsNullOrWhiteSpace(instruction))
+            return false;
+
+        var trimmed = instruction.TrimStart();
+        if (!trimmed.StartsWith("XE", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var firstQuote = trimmed.IndexOf('"');
+        if (firstQuote < 0)
+            return false;
+        var secondQuote = trimmed.IndexOf('"', firstQuote + 1);
+        if (secondQuote < 0)
+            return false;
+
+        term = trimmed[(firstQuote + 1)..secondQuote].Replace("\\\"", "\"").Trim();
+        return term.Length > 0;
+    }
+
+    private static string BuildIndexEntryMarker(string term)
+    {
+        var slug = eBookEditor.Core.Services.Slug.Create(term, "term");
+        var id = $"{InternalLinkConvention.IndexEntryIdPrefix}{slug}-{Guid.NewGuid():N}";
+        return $"<span class=\"{InternalLinkConvention.IndexEntryClass}\" {InternalLinkConvention.IndexTermDataAttribute}=\"{Encode(term)}\" id=\"{id}\"></span>";
     }
 
     private static string ConvertHyperlink(Hyperlink hyperlink, MainDocumentPart mainPart, List<ExtractedImage> images)

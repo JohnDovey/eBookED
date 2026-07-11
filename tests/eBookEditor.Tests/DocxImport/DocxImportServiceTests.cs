@@ -156,6 +156,36 @@ public class DocxImportServiceTests : IDisposable
     }
 
     [Fact]
+    public void Import_SimpleFieldXeIndexEntry_SurvivesAsAnIndexEntryMarker()
+    {
+        var docxPath = DocxFixtureBuilder.BuildDocxWithSimpleFieldIndexEntry(Path.Combine(_tempDir, "with-simple-xe.docx"));
+
+        var chapters = _importService.Import(docxPath);
+        var body = chapters[0].Body;
+
+        Assert.Contains("class=\"index-entry\"", body);
+        Assert.Contains("data-index-term=\"Captain\"", body);
+        Assert.Contains("id=\"idx:captain-", body);
+        Assert.Contains("Meet Captain Reyes.", body);
+    }
+
+    [Fact]
+    public void Import_ComplexFieldXeIndexEntry_SurvivesAsAnIndexEntryMarker()
+    {
+        var docxPath = DocxFixtureBuilder.BuildDocxWithComplexFieldIndexEntry(Path.Combine(_tempDir, "with-complex-xe.docx"));
+
+        var chapters = _importService.Import(docxPath);
+        var body = chapters[0].Body;
+
+        Assert.Contains("class=\"index-entry\"", body);
+        Assert.Contains("data-index-term=\"Captain\"", body);
+        Assert.Contains("id=\"idx:captain-", body);
+        Assert.Contains("Meet Captain Reyes.", body);
+        // The field's own begin/instrText/end machinery must not leak into the visible body.
+        Assert.DoesNotContain("XE", body);
+    }
+
+    [Fact]
     public void Import_DoesNotSplitAHandTypedTableOfContentsListIntoChapters()
     {
         // Regression test for a real user request: a manually-typed "Table of Contents"
