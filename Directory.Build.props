@@ -744,6 +744,37 @@
          mechanic into a new shared eBookEditor.Html.Services.TodoFootnoteInserter, ready for
          reuse by any future import path's own "couldn't confidently convert automatically"
          fallback. -->
-    <Version>2.23.0</Version>
+    <!-- 2.24.0: new feature, so a minor bump.
+         Index feature: a new "idx:{slug}" marker convention (InternalLinkConvention gained
+         IndexEntryIdPrefix/IndexEntryClass/IndexTermDataAttribute and a general
+         IsInternalMarkerId predicate, superseding the "dest:"-only checks Phase C's
+         TryGetDestinationFragment/HtmlToPdfRenderer.EmitDestinationSections/
+         HtmlToDocxConverter's SPAN case used). "Mark as Index Entry…" wraps a selection in
+         &lt;span class="index-entry" data-index-term="term" id="idx:{slug}"&gt;, with an
+         "automatically mark all occurrences of this text in the current chapter" checkbox (new
+         IndexEntryMarker for raw mode's whole-body text-node-aware wrap; new
+         markAllOccurrences/wrapSelectionAsIndexEntry JS bridge functions for WYSIWYG). New
+         "Project → Generate/Regenerate Index" command scans every chapter (new
+         IndexEntryScanner — the second whole-book body scanner, after
+         DocumentLinkDestinationScanner) and (re)writes a back-matter "Index" page (new
+         PageGeneratorService.GenerateIndexPage; ProjectPaths.IndexPageFileName; auto-seeded into
+         the spine on first use, the same way About the Author is seeded at project creation),
+         alphabetized by term, linking once per chapter a term occurs in. PDF export renders the
+         Index page specially (new PdfBuilder.RenderIndexPage, parallel to
+         RenderTableOfContents) with real page numbers via QuestPDF's Section/
+         BeginPageNumberOfSection — one link+page-number per chapter an occurrence, not
+         deduplicated onto one physical page if a term recurs within the same chapter (a
+         documented "best effort" simplification, the same kind Phase C's own dest: Section
+         registration already accepts). Word export reuses the same real-bookmark machinery
+         "dest:" links already had, now generalized to any InternalLinkConvention marker.
+         Also fixed a real bug surfaced while wiring the Index page's own cross-chapter links:
+         EpubInternalLinkResolver (EPUB export's internal-link rewriter) did an exact whole-href
+         string match against its content-filename lookup table, which always missed — silently
+         leaving the link unrewritten, pointing at a source-project path that doesn't exist in
+         the packaged EPUB — whenever an href carried a "#fragment" (every "dest:"/"idx:" link
+         with a chapter prefix). Now splits the fragment off before the lookup and reattaches it
+         after rewriting the base path, fixing this for Phase C's own "dest:" links retroactively
+         too, not just the new "idx:" ones. -->
+    <Version>2.24.0</Version>
   </PropertyGroup>
 </Project>

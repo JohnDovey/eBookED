@@ -38,4 +38,5 @@ public static class ProjectPaths
     public const string CopyrightPageFileName = "copyright.ebhtml";
     public const string TocPageFileName = "toc.ebhtml";
     public const string AboutAuthorPageFileName = "about-the-author.ebhtml";
+    public const string IndexPageFileName = "index.ebhtml";
 }

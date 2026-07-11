@@ -151,18 +151,19 @@ internal class HtmlToPdfRenderer
 
     /// <summary>
     /// Registers a zero-height QuestPDF Section (see PdfBuilder's own per-spine-item use of the
-    /// same mechanism) for every "Mark Link Destination" marker (see InternalLinkConvention)
-    /// found anywhere inside <paramref name="element"/> — block-level granularity, not the exact
-    /// inline position, since QuestPDF's Section is a container-level primitive with no inline-
-    /// text equivalent. A destination near the end of a long paragraph resolves to that
-    /// paragraph's own page, which is accurate enough for "jump to roughly the right spot"
-    /// purposes and mirrors the Index feature's own documented per-block-not-per-character
-    /// simplification.
+    /// same mechanism) for every "Mark Link Destination"/"Mark as Index Entry" marker (see
+    /// InternalLinkConvention) found anywhere inside <paramref name="element"/> — block-level
+    /// granularity, not the exact inline position, since QuestPDF's Section is a container-level
+    /// primitive with no inline-text equivalent. A destination near the end of a long paragraph
+    /// resolves to that paragraph's own page — accurate enough for "jump to roughly the right
+    /// spot" purposes for a "dest:" link, and the documented "one linked page-number per marked
+    /// occurrence, not fully deduplicated onto one physical page" simplification for the Index
+    /// page's own per-occurrence "idx:" links (see PdfBuilder.RenderIndexPage).
     /// </summary>
     private static void EmitDestinationSections(ColumnDescriptor column, DomElement element)
     {
-        foreach (var destination in element.QuerySelectorAll($"[id^='{InternalLinkConvention.DestinationIdPrefix}']"))
-            column.Item().Height(0).Section(destination.Id!);
+        foreach (var marker in element.QuerySelectorAll("[id]").Where(e => InternalLinkConvention.IsInternalMarkerId(e.Id)))
+            column.Item().Height(0).Section(marker.Id!);
     }
 
     private static bool IsBlockElement(DomElement element) => element.TagName is

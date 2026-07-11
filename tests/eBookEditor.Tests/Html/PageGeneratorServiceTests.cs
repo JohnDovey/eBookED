@@ -180,6 +180,66 @@ public class PageGeneratorServiceTests : IDisposable
     }
 
     [Fact]
+    public void GenerateIndexPage_NoOccurrences_ShowsAPlaceholderMessage()
+    {
+        var html = _pageGenerator.GenerateIndexPage([]);
+
+        Assert.Contains("<h1>Index</h1>", html);
+        Assert.Contains("No index entries have been marked yet", html);
+    }
+
+    [Fact]
+    public void GenerateIndexPage_GroupsAndAlphabetizesByTerm()
+    {
+        var chapterOne = new SpineItem { Type = SpineItemType.Chapter, RelativePath = "chapters/001.ebhtml", Title = "One", Order = 0, ResolvedNumber = 1 };
+        var chapterTwo = new SpineItem { Type = SpineItemType.Chapter, RelativePath = "chapters/002.ebhtml", Title = "Two", Order = 1, ResolvedNumber = 2 };
+        var occurrences = new List<IndexOccurrence>
+        {
+            new(chapterTwo, "Ship", "idx:ship:0"),
+            new(chapterOne, "Captain", "idx:captain:0"),
+        };
+
+        var html = _pageGenerator.GenerateIndexPage(occurrences);
+
+        var captainIndex = html.IndexOf("Captain", StringComparison.Ordinal);
+        var shipIndex = html.IndexOf("Ship", StringComparison.Ordinal);
+        Assert.True(captainIndex >= 0 && captainIndex < shipIndex, "Terms should be alphabetized.");
+    }
+
+    [Fact]
+    public void GenerateIndexPage_OneOccurrencePerTermPerChapter_EvenWhenMarkedMultipleTimesInTheSameChapter()
+    {
+        var chapter = new SpineItem { Type = SpineItemType.Chapter, RelativePath = "chapters/001.ebhtml", Title = "One", Order = 0, ResolvedNumber = 1 };
+        var occurrences = new List<IndexOccurrence>
+        {
+            new(chapter, "captain", "idx:captain:0"),
+            new(chapter, "Captain", "idx:captain:1"),
+        };
+
+        var html = _pageGenerator.GenerateIndexPage(occurrences);
+
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(html, "<a href="));
+        Assert.Contains("idx:captain:0", html);
+    }
+
+    [Fact]
+    public void GenerateIndexPage_LinksToEachChapterTheTermOccursIn()
+    {
+        var chapterOne = new SpineItem { Type = SpineItemType.Chapter, RelativePath = "chapters/001.ebhtml", Title = "One", Order = 0, ResolvedNumber = 1 };
+        var chapterTwo = new SpineItem { Type = SpineItemType.Chapter, RelativePath = "chapters/002.ebhtml", Title = "Two", Order = 1, ResolvedNumber = 2 };
+        var occurrences = new List<IndexOccurrence>
+        {
+            new(chapterOne, "captain", "idx:captain:0"),
+            new(chapterTwo, "captain", "idx:captain:1"),
+        };
+
+        var html = _pageGenerator.GenerateIndexPage(occurrences);
+
+        Assert.Contains("href=\"chapters/001.ebhtml#idx:captain:0\"", html);
+        Assert.Contains("href=\"chapters/002.ebhtml#idx:captain:1\"", html);
+    }
+
+    [Fact]
     public void GenerateTocPage_ListsChaptersWithResolvedNumbersAndExcludesTocItself()
     {
         var project = _projectService.CreateProject(_tempDir, "Toc Test", SampleMetadata());

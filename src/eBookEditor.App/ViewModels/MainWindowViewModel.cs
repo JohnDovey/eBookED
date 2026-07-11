@@ -20,6 +20,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly ChapterFileService _chapterFileService = new();
     private readonly PageGeneratorService _pageGenerator = new();
     private readonly BookIndexGenerator _bookIndexGenerator = new();
+    private readonly IndexEntryScanner _indexEntryScanner = new();
     private readonly HtmlBookAssembler _htmlBookAssembler = new();
     private readonly DocxImportService _docxImportService = new();
     private readonly HtmlToDocxConverter _htmlToDocxConverter = new();
@@ -487,6 +488,39 @@ public partial class MainWindowViewModel : ViewModelBase
 
     [RelayCommand]
     private void RegenerateFrontMatter() => RegenerateGeneratedContent();
+
+    /// <summary>
+    /// Scans every chapter/page for "Mark as Index Entry" markers (see IndexEntryScanner) and
+    /// (re)writes the back-matter "Index" page from them — auto-seeding that page into the
+    /// spine on first use, the same way ProjectService.CreateProject seeds "About the Author"
+    /// (see SpineService.AddBackMatterItem). An explicit command, not a side effect of every
+    /// edit — scanning every chapter's body on every save would be too expensive for that; see
+    /// PageGeneratorService.GenerateIndexPage for the actual page-content logic.
+    /// </summary>
+    [RelayCommand]
+    private void GenerateIndex()
+    {
+        if (Editor.IsDirty)
+            Editor.Save();
+
+        var occurrences = _indexEntryScanner.FindAll(CurrentProject);
+
+        var indexItem = CurrentProject.Spine.FirstOrDefault(i => i.RelativePath.EndsWith(ProjectPaths.IndexPageFileName, StringComparison.Ordinal));
+        if (indexItem is null)
+        {
+            var path = Path.Combine(CurrentProject.BackMatterDir, ProjectPaths.IndexPageFileName);
+            File.WriteAllText(path, string.Empty);
+            indexItem = _spineService.AddBackMatterItem(CurrentProject, "Index", $"{ProjectPaths.BackMatterDirName}/{ProjectPaths.IndexPageFileName}");
+        }
+
+        File.WriteAllText(CurrentProject.ResolvePath(indexItem), _pageGenerator.GenerateIndexPage(occurrences));
+
+        _projectService.SaveProject(CurrentProject);
+        RegenerateGeneratedContent();
+
+        var termCount = occurrences.Select(o => o.Term).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+        StatusMessage = $"Index regenerated: {termCount} term(s), {occurrences.Count} occurrence(s).";
+    }
 
     /// <summary>Whether CurrentProject still has any chapter/front/back matter file in the
     /// legacy Markdown ".md" format — i.e. was created before the HTML content-model

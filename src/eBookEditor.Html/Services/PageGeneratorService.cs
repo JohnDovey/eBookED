@@ -151,6 +151,46 @@ public class PageGeneratorService
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Builds the back-matter "Index" page's body from every "Mark as Index Entry" occurrence
+    /// in the book (see IndexEntryScanner) — grouped by term (case-insensitive; the visible
+    /// label uses whichever casing that term's earliest occurrence in book order used) and
+    /// alphabetized, each term linking once per chapter/page it occurs in (a "page" has no
+    /// meaning in a reflowable format, so chapter is the natural non-PDF granularity — see
+    /// HtmlToPdfRenderer for the real, distinct-per-occurrence page-number resolution PDF export
+    /// gets instead). Called only by an explicit "Generate/Regenerate Index" command, never as a
+    /// side effect of every edit — scanning every chapter's body is too expensive for that.
+    /// </summary>
+    public string GenerateIndexPage(IReadOnlyList<IndexOccurrence> occurrences)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("<h1>Index</h1>");
+
+        if (occurrences.Count == 0)
+        {
+            sb.AppendLine("<p><em>No index entries have been marked yet. Select some text and use \"Mark as Index Entry…\" to add one, then regenerate this page.</em></p>");
+            return sb.ToString();
+        }
+
+        sb.AppendLine("<ul class=\"index-list\">");
+        foreach (var termGroup in occurrences.GroupBy(o => o.Term, StringComparer.OrdinalIgnoreCase).OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase))
+        {
+            var displayTerm = termGroup.First().Term;
+            var perChapterEntries = termGroup
+                .GroupBy(o => o.Item.RelativePath)
+                .Select(chapterGroup => chapterGroup.First())
+                .OrderBy(o => o.Item.Order);
+
+            var links = perChapterEntries.Select(o =>
+                $"<a href=\"{Encode(o.Item.RelativePath)}#{Encode(o.MarkerId)}\">{Encode(o.Item.DisplayTitle)}</a>");
+
+            sb.AppendLine($"<li>{Encode(displayTerm)} — {string.Join(", ", links)}</li>");
+        }
+        sb.AppendLine("</ul>");
+
+        return sb.ToString();
+    }
+
     public void RegenerateAllGeneratedPages(EbookProject project)
     {
         File.WriteAllText(

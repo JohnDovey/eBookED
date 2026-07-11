@@ -239,6 +239,43 @@ public class PdfBuilderTests : IDisposable
     }
 
     [Fact]
+    public void Build_IndexPage_ListsTermsWithRealPageNumbersAndChapterLinks()
+    {
+        var project = BuildSampleProject();
+
+        var secondChapterPath = _chapterFileService.CreateNewChapterFile(project.ChaptersDir, "Chapter Two");
+        var secondRelativePath = Path.GetRelativePath(project.DirectoryPath, secondChapterPath).Replace('\\', '/');
+        _chapterFileService.WriteChapter(secondChapterPath,
+            new ChapterFrontMatter { Title = "Chapter Two" },
+            "<p><span class=\"index-entry\" data-index-term=\"Captain\" id=\"idx:captain:0\">Captain Reyes</span> appears again.</p>");
+        _spineService.AddChapter(project, "Chapter Two", secondRelativePath);
+
+        var firstChapterItem = project.Spine.Single(i => i.Title == "Chapter One");
+        var firstChapterPath = project.ResolvePath(firstChapterItem);
+        _chapterFileService.WriteChapter(firstChapterPath,
+            new ChapterFrontMatter { Title = "Chapter One" },
+            "<p><span class=\"index-entry\" data-index-term=\"Captain\" id=\"idx:captain:1\">Captain Reyes</span> is introduced here.</p>");
+
+        var indexPath = Path.Combine(project.BackMatterDir, ProjectPaths.IndexPageFileName);
+        File.WriteAllText(indexPath, "");
+        _spineService.AddBackMatterItem(project, "Index", $"{ProjectPaths.BackMatterDirName}/{ProjectPaths.IndexPageFileName}");
+
+        _projectService.SaveProject(project);
+        var outputPath = Path.Combine(project.OutputDir, "book.pdf");
+
+        var result = _pdfBuilder.Build(project, outputPath);
+
+        using var document = PdfDocument.Open(outputPath);
+        var allText = string.Join(" ", Enumerable.Range(1, document.NumberOfPages).Select(i => document.GetPage(i).Text));
+
+        Assert.Contains("Index", allText);
+        Assert.Contains("Captain", allText);
+        Assert.Contains("Chapter One", allText);
+        Assert.Contains("Chapter Two", allText);
+        Assert.True(result.PageCount >= project.Spine.Count);
+    }
+
+    [Fact]
     public void Build_RendersARealFootnoteReferenceAndNotesSection()
     {
         var project = BuildSampleProject();

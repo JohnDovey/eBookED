@@ -33,6 +33,7 @@
         </MenuItem>
         <MenuItem Header="_Project">
           <MenuItem Header="Regenerate Front Matter" Command="{Binding RegenerateFrontMatterCommand}" />
+          <MenuItem Header="Generate/Regenerate Index" Command="{Binding GenerateIndexCommand}" />
           <Separator />
           <MenuItem Header="Upgrade Project to HTML…" Click="OnUpgradeProjectToHtmlClick" />
         </MenuItem>
@@ -123,6 +124,7 @@
           <Button Content="Insert Footnote…" Click="OnInsertFootnoteClick" />
           <Button Content="Mark Link Destination…" Click="OnMarkLinkDestinationClick" />
           <Button Content="Insert Internal Link…" Click="OnInsertInternalLinkClick" />
+          <Button Content="Mark as Index Entry…" Click="OnMarkIndexEntryClick" />
           <Button x:Name="ApplyStyleButton" Content="Apply Style ▾" Click="OnApplyStyleButtonClick" />
         </StackPanel>
 
@@ -148,6 +150,7 @@
                 <MenuItem Header="Insert Footnote…" Click="OnInsertFootnoteClick" />
                 <MenuItem Header="Mark Link Destination…" Click="OnMarkLinkDestinationClick" />
                 <MenuItem Header="Insert Internal Link…" Click="OnInsertInternalLinkClick" />
+                <MenuItem Header="Mark as Index Entry…" Click="OnMarkIndexEntryClick" />
                 <MenuItem Header="Apply Style" x:Name="ApplyStyleMenuItem" />
               </ContextMenu>
             </ae:TextEditor.ContextMenu>

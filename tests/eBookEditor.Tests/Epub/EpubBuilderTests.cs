@@ -94,6 +94,52 @@ public class EpubBuilderTests : IDisposable
     }
 
     [Fact]
+    public void Build_CrossChapterInternalLinkWithAFragment_RewritesTheBasePathAndKeepsTheFragment()
+    {
+        // Regression test: a cross-chapter "dest:"/"idx:" link (see InternalLinkConvention —
+        // "Insert Internal Link", or an index entry link) carries a "#fragment" the content-doc
+        // filename lookup dictionary's keys never include; an exact whole-href match used to
+        // always miss whenever a fragment was present, silently leaving the link unrewritten
+        // (pointing at a source-project path that doesn't exist in the packaged EPUB) instead of
+        // rewriting just the base path and preserving the fragment.
+        var project = BuildSampleProject();
+
+        var secondChapterPath = _chapterFileService.CreateNewChapterFile(project.ChaptersDir, "Chapter Two");
+        var secondRelativePath = Path.GetRelativePath(project.DirectoryPath, secondChapterPath).Replace('\\', '/');
+        _chapterFileService.WriteChapter(secondChapterPath,
+            new ChapterFrontMatter { Title = "Chapter Two" },
+            "<p>Meet <span id=\"dest:the-captain-a1b2c3\">Captain Reyes</span> here.</p>");
+        _spineService.AddChapter(project, "Chapter Two", secondRelativePath);
+        _chapterFileService.SyncChapterFileNames(project);
+
+        var firstChapterItem = project.Spine.Single(i => i.Title == "Chapter One");
+        var firstChapterPath = project.ResolvePath(firstChapterItem);
+        var secondChapterItem = project.Spine.Single(i => i.Title == "Chapter Two");
+        _chapterFileService.WriteChapter(firstChapterPath,
+            new ChapterFrontMatter { Title = "Chapter One" },
+            $"<p>Refer to <a href=\"{secondChapterItem.RelativePath}#dest:the-captain-a1b2c3\">the captain</a>.</p>");
+
+        File.WriteAllText(project.BookMdPath, new BookIndexGenerator().GenerateBookMd(project));
+        _projectService.SaveProject(project);
+        var outputPath = Path.Combine(project.OutputDir, "book.epub");
+
+        _epubBuilder.Build(project, outputPath);
+
+        var result = EpubValidationHelper.Validate(outputPath);
+        Assert.True(result.IsValid, string.Join("; ", result.Errors));
+
+        using var archive = ZipFile.OpenRead(outputPath);
+        var contentDocsText = archive.Entries
+            .Where(e => e.FullName.StartsWith("OEBPS/content-", StringComparison.Ordinal))
+            .Select(e => { using var reader = new StreamReader(e.Open()); return reader.ReadToEnd(); })
+            .ToList();
+
+        Assert.Contains(contentDocsText, text =>
+            System.Text.RegularExpressions.Regex.IsMatch(text, @"href=""content-\d+\.xhtml#dest:the-captain-a1b2c3"""));
+        Assert.DoesNotContain(contentDocsText, text => text.Contains(secondChapterItem.RelativePath, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Build_DividerRendersUnnumberedAndCustomMatterPagesAreValid()
     {
         var project = BuildSampleProject();

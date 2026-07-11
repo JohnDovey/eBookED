@@ -152,6 +152,32 @@ public class HtmlToDocxConverterTests : IDisposable
     }
 
     [Fact]
+    public void ConvertToFile_IndexEntryMarker_BecomesARealBookmarkAndAnchorHyperlink()
+    {
+        // The Index page's own generated links to "idx:" markers (see InternalLinkConvention)
+        // need the exact same real-bookmark treatment "dest:" links already get.
+        var path = Path.Combine(_tempDir, "chapter-index-entry.docx");
+        const string html = """
+            <p>Meet <span class="index-entry" data-index-term="Captain" id="idx:captain:0">Captain Reyes</span> here.</p>
+            """;
+
+        _converter.ConvertToFile(html, "Chapter", path);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        var mainPart = document.MainDocumentPart!;
+        var body = mainPart.Document!.Body!;
+
+        var bookmarkStart = body.Descendants<BookmarkStart>().Single();
+        var bookmarkEnd = body.Descendants<BookmarkEnd>().Single();
+        Assert.Equal(bookmarkStart.Id, bookmarkEnd.Id);
+        Assert.Equal("idx_captain_0", bookmarkStart.Name);
+        Assert.Contains("Captain Reyes", body.InnerText);
+
+        var errors = new OpenXmlValidator().Validate(document).ToList();
+        Assert.True(errors.Count == 0, string.Join("\n", errors.Select(e => $"{e.Path?.XPath} :: {e.Description}")));
+    }
+
+    [Fact]
     public void ConvertToFile_RendersTables()
     {
         const string html = """

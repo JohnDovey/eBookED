@@ -577,16 +577,19 @@ public partial class MainWindow : Window
     /// OnWysiwygMessageBody's debounced sync from the WYSIWYG bridge) rather than the DOM
     /// directly, so this works identically regardless of which pane is active.
     /// </summary>
-    private string UniqueDestinationSlug(string label)
+    private string UniqueDestinationSlug(string label) => UniqueMarkerSlug(label, InternalLinkConvention.DestinationIdPrefix, "destination");
+
+    /// <summary>Shared by both "Mark Link Destination" and "Mark as Index Entry"'s single-
+    /// occurrence path — a marker's HTML id must be unique within its own page; appends "-2",
+    /// "-3", etc. to the label-derived slug until no id with that value (under the given
+    /// prefix) is already present in the page's own text.</summary>
+    private string UniqueMarkerSlug(string label, string idPrefix, string fallback)
     {
-        var baseSlug = Slug.Create(label, "destination");
+        var baseSlug = Slug.Create(label, fallback);
         var slug = baseSlug;
         var suffix = 2;
-        while (ViewModel!.Editor.CurrentText.Contains(
-                   $"id=\"{InternalLinkConvention.DestinationIdPrefix}{slug}\"", StringComparison.Ordinal))
-        {
+        while (ViewModel!.Editor.CurrentText.Contains($"id=\"{idPrefix}{slug}\"", StringComparison.Ordinal))
             slug = $"{baseSlug}-{suffix++}";
-        }
 
         return slug;
     }
@@ -640,6 +643,69 @@ public partial class MainWindow : Window
         {
             InsertAtCursor($"<a href=\"{href}\">{System.Net.WebUtility.HtmlEncode(destination.Label)}</a>");
         }
+    }
+
+    /// <summary>
+    /// "Mark as Index Entry…" — either wraps just the current selection in a single new
+    /// index-entry marker (see InternalLinkConvention), or, if the dialog's "mark all
+    /// occurrences" checkbox was checked, marks every case-insensitive occurrence of the term
+    /// found anywhere in the current chapter (WYSIWYG mode: HtmlPageShell's own
+    /// markAllOccurrences JS function walks the live DOM; raw mode: IndexEntryMarker walks the
+    /// parsed body and IndexEntryScanner-equivalent HTML string, then the whole body is
+    /// reassigned via ViewModel.Editor.CurrentText — MainWindow's own CurrentText-changed
+    /// subscription pushes that into EditorTextBox automatically, so no direct
+    /// EditorTextBox.Text assignment is needed here).
+    /// </summary>
+    private async void OnMarkIndexEntryClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null)
+            return;
+
+        var selectedText = !IsWysiwygMode && EditorTextBox.SelectionLength > 0
+            ? EditorTextBox.Document.GetText(EditorTextBox.SelectionStart, EditorTextBox.SelectionLength)
+            : null;
+
+        var dialog = new MarkIndexEntryWindow(selectedText);
+        await dialog.ShowDialog(this);
+
+        if (dialog.Result is not { } result)
+            return;
+
+        if (result.MarkAllOccurrences)
+        {
+            if (IsWysiwygMode)
+            {
+                InvokeWysiwygScript($"window.ebookEditor.markAllOccurrences({JsonSerializer.Serialize(result.Term)})");
+                return;
+            }
+
+            var currentText = ViewModel.Editor.CurrentText;
+            var (_, body) = _chapterFileService.ParseChapter(currentText);
+            var markedBody = IndexEntryMarker.MarkAllOccurrences(body, result.Term);
+            if (markedBody != body)
+                ViewModel.Editor.CurrentText = _chapterFileService.ReplaceBody(currentText, markedBody);
+            return;
+        }
+
+        var indexId = $"{InternalLinkConvention.IndexEntryIdPrefix}{UniqueMarkerSlug(result.Term, InternalLinkConvention.IndexEntryIdPrefix, "term")}";
+
+        if (IsWysiwygMode)
+        {
+            InvokeWysiwygScript(
+                $"window.ebookEditor.wrapSelectionAsIndexEntry({JsonSerializer.Serialize(result.Term)}, {JsonSerializer.Serialize(indexId)})");
+            return;
+        }
+
+        var selectionStart = EditorTextBox.SelectionStart;
+        var selectionLength = EditorTextBox.SelectionLength;
+        if (selectionLength <= 0)
+            return;
+
+        var selectedRaw = EditorTextBox.Document.GetText(selectionStart, selectionLength);
+        var wrapped = $"<span class=\"index-entry\" data-index-term=\"{System.Net.WebUtility.HtmlEncode(result.Term)}\" id=\"{indexId}\">{selectedRaw}</span>";
+        EditorTextBox.Document.Replace(selectionStart, selectionLength, wrapped);
+        EditorTextBox.CaretOffset = selectionStart + wrapped.Length;
+        EditorTextBox.Focus();
     }
 
     private void OnEditorTextBoxTextChanged(object? sender, EventArgs e)

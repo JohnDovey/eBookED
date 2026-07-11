@@ -492,11 +492,12 @@ public class HtmlToDocxConverter
                     }
                     break;
 
-                // A "Mark Link Destination" marker (see InternalLinkConvention) becomes a real
-                // Word bookmark — w:bookmarkStart/w:bookmarkEnd bracketing the same run(s) its
-                // marked text renders as — so a matching internal hyperlink's Anchor (above) has
-                // a real, Word-native jump target rather than a dead link.
-                case "SPAN" when element.Id is { } destinationId && destinationId.StartsWith(InternalLinkConvention.DestinationIdPrefix, StringComparison.Ordinal):
+                // A "Mark Link Destination"/"Mark as Index Entry" marker (see
+                // InternalLinkConvention) becomes a real Word bookmark — w:bookmarkStart/
+                // w:bookmarkEnd bracketing the same run(s) its marked text renders as — so a
+                // matching internal hyperlink's Anchor (above) has a real, Word-native jump
+                // target rather than a dead link.
+                case "SPAN" when element.Id is { } destinationId && InternalLinkConvention.IsInternalMarkerId(destinationId):
                     var bookmarkId = (mainPart.Document!.Descendants<BookmarkStart>().Count() + 1).ToString();
                     var bookmarkName = BookmarkNameFor(destinationId);
                     paragraph.Append(new BookmarkStart { Id = bookmarkId, Name = bookmarkName });

@@ -61,6 +61,8 @@ public class HtmlPageShellTests
         Assert.Contains("wrapSelection", html);
         Assert.Contains("wrapSelectionWithId", html);
         Assert.Contains("insertOrWrapLink", html);
+        Assert.Contains("wrapSelectionAsIndexEntry", html);
+        Assert.Contains("markAllOccurrences", html);
         Assert.Contains("scrollToFraction", html);
         Assert.Contains("appendFootnoteDefinition", html);
     }

@@ -25,6 +25,7 @@ public class PdfBuilder
 {
     private readonly HtmlToPdfRenderer _renderer = new();
     private readonly ChapterFileService _chapterFileService = new();
+    private readonly IndexEntryScanner _indexEntryScanner = new();
     private readonly TemplateService _templateService;
     private readonly PdfTemplateFonts _templateFonts;
 
@@ -94,6 +95,12 @@ public class PdfBuilder
                         if (item.RelativePath.EndsWith(ProjectPaths.TocPageFileName, StringComparison.Ordinal))
                         {
                             RenderTableOfContents(column, orderedSpine, fonts.HeadingFontFamily, sectionName, frontMatterPageCount);
+                            continue;
+                        }
+
+                        if (item.RelativePath.EndsWith(ProjectPaths.IndexPageFileName, StringComparison.Ordinal))
+                        {
+                            RenderIndexPage(column, project, fonts.HeadingFontFamily, sectionName, frontMatterPageCount);
                             continue;
                         }
 
@@ -193,6 +200,59 @@ public class PdfBuilder
                 row.AutoItem().Text(text => text.BeginPageNumberOfSection(SectionName(item))
                     .Format(pageNumber => pageNumber is { } page ? PdfPageNumberFormatter.Format(page, frontMatterPageCount) : "?")
                     .FontSize(11));
+            });
+        }
+    }
+
+    /// <summary>
+    /// Renders the back-matter "Index" page directly from a fresh IndexEntryScanner scan (the
+    /// same data PageGeneratorService.GenerateIndexPage's persisted HTML uses), rather than
+    /// through the generic per-spine-item HtmlToPdfRenderer path — parallel to
+    /// RenderTableOfContents, and for the same reason: a real page number needs QuestPDF's own
+    /// Section/BeginPageNumberOfSection machinery, not the generic renderer's plain-hyperlink
+    /// handling. Each occurrence shows both a clickable chapter-title jump (a real, resolved page
+    /// number can't itself be made clickable — a QuestPDF API limitation, not an oversight) and
+    /// its real page number beside it in parentheses — one per chapter the term occurs in, not
+    /// deduplicated onto one physical page if the term happens to recur within the same chapter
+    /// more than once (a documented "best effort" simplification, matching the class doc
+    /// comment's own framing of the Index feature's other approximations).
+    /// </summary>
+    private void RenderIndexPage(ColumnDescriptor column, EbookProject project, string headingFontFamily, string sectionName, int frontMatterPageCount)
+    {
+        column.Item().Section(sectionName).PaddingBottom(12).Text("Index").Bold().FontSize(16).FontFamily(headingFontFamily);
+
+        var occurrences = _indexEntryScanner.FindAll(project);
+        if (occurrences.Count == 0)
+        {
+            column.Item().Text("No index entries have been marked yet.").Italic().FontSize(11);
+            return;
+        }
+
+        foreach (var termGroup in occurrences.GroupBy(o => o.Term, StringComparer.OrdinalIgnoreCase).OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase))
+        {
+            var displayTerm = termGroup.First().Term;
+            var perChapterEntries = termGroup
+                .GroupBy(o => o.Item.RelativePath)
+                .Select(g => g.First())
+                .OrderBy(o => o.Item.Order)
+                .ToList();
+
+            column.Item().PaddingBottom(4).Text(text =>
+            {
+                text.Span($"{displayTerm} — ").FontSize(11);
+                for (var i = 0; i < perChapterEntries.Count; i++)
+                {
+                    if (i > 0)
+                        text.Span(", ").FontSize(11);
+
+                    var entry = perChapterEntries[i];
+                    text.SectionLink(entry.Item.DisplayTitle, entry.MarkerId).FontSize(11);
+                    text.Span(" (").FontSize(11);
+                    text.BeginPageNumberOfSection(entry.MarkerId)
+                        .Format(pageNumber => pageNumber is { } page ? PdfPageNumberFormatter.Format(page, frontMatterPageCount) : "?")
+                        .FontSize(11);
+                    text.Span(")").FontSize(11);
+                }
             });
         }
     }

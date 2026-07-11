@@ -147,6 +147,87 @@ public static class HtmlPageShell
               }
               notifyChange();
             },
+            // The WYSIWYG-mode half of "Mark as Index Entry…"'s plain (non-"mark all")
+            // path — wraps the current selection in <span class="index-entry"
+            // data-index-term="term" id="id">, the same shape wrapSelectionWithId uses but
+            // with both a class and a data attribute set alongside the id.
+            wrapSelectionAsIndexEntry: function (term, id) {
+              var sel = window.getSelection();
+              if (!sel.rangeCount) return;
+              var range = sel.getRangeAt(0);
+              if (range.collapsed || !content.contains(range.commonAncestorContainer)) return;
+              var wrapper = document.createElement('span');
+              wrapper.className = 'index-entry';
+              wrapper.setAttribute('data-index-term', term);
+              wrapper.id = id;
+              try {
+                range.surroundContents(wrapper);
+              } catch (e) {
+                var extracted = range.extractContents();
+                wrapper.appendChild(extracted);
+                range.insertNode(wrapper);
+              }
+              sel.removeAllRanges();
+              var newRange = document.createRange();
+              newRange.selectNodeContents(wrapper);
+              sel.addRange(newRange);
+              notifyChange();
+            },
+            // The WYSIWYG-mode half of "Mark as Index Entry…"'s "automatically mark all
+            // occurrences of this text" checkbox — walks every text node under #content
+            // (skipping text already inside an existing index-entry span, so re-running this
+            // after some occurrences are already marked doesn't double-wrap them) and wraps
+            // every case-insensitive match of term in its own new index-entry marker. See
+            // IndexEntryMarker for the raw-mode, string-based equivalent of this same operation.
+            markAllOccurrences: function (term) {
+              if (!term) return;
+              var lowerTerm = term.toLowerCase();
+              var walker = document.createTreeWalker(content, NodeFilter.SHOW_TEXT, {
+                acceptNode: function (node) {
+                  var p = node.parentNode;
+                  while (p && p !== content) {
+                    if (p.classList && p.classList.contains('index-entry')) return NodeFilter.FILTER_REJECT;
+                    p = p.parentNode;
+                  }
+                  return NodeFilter.FILTER_ACCEPT;
+                }
+              });
+              var textNodes = [];
+              var n;
+              while ((n = walker.nextNode())) textNodes.push(n);
+
+              var counter = 0;
+              textNodes.forEach(function (node) {
+                var text = node.data;
+                var lowerText = text.toLowerCase();
+                var matchStarts = [];
+                var idx = 0;
+                while ((idx = lowerText.indexOf(lowerTerm, idx)) !== -1) {
+                  matchStarts.push(idx);
+                  idx += term.length;
+                }
+                if (matchStarts.length === 0) return;
+
+                var frag = document.createDocumentFragment();
+                var lastEnd = 0;
+                matchStarts.forEach(function (start) {
+                  var end = start + term.length;
+                  if (start > lastEnd) frag.appendChild(document.createTextNode(text.slice(lastEnd, start)));
+                  var span = document.createElement('span');
+                  span.className = 'index-entry';
+                  span.setAttribute('data-index-term', term);
+                  span.id = 'idx:' + Date.now().toString(36) + '-' + (counter++);
+                  span.textContent = text.slice(start, end);
+                  frag.appendChild(span);
+                  lastEnd = end;
+                });
+                if (lastEnd < text.length) frag.appendChild(document.createTextNode(text.slice(lastEnd)));
+
+                node.parentNode.replaceChild(frag, node);
+              });
+
+              notifyChange();
+            },
             scrollToFraction: function (fraction) {
               var max = document.documentElement.scrollHeight - window.innerHeight;
               window.scrollTo(0, Math.max(0, max) * fraction);
