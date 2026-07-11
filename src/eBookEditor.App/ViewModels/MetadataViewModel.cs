@@ -17,7 +17,7 @@ public partial class MetadataViewModel : ViewModelBase
     [ObservableProperty] private string _publisherLogoPath = string.Empty;
     [ObservableProperty] private string _publisherUrl = string.Empty;
     [ObservableProperty] private string _coverImagePath = string.Empty;
-    [ObservableProperty] private DateTimeOffset? _publicationDate;
+    [ObservableProperty] private DateTime? _publicationDate;
     [ObservableProperty] private string _language = "en";
     [ObservableProperty] private string _blurb = string.Empty;
     [ObservableProperty] private string _isbn10 = string.Empty;
@@ -89,9 +89,7 @@ public partial class MetadataViewModel : ViewModelBase
         PublisherLogoPath = metadata.Publisher?.LogoPath ?? "";
         PublisherUrl = metadata.Publisher?.Url ?? "";
         CoverImagePath = metadata.CoverImagePath ?? "";
-        PublicationDate = metadata.PublicationDate is { } pubDate
-            ? new DateTimeOffset(pubDate.ToDateTime(TimeOnly.MinValue))
-            : null;
+        PublicationDate = metadata.PublicationDate?.ToDateTime(TimeOnly.MinValue);
         Language = metadata.Language;
 
         GenreTags.Clear();

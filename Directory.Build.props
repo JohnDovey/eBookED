@@ -868,6 +868,16 @@
          paths render the same logical page for different export formats) are now bold: HTML
          wraps each name group in &lt;strong&gt;, PDF renders each name line as multiple
          TextSpans with the name span given .Bold(). -->
-    <Version>2.27.0</Version>
+    <!-- 2.27.1: user-reported bug fix, no new features, so a patch bump. The new "Publication
+         date" CalendarDatePicker (2.27.0) crashed the Copyright & Publishing window with
+         "System.InvalidCastException: Could not convert ... (System.DateTimeOffset) to
+         'System.Nullable`1[System.DateTime]'" the moment a date was picked — Avalonia's
+         CalendarDatePicker.SelectedDate is actually typed DateTime? (unlike WPF's DatePicker,
+         which the DateTimeOffset? choice had assumed by habit), not DateTimeOffset?.
+         MetadataViewModel.PublicationDate changed to DateTime?, with the load/save conversions
+         to/from BookMetadata's DateOnly? simplified accordingly (DateOnly.ToDateTime/
+         DateOnly.FromDateTime both already work directly against DateTime, no DateTimeOffset
+         wrapping needed). -->
+    <Version>2.27.1</Version>
   </PropertyGroup>
 </Project>
