@@ -1,0 +1,51 @@
+---
+title: Book Metadata
+subtitle: 
+numberMode: Auto
+numberOverride: 
+---
+
+<h1 id="book-metadata">Book Metadata</h1>
+<p>Everything that isn't chapter content — title, contributors, cover, ISBNs, genre, styling — lives under the <strong>Meta Data</strong> menu, split across six focused windows. Changing anything in one of them and clicking <strong>Save &amp; Regenerate</strong> immediately updates the auto-generated front/back matter pages (title page, imprint, table of contents, About the Author) to match.</p>
+<p><img src="../images/meta-data-menu.png" alt="Illustrative mockup of the Meta Data menu and its six windows" /></p>
+<h2 id="front-matter">Front Matter</h2>
+<p><strong>Meta Data → Front Matter…</strong></p>
+<ul>
+<li><strong>Title</strong>, <strong>Subtitle</strong>, <strong>Language</strong> (a BCP-47 code, e.g. <code>en</code> or <code>en-GB</code>).</li>
+<li><strong>Authors</strong>, <strong>Editors</strong>, <strong>Illustrators</strong> — each an independent, growable list of first/last name pairs. Click <strong>+ Add Author</strong> (or Editor, or Illustrator) for another row, or <strong>✕</strong> to remove one.</li>
+</ul>
+<h2 id="style">Style</h2>
+<p><strong>Meta Data → Style…</strong></p>
+<p>Picks the CSS template used for this book's EPUB (and now PDF — see <em>Exporting Your Book</em>) styling. Templates live in a shared <code>templates/</code> folder alongside the app, so the same set is available to every project. A &quot;Default&quot; template is always available; &quot;Vellum Serif&quot; ships alongside it as a serif, display-font option. Dropping a new <code>.css</code> file into that folder makes it available here too, the next time you open the dropdown.</p>
+<h2 id="copyright-publishing">Copyright &amp; Publishing</h2>
+<p><strong>Meta Data → Copyright &amp; Publishing…</strong></p>
+<ul>
+<li><strong>Copyright holder</strong>, <strong>Copyright year</strong>.</li>
+<li><strong>Publisher name</strong> and <strong>Publisher logo</strong> — click <strong>Browse…</strong> to pick an image; it's copied into the project's <code>images/</code> folder automatically (if it isn't there already) and the path field updates to point at the copy. You can still type or edit the path by hand instead, if you prefer.</li>
+<li><strong>Cover image</strong> — same <strong>Browse…</strong> behavior as the publisher logo; shown on the title page and the imprint page.</li>
+<li><strong>Publication date</strong> (<code>yyyy-MM-dd</code>).</li>
+<li><strong>ISBN-13</strong> and <strong>ISBN-10</strong>.</li>
+<li><strong>Copyright disclaimer</strong> — the fine-print paragraph (&quot;All rights reserved…&quot;) shown on the imprint page.</li>
+<li><strong>Where It's Sold</strong> — a growable list of store links (e.g. Kindle Store, Apple Books, Kobo), each a store name and URL.</li>
+</ul>
+<h2 id="genre-tags">Genre Tags</h2>
+<p><strong>Meta Data → Genre Tags…</strong></p>
+<ul>
+<li><strong>Genre Tags</strong> — a growable list, used for the book's subject metadata.</li>
+<li><strong>Other Tags</strong> — free-form tags, for anything genre doesn't cover.</li>
+<li><strong>Blurb</strong> — the back-cover / store-listing description.</li>
+</ul>
+<h2 id="about-the-author">About the Author</h2>
+<p><strong>Meta Data → About the Author…</strong></p>
+<ul>
+<li><strong>Author photo</strong> — click <strong>Browse…</strong> to pick an image; it's copied into the project's <code>images/</code> folder automatically (if it isn't there already) and the path field updates to point at the copy. You can still type or edit the path by hand instead, if you prefer.</li>
+<li><strong>Author bio</strong> — a multi-line paragraph.</li>
+<li><strong>Social Links</strong> — a growable list of platform/URL pairs, shown on the auto-generated About the Author page.</li>
+</ul>
+<h2 id="pdf-settings">PDF Settings</h2>
+<p><strong>Meta Data → PDF Settings…</strong></p>
+<ul>
+<li><strong>Page size</strong> — A5, A4, US Letter, US Trade, Digest, or Mass Market Paperback. This only affects PDF export; EPUB is reflowable and has no fixed page size.</li>
+</ul>
+<h2 id="regenerating-front-matter-manually">Regenerating front matter manually</h2>
+<p>Every metadata window's <strong>Save &amp; Regenerate</strong> button already does this automatically, but if you ever need to force it without changing anything, use <strong>Project → Regenerate Front Matter</strong>.</p>

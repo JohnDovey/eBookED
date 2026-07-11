@@ -1,0 +1,37 @@
+---
+title: Getting Started
+subtitle: 
+numberMode: Auto
+numberOverride: 
+---
+
+<h1 id="getting-started">Getting Started</h1>
+<p>eBook Editor is a desktop application for writing, organizing, and publishing eBooks. It runs on macOS, Windows, and Linux, and every book you work on lives in its own <strong>project directory</strong> on disk — a folder of plain HTML files plus a small metadata file, not a single opaque document. That means your book is always readable, editable, and versionable (with a tool like Git) outside the app too.</p>
+<h2 id="requirements">Requirements</h2>
+<p>eBook Editor needs the .NET 10 runtime (or later) to run. If you're building it from source, the repository pins the exact SDK version it was built against in <code>global.json</code>.</p>
+<h2 id="creating-your-first-project">Creating your first project</h2>
+<p>Open <strong>File → New Project…</strong> from the title bar menu. The wizard asks for:</p>
+<ul>
+<li><strong>Book title</strong> — used as the project folder name and the book's title metadata.</li>
+<li><strong>Author first/last name</strong> — becomes the book's first author entry; you can add more contributors, or change these, later from <strong>Meta Data → Front Matter…</strong>.</li>
+<li><strong>Save location</strong> — pick the parent folder the new project directory should be created inside. Click <strong>Browse…</strong> to choose it.</li>
+</ul>
+<p>Click <strong>Create</strong> and eBook Editor scaffolds a new project directory for you, complete with a title page, an imprint (copyright) page, and a table of contents — all auto-generated from the metadata you just entered — and opens it in a new window.</p>
+<p>You can have several projects open at once: <strong>File → New Project…</strong> and <strong>File → Open Project…</strong> both open their result in an independent window, so you can work on more than one book side by side.</p>
+<h2 id="opening-an-existing-project">Opening an existing project</h2>
+<p><strong>File → Open Project…</strong> shows a folder picker. Point it at a project directory (one containing a <code>project.ebookproj.json</code> file) and it opens in a new window.</p>
+<p>eBook Editor also remembers your <strong>Recent Projects</strong> (last 10, under the File menu) and reopens whatever projects were open when you last quit the app, so you don't have to hunt for them again next time.</p>
+<h2 id="upgrading-an-older-project">Upgrading an older project</h2>
+<p>Projects created by an older version of eBook Editor store chapters and pages as Markdown (<code>.md</code>) files rather than the current HTML (<code>.ebhtml</code>) format. Opening one of these still works, but exports won't render correctly until you upgrade it: <strong>Project → Upgrade Project to HTML…</strong> converts every chapter and page in place, front matter and back matter included. Any page you've hand-edited (the imprint page, say) is converted as-is rather than regenerated from your book's metadata, so hand-edits survive the upgrade.</p>
+<p>A full backup copy of the project is made automatically, in a sibling folder named &quot;<em>Project Name</em> (Backup before HTML Upgrade)&quot;, before anything is changed. If your project is already on the current format, this command reports that and does nothing.</p>
+<h2 id="a-tour-of-the-main-window">A tour of the main window</h2>
+<p>The main window has three parts:</p>
+<ul>
+<li><strong>Title bar menu</strong> — File (new/open/save/import), Project (regenerate front matter, upgrade an older project — see below), Meta Data (the book's metadata, split across several focused windows — see <em>Book Metadata</em>), Export (EPUB/PDF/Word), and About.</li>
+<li><strong>Sidebar</strong> (left) — an ordered list of everything in your book: front matter, chapters, and back matter, in the order they'll appear in the finished book. A <strong>+ Add Chapter</strong> button sits at the top.</li>
+<li><strong>Editor pane</strong> (right) — shows whatever's selected in the sidebar, either as raw HTML or as styled Rich Text (a <strong>Rich Text</strong> toggle switches between them — see <em>Writing in the Editor</em>). An <strong>Open Preview</strong> button opens a separate window with a rendered view of the same content, kept in sync as you edit.</li>
+</ul>
+<p>A status bar along the bottom shows the result of your last action (a save, an export, an error).</p>
+<p><img src="../images/main-window-overview.png" alt="Illustrative mockup of the main window layout: title bar menu, sidebar chapter list, and editor pane" /></p>
+<h2 id="saving-your-work">Saving your work</h2>
+<p><strong>File → Save Project</strong> (or <strong>Cmd/Ctrl+S</strong>) writes everything — the metadata file and the currently open file's contents — to disk. If you close a window with unsaved changes, eBook Editor asks whether to save, discard, or cancel first, so you won't lose work by accident.</p>

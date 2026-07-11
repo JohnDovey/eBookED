@@ -1,0 +1,42 @@
+---
+title: Organizing Your Book
+subtitle: 
+numberMode: Auto
+numberOverride: 
+---
+
+<h1 id="organizing-your-book">Organizing Your Book</h1>
+<h2 id="front-matter-chapters-and-back-matter">Front matter, chapters, and back matter</h2>
+<p>Every project's sidebar is organized into three groups, in the order they'll appear in the finished book:</p>
+<ul>
+<li><strong>Front matter</strong> — the title page, imprint (copyright) page, and table of contents. These three are auto-generated from your metadata; you don't hand-write them (see <em>Book Metadata</em>).</li>
+<li><strong>Chapters</strong> — the book's actual content, in reading order. This is the only group you can freely add to, reorder, and delete from.</li>
+<li><strong>Back matter</strong> — currently the About the Author page, also auto-generated, always placed after every chapter.</li>
+</ul>
+<h2 id="adding-a-chapter">Adding a chapter</h2>
+<p>Click <strong>+ Add Chapter</strong> at the top of the sidebar. A new, empty chapter is created, added to the end of the chapter list, and opened in the editor ready for you to start typing.</p>
+<h2 id="reordering-chapters">Reordering chapters</h2>
+<p>Chapters can be dragged up and down within the sidebar to reorder them. Front matter and back matter stay fixed in place — you can't drag a chapter above the title page or below the About the Author page.</p>
+<p>Whenever chapters are reordered, added, or removed, eBook Editor renames the chapter files on disk to match their new position (e.g. <code>003-Chapter-Title.ebhtml</code> — chapter file names never contain spaces) so they sort correctly in Finder or Explorer too. This is a rename, not a content rewrite — your chapter's text and any images it references are untouched.</p>
+<h2 id="setting-a-chapters-title-and-number">Setting a chapter's title and number</h2>
+<p>With a chapter selected, two fields appear above the editor: <strong>Chapter title</strong> and <strong>Chapter subheading</strong>. Edit them and click <strong>Apply</strong> to update the chapter's heading without touching its body text.</p>
+<h2 id="importing-chapters">Importing chapters</h2>
+<p>New chapters can come from three places, all producing the same result:</p>
+<ol>
+<li><strong>File → Import Chapters…</strong> — a file picker. Select one or more <code>.ebhtml</code>, <code>.md</code>, <code>.docx</code>, or <code>.html</code>/<code>.htm</code> files.</li>
+<li><strong>Drag files directly onto the sidebar.</strong></li>
+<li><strong>Drop files into the project's <code>chapters/</code> folder</strong> using Finder/Explorer while the project is open — eBook Editor notices them the next time the project opens.</li>
+</ol>
+<p><code>.ebhtml</code> files are already this app's own native chapter format and are used as-is, no conversion needed. <code>.docx</code> files go through the same chapter-boundary detection as <strong>File → Import DOCX…</strong> (splitting on Heading 1 styles or &quot;Chapter N&quot; text, if present). <code>.html</code>/<code>.htm</code> files are cleaned up automatically (embedded scripts and styling are stripped) rather than converted to a different format. Legacy <code>.md</code> files are also accepted and used as-is. For files dropped straight into <code>chapters/</code> (method 3 above): a <code>.md</code>/<code>.docx</code>/<code>.html</code>/<code>.htm</code> file is converted, written out as a new native chapter file, and the original deleted once its content has been safely added to the book, so you don't end up with two copies of the same chapter sitting side by side — a <code>.ebhtml</code> file, needing no conversion, is simply left where it is and renamed to match its resolved position.</p>
+<p>A file's name can hint at where it belongs: naming a file <code>&quot;23. What Now.md&quot;</code> or <code>&quot;007 - Foo.md&quot;</code> tells eBook Editor roughly where in the chapter order to place it.</p>
+<h2 id="importing-a-whole-manuscript">Importing a whole manuscript</h2>
+<p><strong>File → Import DOCX…</strong> takes a single large <code>.docx</code> file (a whole manuscript) and splits it into multiple chapters automatically, detecting boundaries by Heading 1 style or &quot;Chapter N&quot; text patterns. Bold/italic formatting, headings, lists, images, tables, and hyperlinks are all converted to HTML.</p>
+<p>A &quot;Table of Contents&quot; section — whether a Word-generated field or a hand-typed list of chapter titles — is recognized and skipped rather than split into a run of bogus, empty chapters, since each entry would otherwise read exactly like a real chapter heading.</p>
+<h2 id="the-chapter-right-click-menu">The chapter right-click menu</h2>
+<p>Right-click any chapter in the sidebar for two actions:</p>
+<ul>
+<li><strong>Delete Chapter</strong> — asks for confirmation, then removes the chapter and renumbers the ones after it.</li>
+<li><strong>Export Chapter as Word…</strong> — exports just that one chapter as a standalone <code>.docx</code> file (see <em>Exporting Your Book</em>).</li>
+</ul>
+<h2 id="saving">Saving</h2>
+<p>Chapters and metadata edits aren't written to disk until you save — <strong>File → Save Project</strong> or <strong>Cmd/Ctrl+S</strong>. Closing a window with unsaved changes will prompt you first.</p>

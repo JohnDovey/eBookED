@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "metadata": {
     "title": "eBook Editor User Guide",
     "subtitle": null,
@@ -23,11 +23,15 @@
     "blurb": null,
     "isbn10": null,
     "isbn13": null,
-    "aboutAuthor": null,
+    "aboutAuthor": {
+      "bio": "",
+      "photoPath": null,
+      "socialLinks": []
+    },
     "storeLinks": [],
     "copyrightDisclaimer": "All rights reserved. No part of this publication may be reproduced, distributed, or transmitted in any form or by any means, including photocopying, recording, or other electronic or mechanical methods, without the prior written permission of the publisher, except in the case of brief quotations embodied in critical reviews and certain other noncommercial uses permitted by copyright law.",
-    "identifier": "f58ce3f2-2940-4e11-87b3-da69442e2ec0",
-    "selectedTemplate": null,
+    "identifier": "0df0586c-2a75-4172-a63e-936628f24827",
+    "selectedTemplate": "Default",
     "pdfPageSize": "A5",
     "authors": [
       {
@@ -45,7 +49,7 @@
     {
       "id": "888a80ef-efa3-496a-88f9-e3cbb7b3671a",
       "type": 0,
-      "relativePath": "frontmatter/title-page.md",
+      "relativePath": "frontmatter/title-page.ebhtml",
       "order": 0,
       "isGenerated": true,
       "title": "Title Page",
@@ -57,7 +61,7 @@
     {
       "id": "462ea19f-7873-4f16-a94c-624fae945f41",
       "type": 0,
-      "relativePath": "frontmatter/copyright.md",
+      "relativePath": "frontmatter/copyright.ebhtml",
       "order": 1,
       "isGenerated": true,
       "title": "Imprint",
@@ -69,7 +73,7 @@
     {
       "id": "b876aab9-d97c-44a6-bc9d-aeef965c87f7",
       "type": 0,
-      "relativePath": "frontmatter/toc.md",
+      "relativePath": "frontmatter/toc.ebhtml",
       "order": 2,
       "isGenerated": true,
       "title": "Table of Contents",
@@ -81,7 +85,7 @@
     {
       "id": "4d92a3e5-3d40-4329-bb2d-654e0ca4fbae",
       "type": 2,
-      "relativePath": "backmatter/about-the-author.md",
+      "relativePath": "backmatter/about-the-author.ebhtml",
       "order": 11,
       "isGenerated": true,
       "title": "About the Author",
@@ -93,7 +97,7 @@
     {
       "id": "eea50138-2021-403b-ab35-c39d67bb69c6",
       "type": 1,
-      "relativePath": "chapters/001 - Getting Started.md",
+      "relativePath": "chapters/001-Getting-Started.ebhtml",
       "order": 3,
       "isGenerated": false,
       "title": "Getting Started",
@@ -105,7 +109,7 @@
     {
       "id": "e87e2e05-7f1a-47ff-bb59-495d18ad7c0f",
       "type": 1,
-      "relativePath": "chapters/002 - Organizing Your Book.md",
+      "relativePath": "chapters/002-Organizing-Your-Book.ebhtml",
       "order": 4,
       "isGenerated": false,
       "title": "Organizing Your Book",
@@ -117,7 +121,7 @@
     {
       "id": "9593cd73-2943-4b7e-9070-916409ef3a2c",
       "type": 1,
-      "relativePath": "chapters/003 - Writing in the Editor.md",
+      "relativePath": "chapters/003-Writing-in-the-Editor.ebhtml",
       "order": 5,
       "isGenerated": false,
       "title": "Writing in the Editor",
@@ -129,7 +133,7 @@
     {
       "id": "bb6def4b-3245-4e1b-a185-5f0ba09025e4",
       "type": 1,
-      "relativePath": "chapters/004 - Markdown Syntax Reference.md",
+      "relativePath": "chapters/004-Markdown-Syntax-Reference.ebhtml",
       "order": 6,
       "isGenerated": false,
       "title": "Markdown Syntax Reference",
@@ -141,7 +145,7 @@
     {
       "id": "ed255838-a36b-41e3-b86b-81a9acdad548",
       "type": 1,
-      "relativePath": "chapters/005 - Inserting Tables the Easy Way.md",
+      "relativePath": "chapters/005-Inserting-Tables-the-Easy-Way.ebhtml",
       "order": 7,
       "isGenerated": false,
       "title": "Inserting Tables the Easy Way",
@@ -153,7 +157,7 @@
     {
       "id": "7db99e65-4a47-4da6-8f17-80f5cbbef34a",
       "type": 1,
-      "relativePath": "chapters/006 - Book Metadata.md",
+      "relativePath": "chapters/006-Book-Metadata.ebhtml",
       "order": 8,
       "isGenerated": false,
       "title": "Book Metadata",
@@ -165,7 +169,7 @@
     {
       "id": "aff76590-9d60-4b69-8aa8-a250798a2f09",
       "type": 1,
-      "relativePath": "chapters/007 - Exporting Your Book.md",
+      "relativePath": "chapters/007-Exporting-Your-Book.ebhtml",
       "order": 9,
       "isGenerated": false,
       "title": "Exporting Your Book",
@@ -177,7 +181,7 @@
     {
       "id": "f4079d41-7f9b-44b1-aa9e-6d83bdcb1611",
       "type": 1,
-      "relativePath": "chapters/008 - Tips, Limitations \u0026 Troubleshooting.md",
+      "relativePath": "chapters/008-Tips,-Limitations-\u0026-Troubleshooting.ebhtml",
       "order": 10,
       "isGenerated": false,
       "title": "Tips, Limitations \u0026 Troubleshooting",
@@ -188,5 +192,5 @@
     }
   ],
   "createdUtc": "2026-07-09T16:03:27.607296Z",
-  "modifiedUtc": "2026-07-09T16:03:28.032993Z"
+  "modifiedUtc": "2026-07-11T06:38:52.969133Z"
 }

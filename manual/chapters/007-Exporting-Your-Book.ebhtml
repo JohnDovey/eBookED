@@ -1,0 +1,24 @@
+---
+title: Exporting Your Book
+subtitle: 
+numberMode: Auto
+numberOverride: 
+---
+
+<h1 id="exporting-your-book">Exporting Your Book</h1>
+<p>The <strong>Export</strong> menu turns your project into a finished file. Every export runs against whatever's currently saved on disk, so save your project first if you've just made changes.</p>
+<p>Every export — EPUB, PDF, or Word — adds a small &quot;Created with eBook Editor <em>version</em> on <em>date &amp; time</em>&quot; line to the imprint page, just above the copyright statement. It's generated fresh each time you export, not saved into the project, so it always reflects when that particular file was produced rather than whenever you last edited the book's metadata.</p>
+<h2 id="epub">EPUB</h2>
+<p><strong>Export → EPUB…</strong></p>
+<p>Produces a standards-compliant EPUB 3.3 file — the format read by Apple Books, Kobo, most e-readers, and (via conversion) Kindle. Every chapter starts on a new page, styled using the book's selected CSS template (see <em>Book Metadata → Style</em>), with that template's fonts embedded directly into the file so it looks the same on any device. Tables, images, and footnotes all render natively as clickable, reflowable HTML.</p>
+<p>The file also includes the markers Kindle Direct Publishing looks for when you upload it: the cover image is correctly linked so it shows up as the book's cover (not just its first page), and the file tells the reading system exactly where the &quot;real&quot; first page of the book is — so readers land on Chapter 1, not the title page, when they open it or tap &quot;Go to Beginning.&quot;</p>
+<h2 id="pdf">PDF</h2>
+<p><strong>Export → PDF…</strong></p>
+<p>Produces a print-formatted PDF: every chapter (and front/back matter page) starts on its own physical page, front matter is numbered with lowercase roman numerals (i, ii, iii…) while the body counts up in arabic numerals (1, 2, 3…), and the table of contents has real, clickable, page-numbered entries. Page size comes from <strong>Meta Data → PDF Settings…</strong>.</p>
+<p>PDF export uses the same CSS template as EPUB: it picks up the template's body and heading fonts and embeds them into the PDF, so headings and body text render in the same typeface as the EPUB rather than a generic default. Tables and images render too, and any style from <strong>Apply Style</strong> (see <em>Writing in the Editor</em>) — small caps, verse, attribution, and the rest — actually applies to the exported PDF now, not just the EPUB.</p>
+<p>The imprint page in the PDF is laid out slightly differently than in the EPUB: the cover, contributors, publisher, and ISBN sit near the top, with the copyright statement pinned to the very bottom of the page — something only a fixed page layout can do.</p>
+<p>Every page also gets a running header and footer, following the same left/right (verso/recto) convention printed books use. Even-numbered (&quot;left&quot;) pages show the page number and the book's title in the header, and the page number and the author's name in the footer. Odd-numbered (&quot;right&quot;) pages show the current chapter's number and name and the page number in the header, and just the page number in the footer.</p>
+<h2 id="word">Word</h2>
+<p>Right-click a chapter in the sidebar and choose <strong>Export Chapter as Word…</strong> to export just that chapter as a standalone <code>.docx</code> file, or use <strong>Export → Word (Whole Book)…</strong> to export the whole book — front matter, every chapter, and back matter — as one <code>.docx</code> file, each section starting on its own page. Either way, headings map to Word's built-in heading styles, tables become real Word tables, images are embedded at their real size, and <strong>Apply Style</strong> classes come through using real Word formatting — small caps and letter spacing use Word's own primitives for them, for instance, not just an approximation.</p>
+<h2 id="after-export">After export</h2>
+<p>EPUB and PDF exports finish with a small result window showing the word count (and, for PDF, page count), with <strong>Open File</strong> and <strong>Open Folder</strong> buttons so you can jump straight to the result.</p>

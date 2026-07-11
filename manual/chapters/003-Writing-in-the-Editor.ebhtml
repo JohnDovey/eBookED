@@ -1,0 +1,29 @@
+---
+title: Writing in the Editor
+subtitle: 
+numberMode: Auto
+numberOverride: 
+---
+
+<h1 id="writing-in-the-editor">Writing in the Editor</h1>
+<h2 id="editing-a-chapter-or-page">Editing a chapter or page</h2>
+<p>Select any chapter (or front/back matter page) in the sidebar and it opens in the editor pane on the right. This includes generated pages (title page, imprint, table of contents, About the Author): you can see and edit their content too, though hand-edits there get overwritten the next time that page regenerates from your metadata.</p>
+<p>There are two ways to edit: <strong>raw HTML</strong> (the default) and <strong>Rich Text</strong>, toggled with the button of that name above the editor.</p>
+<ul>
+<li><strong>Raw HTML</strong> is a text editor with line numbers, word wrap, and HTML syntax highlighting — you type the markup directly, the same as <em>HTML Syntax Reference</em> (next) describes.</li>
+<li><strong>Rich Text</strong> shows the page as it'll actually look — styled with your book's selected CSS template, images inline, tables as real tables — and lets you type and select directly in that rendered view, the same way a word processor works. Both views edit the exact same underlying HTML; switching between them mid-edit doesn't lose anything.</li>
+</ul>
+<h2 id="previewing-your-work">Previewing your work</h2>
+<p>Click <strong>Open Preview</strong> above the editor to open a separate window showing the current chapter as it'll actually look, styled with your book's selected CSS template — useful for checking a chapter at a larger size than Rich Text mode's editing pane, or while working in raw HTML mode. The preview window stays open and in sync as you keep working: its content updates as you edit or switch chapters, and (while in raw HTML mode) it scrolls to roughly track wherever your cursor is in the source, so you don't have to keep scrolling the preview by hand to see the section you're editing.</p>
+<p>Only one preview window is needed at a time — clicking <strong>Open Preview</strong> again just brings the existing one back to the front instead of opening a second copy.</p>
+<h2 id="the-toolbar">The toolbar</h2>
+<p>A row of buttons above the editor works the same in either raw HTML or Rich Text mode:</p>
+<ul>
+<li><strong>Insert Table…</strong> — opens a visual table builder. See <em>Inserting Tables the Easy Way</em>.</li>
+<li><strong>Insert Image…</strong> — opens a picker starting in the project's <code>images/</code> folder (created automatically if it doesn't exist yet). Pick a file from anywhere — if it isn't already inside <code>images/</code>, it's copied in for you. The image is inserted as a <code>&lt;figure&gt;</code> along with a &quot;Caption text&quot; placeholder underneath, styled by the <strong>Caption</strong> style (see below); edit the caption text and the image's alt text to fit.</li>
+<li><strong>Insert Footnote…</strong> — type the footnote's text in the dialog that opens; a numbered, clickable reference is inserted at the cursor, and the note itself is added to (or a new one started at the end of) a Notes list at the end of the page.</li>
+<li><strong>Apply Style ▾</strong> — select some text first, then choose a style from the list (Small Caps, Underline, Strikethrough, Monospace, Sans-serif, All Caps, Verse, Inset, Attribution, Drop Cap, Caption). It wraps your selection in the HTML needed to hook it to that style, with no syntax to remember. See <em>HTML Syntax Reference → Styled blocks</em>, next.</li>
+</ul>
+<p>Raw HTML mode also has all four of these on its right-click context menu, if you prefer that over the toolbar.</p>
+<h2 id="formatting-your-text">Formatting your text</h2>
+<p>In raw HTML mode you write HTML directly, the same markup used by every web page — see <em>HTML Syntax Reference</em>, next, for the full set of tags eBook Editor understands, including footnotes and tables. In Rich Text mode you generally don't need to think about the underlying markup at all, aside from using the toolbar for the handful of things (tables, images, footnotes, styles) that don't have an obvious &quot;just type it&quot; equivalent.</p>

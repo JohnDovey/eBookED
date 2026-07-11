@@ -1,0 +1,146 @@
+---
+title: HTML Syntax Reference
+subtitle: 
+numberMode: Auto
+numberOverride: 
+---
+
+<h1 id="html-syntax-reference">HTML Syntax Reference</h1>
+<p>Every chapter, and every front/back matter page, is written in <strong>HTML</strong> — the same markup used by every web page, wrapping your text in tags like <code>&lt;p&gt;</code> and <code>&lt;/p&gt;</code> to say &quot;this is a paragraph.&quot; This chapter covers everything eBook Editor understands, with a &quot;how you type it&quot; example next to each one. Click <strong>Open Preview</strong> at any time to see how your own text will actually look.</p>
+<h2 id="paragraphs-and-headings">Paragraphs and headings</h2>
+<p>Wrap each paragraph in <code>&lt;p&gt;...&lt;/p&gt;</code>. Wrap a heading in <code>&lt;h1&gt;</code> through <code>&lt;h6&gt;</code>. eBook Editor maps the first three levels to a chapter's own structure, so keep <code>&lt;h1&gt;</code> for a chapter's main title and use <code>&lt;h2&gt;</code>/<code>&lt;h3&gt;</code> for sections within it.</p>
+<pre><code>&lt;h1&gt;Chapter Title&lt;/h1&gt;
+&lt;p&gt;An opening paragraph.&lt;/p&gt;
+&lt;h2&gt;A Section&lt;/h2&gt;
+&lt;h3&gt;A Sub-section&lt;/h3&gt;
+</code></pre>
+<h3 id="linking-to-a-specific-heading">Linking to a specific heading</h3>
+<p>Give any heading its own ID with <code>id=&quot;...&quot;</code>, then link to it from anywhere in the same file with <code>&lt;a href=&quot;#your-id&quot;&gt;</code>. This is how you'd build an in-chapter index or a &quot;back to top&quot; link.</p>
+<pre><code>&lt;h2 id=&quot;further-reading&quot;&gt;Further Reading&lt;/h2&gt;
+
+&lt;p&gt;See the &lt;a href=&quot;#further-reading&quot;&gt;Further Reading&lt;/a&gt; section below.&lt;/p&gt;
+</code></pre>
+<p>Any tag can carry a <code>class=&quot;...&quot;</code> attribute to hook it to a CSS rule in the book's template — this is what <strong>Apply Style</strong> (below) does automatically for you.</p>
+<h2 id="emphasis">Emphasis</h2>
+<pre><code>&lt;p&gt;Plain text, &lt;em&gt;italic text&lt;/em&gt;, &lt;strong&gt;bold text&lt;/strong&gt;, and &lt;strong&gt;&lt;em&gt;bold italic text&lt;/em&gt;&lt;/strong&gt;.&lt;/p&gt;
+</code></pre>
+<p>Plain text, <em>italic text</em>, <strong>bold text</strong>, and <em><strong>bold italic text</strong></em>.</p>
+<h3 id="strikethrough-highlight-subscript-and-superscript">Strikethrough, highlight, subscript, and superscript</h3>
+<pre><code>&lt;p&gt;&lt;s&gt;struck through&lt;/s&gt;, &lt;mark&gt;highlighted&lt;/mark&gt;, H&lt;sub&gt;2&lt;/sub&gt;O, and E=mc&lt;sup&gt;2&lt;/sup&gt;.&lt;/p&gt;
+</code></pre>
+<p><del>struck through</del>, <mark>highlighted</mark>, H<sub>2</sub>O, and E=mc<sup>2</sup>.</p>
+<h2 id="lists">Lists</h2>
+<p>Bullet lists use <code>&lt;ul&gt;</code>; numbered lists use <code>&lt;ol&gt;</code>. Either way, each item is an <code>&lt;li&gt;</code>.</p>
+<pre><code>&lt;ul&gt;
+&lt;li&gt;First item&lt;/li&gt;
+&lt;li&gt;Second item&lt;/li&gt;
+&lt;li&gt;Third item&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;ol&gt;
+&lt;li&gt;Step one&lt;/li&gt;
+&lt;li&gt;Step two&lt;/li&gt;
+&lt;li&gt;Step three&lt;/li&gt;
+&lt;/ol&gt;
+</code></pre>
+<h2 id="links">Links</h2>
+<pre><code>&lt;a href=&quot;https://github.com/JohnDovey/eBookED&quot;&gt;eBook Editor on GitHub&lt;/a&gt;
+</code></pre>
+<p>The text between the tags is what the reader sees; the <code>href</code> is where it goes.</p>
+<h2 id="images">Images</h2>
+<pre><code>&lt;img src=&quot;../images/cover.jpg&quot; alt=&quot;A description of the image&quot;&gt;
+</code></pre>
+<p>Image paths are relative to the file that references them — a chapter's images are typically stored in the project's <code>images/</code> folder and referenced as <code>../images/filename.jpg</code>.</p>
+<h2 id="blockquotes">Blockquotes</h2>
+<p>Wrap a quotation in <code>&lt;blockquote&gt;</code>.</p>
+<pre><code>&lt;blockquote&gt;
+&lt;p&gt;The scariest moment is always just before you start.&lt;/p&gt;
+&lt;p&gt;— Stephen King&lt;/p&gt;
+&lt;/blockquote&gt;
+</code></pre>
+<h2 id="footnotes">Footnotes</h2>
+<p>Right-click the editor and choose <strong>Insert Footnote…</strong> (see <em>Writing in the Editor → The right-click menu</em>) rather than typing this by hand — it writes both halves of the convention below and keeps the numbering consistent for you.</p>
+<p>A footnote reference is a superscript link pointing at the note's id; the note itself lives in a &quot;Notes&quot; list at the end of the page, with a return link back to where it was referenced:</p>
+<pre><code>&lt;p&gt;Markdown was created by John Gruber&lt;sup id=&quot;fnref:1&quot;&gt;&lt;a href=&quot;#fn:1&quot; class=&quot;footnote-ref&quot;&gt;1&lt;/a&gt;&lt;/sup&gt;, with input from Aaron Swartz.&lt;/p&gt;
+
+&lt;div class=&quot;footnotes&quot;&gt;
+&lt;hr&gt;
+&lt;ol&gt;
+&lt;li id=&quot;fn:1&quot;&gt;&lt;p&gt;Gruber is also known for the blog Daring Fireball. &lt;a href=&quot;#fnref:1&quot; class=&quot;footnote-back-ref&quot;&gt;↩&lt;/a&gt;&lt;/p&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;/div&gt;
+</code></pre>
+<p>Where a footnote ends up depends on the export format:</p>
+<ul>
+<li><strong>EPUB</strong> — a clickable superscript number in the text jumps to the note, with a &quot;return&quot; link back where you were.</li>
+<li><strong>PDF</strong> — the same superscript number in the text, with the full text collected into a &quot;Notes&quot; section at the end of the chapter that references it.</li>
+<li><strong>Word</strong> — a real, native Word footnote, visible in Word's own footnote pane at the bottom of the page.</li>
+</ul>
+<p>You don't need to write any of this by hand — <strong>Insert Footnote…</strong> produces the right result in all three export formats.</p>
+<h2 id="tables">Tables</h2>
+<p>A table is <code>&lt;table&gt;</code> containing a <code>&lt;thead&gt;</code> of header cells (<code>&lt;th&gt;</code>) and a <code>&lt;tbody&gt;</code> of data rows (<code>&lt;tr&gt;</code> of <code>&lt;td&gt;</code>).</p>
+<pre><code>&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;&lt;th&gt;Format&lt;/th&gt;&lt;th&gt;Where footnotes go&lt;/th&gt;&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;&lt;td&gt;EPUB&lt;/td&gt;&lt;td&gt;Clickable inline link&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;PDF&lt;/td&gt;&lt;td&gt;&quot;Notes&quot; section at chapter end&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;Word&lt;/td&gt;&lt;td&gt;Native Word footnote&lt;/td&gt;&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Format</th>
+<th>Where footnotes go</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>EPUB</td>
+<td>Clickable inline link</td>
+</tr>
+<tr>
+<td>PDF</td>
+<td>&quot;Notes&quot; section at chapter end</td>
+</tr>
+<tr>
+<td>Word</td>
+<td>Native Word footnote</td>
+</tr>
+</tbody>
+</table>
+<h3 id="aligning-columns">Aligning columns</h3>
+<p>Add a <code>style=&quot;text-align: left/center/right&quot;</code> attribute to a header cell to control that column's alignment.</p>
+<pre><code>&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;&lt;th style=&quot;text-align: left&quot;&gt;Left&lt;/th&gt;&lt;th style=&quot;text-align: center&quot;&gt;Center&lt;/th&gt;&lt;th style=&quot;text-align: right&quot;&gt;Right&lt;/th&gt;&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;&lt;td&gt;a&lt;/td&gt;&lt;td&gt;b&lt;/td&gt;&lt;td&gt;c&lt;/td&gt;&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+</code></pre>
+<p>You don't have to type tables by hand, either — right-click anywhere in the editor and choose <strong>Insert Table…</strong> for a visual table builder that writes this markup for you. See <em>Inserting Tables the Easy Way</em>, next.</p>
+<h2 id="code">Code</h2>
+<p>Wrap a word or short phrase in <code>&lt;code&gt;</code> for inline code, like <code>&lt;code&gt;this&lt;/code&gt;</code>. For a longer, multi-line block, wrap it in <code>&lt;pre&gt;&lt;code&gt;</code>.</p>
+<pre><code>&lt;pre&gt;&lt;code&gt;def greet(name):
+    return f&quot;Hello, {name}!&quot;&lt;/code&gt;&lt;/pre&gt;
+</code></pre>
+<h2 id="styled-blocks">Styled blocks</h2>
+<p>Wrap a span of text in <code>&lt;span class=&quot;...&quot;&gt;</code> (for inline styles) or a paragraph in <code>&lt;div class=&quot;...&quot;&gt;</code> (for block styles) to apply a named style, hooked to a matching CSS rule in the book's template:</p>
+<pre><code>&lt;span class=&quot;smallcaps&quot;&gt;This text renders in small caps.&lt;/span&gt;
+</code></pre>
+<p>You don't have to remember this syntax — right-click any selected text in the editor and choose <strong>Apply Style</strong> for a menu of the styles eBook Editor ships with (Small Caps, Underline, Strikethrough, Monospace, Sans-serif, All Caps, Verse, Inset, Attribution, Drop Cap, Caption), and it wraps your selection in the right tag and class for you. See <em>Book Metadata → Style</em> for how the underlying CSS classes are defined.</p>
+<h3 id="inserting-images-with-a-caption">Inserting images with a caption</h3>
+<p>Right-click the editor and choose <strong>Insert Image…</strong> to pick a picture and add it with a caption underneath, styled by the <strong>Caption</strong> style above. Behind the scenes it's a <code>&lt;figure&gt;</code>:</p>
+<pre><code>&lt;figure&gt;
+&lt;img src=&quot;../images/photo.jpg&quot; alt=&quot;Alt text&quot;&gt;
+&lt;figcaption class=&quot;caption&quot;&gt;Caption text&lt;/figcaption&gt;
+&lt;/figure&gt;
+</code></pre>
+<p>See <em>Writing in the Editor → The right-click menu</em>.</p>
+<h2 id="line-breaks">Line breaks</h2>
+<p>A new <code>&lt;p&gt;</code> starts a new paragraph. To force a line break <em>within</em> the same paragraph (without starting a new one), use <code>&lt;br&gt;</code>.</p>
