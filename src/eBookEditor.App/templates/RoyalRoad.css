@@ -1,0 +1,212 @@
+/*
+ * "RoyalRoad" template
+ *
+ * A clean, modern web-serial look, alternative to the ornate "Vellum Serif" template. Typography
+ * choices (Open Sans, light-weight headings, left-aligned body text, a blue accent color, and a
+ * dark-blue-accented table treatment) were measured via a browser's computed-style inspector
+ * against a real RoyalRoad fiction chapter page's rendered CSS — not copied from that page's own
+ * stylesheet source or any of its story text. Every selector Vellum Serif.css defines is carried
+ * over here too, so this is a complete, gap-free template on its own; only the rules genuinely
+ * informed by that typographic reference (fonts, colors, weights, link/table/heading treatment)
+ * differ from Vellum Serif — the rest (verse/inset/drop-cap mechanics, monospace, all-caps, etc.)
+ * are unchanged.
+ *
+ * Open Sans (regular/semibold/bold) is Apache 2.0 licensed and freely embeddable; the three font
+ * files are shipped in the app's "fonts" directory alongside Vellum's Alegreya/Cinzel/Great Vibes
+ * files, following the exact same @font-face-embedding approach.
+ */
+
+@font-face {
+    font-family: "Open Sans";
+    font-weight: normal;
+    font-style: normal;
+    src: url('fonts/OpenSans-Regular.ttf');
+}
+
+@font-face {
+    font-family: "Open Sans";
+    font-weight: 600;
+    font-style: normal;
+    src: url('fonts/OpenSans-SemiBold.ttf');
+}
+
+@font-face {
+    font-family: "Open Sans";
+    font-weight: bold;
+    font-style: normal;
+    src: url('fonts/OpenSans-Bold.ttf');
+}
+
+body {
+    font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-weight: normal;
+    font-style: normal;
+    page-break-before: always;
+    break-before: page;
+}
+
+h1 {
+    font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-weight: 300;
+    letter-spacing: 0.02em;
+    margin: 0;
+    page-break-inside: avoid;
+}
+
+h2, h3, h4 {
+    font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-weight: 600;
+    margin: 0;
+    page-break-inside: avoid;
+}
+
+p {
+    margin: 0;
+    text-indent: 0;
+    line-height: 1.6;
+    text-align: left;
+    hyphens: none;
+}
+
+blockquote {
+    font-style: italic;
+    border-left: 3px solid #337ab7;
+    padding-left: 1em;
+    margin: 1.4em 1.5em;
+}
+
+ul, ol {
+    padding-left: 1.5em;
+}
+
+li {
+    line-height: 1.6;
+    text-align: left;
+}
+
+sub, sup {
+    font-size: 0.75em;
+    line-height: 1;
+}
+
+a {
+    color: #337ab7;
+    text-decoration: underline;
+}
+
+hr {
+    border: none;
+    border-top: 2px solid #337ab7;
+    width: 4em;
+    margin: 1.5em auto;
+}
+
+img {
+    max-width: 100%;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+th {
+    background-color: #004b7a;
+    color: #ffffff;
+    text-align: left;
+    padding: 0.5em;
+    border: 1px solid #004b7a;
+}
+
+td {
+    padding: 0.5em;
+    border: 1px solid rgba(0, 75, 122, 0.35);
+}
+
+.footnote-ref {
+    text-decoration: none;
+    color: #337ab7;
+}
+
+.footnotes {
+    margin-top: 2em;
+    font-size: 0.9em;
+}
+
+.footnotes hr {
+    border-top: 1px solid #cccccc;
+    width: auto;
+    margin: 0 0 1em;
+}
+
+.footnote-back-ref {
+    text-decoration: none;
+    color: #337ab7;
+}
+
+/* Styles selectable from the editor's right-click "Apply Style" menu — see EditorStyleCatalog.
+   Carried over unchanged from Vellum Serif.css except where noted, since these are generic
+   text-formatting behaviors rather than typeface/color choices tied to the RoyalRoad reference. */
+.smallcaps {
+    font-variant: small-caps;
+    letter-spacing: 0.04em;
+}
+
+.underline {
+    text-decoration: underline;
+}
+
+.strikethrough {
+    text-decoration: line-through;
+}
+
+.monospace {
+    font-family: "Courier New", Courier, monospace;
+}
+
+.sans-serif {
+    font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.all-caps {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.verse {
+    padding-left: 3em;
+    padding-right: 3em;
+    font-style: italic;
+}
+
+.inset {
+    margin-left: 1.5em;
+    margin-right: 1.5em;
+}
+
+.attribution {
+    text-align: right;
+    font-size: 90%;
+    letter-spacing: 0.05em;
+    margin-top: 0.5em;
+    color: #337ab7;
+}
+
+.attribution::before {
+    content: "— ";
+}
+
+.drop-cap:first-letter {
+    float: left;
+    font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-weight: 600;
+    font-size: 3.2em;
+    line-height: 0.8;
+    padding-right: 0.08em;
+    padding-top: 0.05em;
+}
+
+.caption {
+    font-size: 50%;
+    font-style: italic;
+}

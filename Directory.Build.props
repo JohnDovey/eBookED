@@ -590,6 +590,21 @@
          spine item kind automatically instead of every heading becoming a numbered chapter;
          deliberately leaves Introduction/Prologue as regular chapters (commonly numbered in
          real books — guessing wrong silently is worse than the existing safe default). -->
-    <Version>2.17.0</Version>
+    <!-- 2.18.0: new feature, so a minor bump. Adds a "RoyalRoad" template — a clean, modern
+         web-serial look (Open Sans, light-weight headings, left-aligned body text, a blue
+         accent color, a dark-blue-accented table treatment) alongside the existing ornate
+         "Vellum Serif" template. Typography choices were measured via a browser's computed-
+         style inspector against a real RoyalRoad fiction chapter page's rendered CSS — fonts,
+         colors, weights, spacing — never copied from that page's own stylesheet source or any
+         of its story text. Matches Vellum Serif.css's full selector list one-for-one so it's a
+         complete, standalone template; only the selectors genuinely informed by that
+         typographic reference differ, everything else (verse/inset/drop-cap mechanics,
+         monospace, all-caps, etc.) is unchanged. Open Sans (regular/semibold/bold, Apache 2.0,
+         freely embeddable) ships as real font files in the app's fonts/ directory, following
+         the exact same @font-face-embedding approach Vellum's Alegreya/Cinzel/Great Vibes
+         fonts already use — no code changes needed for it to appear in the template picker or
+         get its fonts installed/embedded, since TemplateService/FontService already discover
+         and parse any *.css file in templates/ generically. -->
+    <Version>2.18.0</Version>
   </PropertyGroup>
 </Project>

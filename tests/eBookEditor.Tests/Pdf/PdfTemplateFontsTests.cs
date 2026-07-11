@@ -56,6 +56,20 @@ public class PdfTemplateFontsTests : IDisposable
         Assert.Equal("Cinzel Decorative", fonts.HeadingFontFamily);
     }
 
+    [Fact]
+    public void RegisterAndResolve_UsesTheRealShippedRoyalRoadFonts()
+    {
+        var repoRoot = FindRepoRoot();
+        var fontsDir = Path.Combine(repoRoot, "src", "eBookEditor.App", "fonts");
+        var templatesDir = Path.Combine(repoRoot, "src", "eBookEditor.App", "templates");
+        var css = File.ReadAllText(Path.Combine(templatesDir, "RoyalRoad.css"));
+
+        var fonts = new PdfTemplateFonts(new FontService(fontsDir)).RegisterAndResolve(css);
+
+        Assert.Equal("Open Sans", fonts.BodyFontFamily);
+        Assert.Equal("Open Sans", fonts.HeadingFontFamily);
+    }
+
     private static string FindRepoRoot()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
