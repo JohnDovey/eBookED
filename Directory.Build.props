@@ -814,6 +814,60 @@
          DW.Inline shape as before), and implements a flowing left/right via a genuinely new
          DW.Anchor+DW.WrapSquare drawing shape (real Word "float", replacing the DW.Inline-only
          placement every image used to get regardless of any attribute). -->
-    <Version>2.26.0</Version>
+    <!-- 2.27.0: a batch of user-reported bug fixes and new features together, so a minor bump.
+         Bug fixes: (1) Author photo still not showing in Preview/WYSIWYG — MainWindow was
+         resolving relative image paths against the project ROOT (ViewModel.CurrentProject.
+         DirectoryPath) at all three NavigateToString/BuildFileBaseUri call sites, but every
+         page body's own relative src ("../images/foo.jpg") is written relative to that
+         specific FILE's own directory, one level below project root — fixed via a new
+         CurrentFileDirectory property (Path.GetDirectoryName(ViewModel.Editor.FilePath)) used
+         at all three sites instead. (2) Open Project folder silently failing — a picked folder
+         whose TryGetLocalPath() came back null, or a LoadProject that threw, both previously
+         only set the easy-to-miss, low-opacity StatusMessage text with no window ever
+         appearing to change; both now show a real MessageWindow dialog. (3) A new front-matter
+         page's title never rendering anywhere in its own output — ChapterHeadingHtml.Build's
+         exclusion guard was "item.Type != SpineItemType.Chapter" (skipping heading synthesis
+         for every front/back-matter item, including custom user-added ones), when only the 4
+         fixed auto-generated pages actually bake their own heading into PageGeneratorService's
+         output; narrowed to "item.IsGenerated" and added a plain "&lt;h1&gt;{title}&lt;/h1&gt;"
+         (no "Chapter N:" prefix) branch for non-Chapter items. (4) The "Markdown Syntax
+         Reference" chapter file/spine title were stale leftovers from before the HTML-refactor
+         renamed its own content to "HTML Syntax Reference" — file, spine title, book.ebhtml,
+         and toc.ebhtml all fixed to match.
+         New features: (1) A Publisher Logo set in Copyright &amp; Publishing now actually
+         appears on the Imprint page — PublisherInfo gained a Url field (surfaced as a new
+         "Publisher URL" field in Copyright &amp; Publishing) and PageGeneratorService.
+         GenerateCopyrightPage inserts a new centered figure between the title/contributor
+         block and the publisher/ISBN paragraph: the logo image with the publisher name as a
+         centered caption below it, both hyperlinked to the Publisher URL when one is set. (2)
+         The Imprint page's Publication Date field is now a real CalendarDatePicker instead of
+         a free-text "yyyy-MM-dd" box (MetadataViewModel.PublicationDate is now a
+         DateTimeOffset? bound directly to it, converted to/from BookMetadata's DateOnly? at the
+         load/save boundary). (3) Book Title, Author name, and the Edited/Illustrated by lines
+         on the Imprint page are now centered (a wrapping "text-align: center" on the shared
+         &lt;p&gt;), with the author's name rendered larger via a "font-size: 1.3em" span. (4) A
+         real formatting toolbar: dedicated Bold/Italic buttons (wrap the selection in
+         &lt;strong&gt;/&lt;em&gt;, no CSS class) and a new "Insert Element ▾" menu (Heading
+         1-4/Paragraph/Blockquote wrap the selection; Bulleted List/Numbered List/Horizontal
+         Rule insert directly) — new eBookEditor.Core.Services.HtmlElementCatalog mirrors
+         EditorStyleCatalog's shape, and HtmlPageShell's wrapSelection JS bridge function now
+         omits the class attribute entirely when passed a falsy className, needed for a plain
+         tag wrap with no named style. Both the toolbar and the raw editor's right-click context
+         menu carry the new commands, matching every existing command's mode-agnostic shape. (5)
+         Attribution's default-stylesheet definition was already byte-identical to Vellum
+         Serif's (verified, no code change needed); Vellum Serif's own blockquote rule was
+         replaced with RoyalRoad's (italic, blue left border, no longer the cursive/Great-Vibes
+         treatment). (6) New user-manual chapter, "Styles &amp; Attributes Reference"
+         (manual/chapters/009), documenting the class/id/style attributes and all eleven named
+         styles plus the new Bold/Italic/Insert Element toolbar entries — wired into the manual
+         project's spine, TOC, and book index; chapter 003's own toolbar list updated to match.
+         (7) Author, editor, and illustrator names on the Imprint page (both PageGeneratorService.
+         GenerateCopyrightPage's HTML, used by EPUB/Word/Preview/WYSIWYG, and PdfBuilder.
+         RenderImprintPage's separate QuestPDF-native PDF rendering — the doc comment atop
+         PdfBuilder already calls this "the imprint (copyright) page," confirming both code
+         paths render the same logical page for different export formats) are now bold: HTML
+         wraps each name group in &lt;strong&gt;, PDF renders each name line as multiple
+         TextSpans with the name span given .Bold(). -->
+    <Version>2.27.0</Version>
   </PropertyGroup>
 </Project>

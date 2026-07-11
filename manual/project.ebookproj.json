@@ -30,7 +30,8 @@
     "copyrightYear": 2026,
     "publisher": {
       "name": "Larry\u0027s Farm",
-      "logoPath": "images/favicon.png"
+      "logoPath": "images/favicon.png",
+      "url": null
     },
     "coverImagePath": null,
     "publicationDate": "2026-07-11",
@@ -55,7 +56,7 @@
     },
     "storeLinks": [],
     "copyrightDisclaimer": "All rights reserved. No part of this publication may be reproduced, distributed, or transmitted in any form or by any means, including photocopying, recording, or other electronic or mechanical methods, without the prior written permission of the publisher, except in the case of brief quotations embodied in critical reviews and certain other noncommercial uses permitted by copyright law.",
-    "identifier": "ce7c45bf-26b0-438a-ac21-a0b242970d32",
+    "identifier": "3678b0d4-d015-4462-a05d-fa76bb09ec6a",
     "selectedTemplate": "RoyalRoad",
     "pdfPageSize": "A5",
     "authors": [
@@ -127,7 +128,7 @@
       "id": "4d92a3e5-3d40-4329-bb2d-654e0ca4fbae",
       "type": 2,
       "relativePath": "backmatter/about-the-author.ebhtml",
-      "order": 12,
+      "order": 13,
       "isGenerated": true,
       "title": "About the Author",
       "subtitle": null,
@@ -174,10 +175,10 @@
     {
       "id": "bb6def4b-3245-4e1b-a185-5f0ba09025e4",
       "type": 1,
-      "relativePath": "chapters/004-Markdown-Syntax-Reference.ebhtml",
+      "relativePath": "chapters/004-HTML-Syntax-Reference.ebhtml",
       "order": 7,
       "isGenerated": false,
-      "title": "Markdown Syntax Reference",
+      "title": "HTML Syntax Reference",
       "subtitle": null,
       "numberMode": 0,
       "numberOverride": null,
@@ -232,6 +233,18 @@
       "resolvedNumber": 8
     },
     {
+      "id": "b6f4e3a1-7c92-4e5d-9a1f-3d8c2b5e6f70",
+      "type": 1,
+      "relativePath": "chapters/009-Styles-and-Attributes-Reference.ebhtml",
+      "order": 12,
+      "isGenerated": false,
+      "title": "Styles \u0026 Attributes Reference",
+      "subtitle": null,
+      "numberMode": 0,
+      "numberOverride": null,
+      "resolvedNumber": 9
+    },
+    {
       "id": "d6be70b4-ffbe-4bf3-8f2e-241b129fd9c6",
       "type": 0,
       "relativePath": "frontmatter/new-front-matter-page-d8f657af.ebhtml",
@@ -245,5 +258,5 @@
     }
   ],
   "createdUtc": "2026-07-09T16:03:27.607296Z",
-  "modifiedUtc": "2026-07-11T13:28:42.830959Z"
+  "modifiedUtc": "2026-07-11T16:36:02.25282Z"
 }

@@ -62,8 +62,10 @@ public static class HtmlPageShell
               }
               notifyChange();
             },
-            // Wraps the current selection in a new <tag class="className"> — how Apply Style
-            // works in WYSIWYG mode. Falls back to extract-and-reinsert when the selection
+            // Wraps the current selection in a new <tag class="className"> — how Apply Style,
+            // Bold/Italic, and Insert Element all work in WYSIWYG mode. className is omitted
+            // (falsy, e.g. null) for a plain semantic wrap like "strong" or a heading tag with
+            // no class attribute at all. Falls back to extract-and-reinsert when the selection
             // boundary doesn't cleanly bracket a set of whole nodes (surroundContents throws in
             // that case, e.g. a selection spanning part of one paragraph and part of another).
             wrapSelection: function (tag, className) {
@@ -72,7 +74,7 @@ public static class HtmlPageShell
               var range = sel.getRangeAt(0);
               if (range.collapsed || !content.contains(range.commonAncestorContainer)) return;
               var wrapper = document.createElement(tag);
-              wrapper.className = className;
+              if (className) wrapper.className = className;
               try {
                 range.surroundContents(wrapper);
               } catch (e) {

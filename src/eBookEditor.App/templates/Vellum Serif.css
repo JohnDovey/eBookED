@@ -82,7 +82,9 @@ p {
 }
 
 blockquote {
-    font-family: "Great Vibes", cursive;
+    font-style: italic;
+    border-left: 3px solid #337ab7;
+    padding-left: 1em;
     margin: 1.4em 1.5em;
 }
 

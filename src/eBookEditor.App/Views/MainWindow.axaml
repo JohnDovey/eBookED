@@ -119,6 +119,9 @@
         <!-- Mode-agnostic toolbar: works whichever pane below is active, unlike the raw editor's
              own right-click menu (which only the AvaloniaEdit control below responds to). -->
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
+          <Button Content="B" FontWeight="Bold" Width="32" Click="OnBoldClick" ToolTip.Tip="Bold (wraps selection in &lt;strong&gt;)" />
+          <Button Content="I" FontStyle="Italic" Width="32" Click="OnItalicClick" ToolTip.Tip="Italic (wraps selection in &lt;em&gt;)" />
+          <Button x:Name="InsertElementButton" Content="Insert Element ▾" Click="OnInsertElementButtonClick" />
           <Button Content="Insert Table…" Click="OnInsertTableClick" />
           <Button Content="Insert Image…" Click="OnInsertImageClick" />
           <Button Content="Insert Footnote…" Click="OnInsertFootnoteClick" />
@@ -145,6 +148,9 @@
                          WordWrap="True">
             <ae:TextEditor.ContextMenu>
               <ContextMenu Opened="OnEditorContextMenuOpened">
+                <MenuItem Header="Bold" Click="OnBoldClick" />
+                <MenuItem Header="Italic" Click="OnItalicClick" />
+                <MenuItem Header="Insert Element" x:Name="InsertElementMenuItem" />
                 <MenuItem Header="Insert Table…" Click="OnInsertTableClick" />
                 <MenuItem Header="Insert Image…" Click="OnInsertImageClick" />
                 <MenuItem Header="Insert Footnote…" Click="OnInsertFootnoteClick" />

@@ -15,8 +15,9 @@ public partial class MetadataViewModel : ViewModelBase
     [ObservableProperty] private string _copyrightYear = string.Empty;
     [ObservableProperty] private string _publisherName = string.Empty;
     [ObservableProperty] private string _publisherLogoPath = string.Empty;
+    [ObservableProperty] private string _publisherUrl = string.Empty;
     [ObservableProperty] private string _coverImagePath = string.Empty;
-    [ObservableProperty] private string _publicationDate = string.Empty;
+    [ObservableProperty] private DateTimeOffset? _publicationDate;
     [ObservableProperty] private string _language = "en";
     [ObservableProperty] private string _blurb = string.Empty;
     [ObservableProperty] private string _isbn10 = string.Empty;
@@ -86,8 +87,11 @@ public partial class MetadataViewModel : ViewModelBase
         CopyrightYear = metadata.CopyrightYear?.ToString() ?? "";
         PublisherName = metadata.Publisher?.Name ?? "";
         PublisherLogoPath = metadata.Publisher?.LogoPath ?? "";
+        PublisherUrl = metadata.Publisher?.Url ?? "";
         CoverImagePath = metadata.CoverImagePath ?? "";
-        PublicationDate = metadata.PublicationDate?.ToString("yyyy-MM-dd") ?? "";
+        PublicationDate = metadata.PublicationDate is { } pubDate
+            ? new DateTimeOffset(pubDate.ToDateTime(TimeOnly.MinValue))
+            : null;
         Language = metadata.Language;
 
         GenreTags.Clear();
@@ -134,9 +138,12 @@ public partial class MetadataViewModel : ViewModelBase
             CopyrightYear = int.TryParse(CopyrightYear, out var year) ? year : null,
             Publisher = string.IsNullOrWhiteSpace(PublisherName)
                 ? null
-                : new PublisherInfo(PublisherName.Trim(), string.IsNullOrWhiteSpace(PublisherLogoPath) ? null : PublisherLogoPath.Trim()),
+                : new PublisherInfo(
+                    PublisherName.Trim(),
+                    string.IsNullOrWhiteSpace(PublisherLogoPath) ? null : PublisherLogoPath.Trim(),
+                    string.IsNullOrWhiteSpace(PublisherUrl) ? null : PublisherUrl.Trim()),
             CoverImagePath = string.IsNullOrWhiteSpace(CoverImagePath) ? null : CoverImagePath.Trim(),
-            PublicationDate = DateOnly.TryParse(PublicationDate, out var date) ? date : null,
+            PublicationDate = PublicationDate is { } pubDate ? DateOnly.FromDateTime(pubDate.Date) : null,
             Language = string.IsNullOrWhiteSpace(Language) ? "en" : Language.Trim(),
             GenreTags = GenreTags.Where(t => !string.IsNullOrWhiteSpace(t.Value)).Select(t => t.Value.Trim()).ToList(),
             FreeTags = FreeTags.Where(t => !string.IsNullOrWhiteSpace(t.Value)).Select(t => t.Value.Trim()).ToList(),

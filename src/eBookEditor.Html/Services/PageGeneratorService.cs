@@ -63,17 +63,20 @@ public class PageGeneratorService
 
         var authorNames = metadata.Authors.Select(a => a.Name).ToList();
         if (authorNames.Count > 0)
-            titleLines.Add($"By {Encode(string.Join(", ", authorNames))}");
+            titleLines.Add($"<span style=\"font-size: 1.3em\">By <strong>{Encode(string.Join(", ", authorNames))}</strong></span>");
 
         var illustratorNames = metadata.Illustrators.Select(i => i.Name).ToList();
         if (illustratorNames.Count > 0)
-            titleLines.Add($"Illustrated by {Encode(string.Join(", ", illustratorNames))}");
+            titleLines.Add($"Illustrated by <strong>{Encode(string.Join(", ", illustratorNames))}</strong>");
 
         var editorNames = metadata.Editors.Select(e => e.Name).ToList();
         if (editorNames.Count > 0)
-            titleLines.Add($"Edited by {Encode(string.Join(", ", editorNames))}");
+            titleLines.Add($"Edited by <strong>{Encode(string.Join(", ", editorNames))}</strong>");
 
-        sb.AppendLine($"<p>{string.Join("<br>\n", titleLines)}</p>");
+        sb.AppendLine($"<p style=\"text-align: center\">{string.Join("<br>\n", titleLines)}</p>");
+
+        if (metadata.Publisher is { LogoPath: { Length: > 0 } logoPath } publisherWithLogo)
+            sb.AppendLine(BuildPublisherLogoFigure(publisherWithLogo, logoPath));
 
         var publisherLines = new List<string>();
         if (metadata.Publisher is { } publisher)
@@ -227,6 +230,26 @@ public class PageGeneratorService
         }
 
         return sb.ToString().TrimEnd('\n');
+    }
+
+    /// <summary>
+    /// Builds the imprint page's publisher-logo block: the logo image centered on its own
+    /// line with the publisher name as a centered caption below it. When the publisher has a
+    /// URL, both the image and the caption link to it.
+    /// </summary>
+    private static string BuildPublisherLogoFigure(PublisherInfo publisher, string logoPath)
+    {
+        var img = $"<img src=\"../{Encode(logoPath)}\" alt=\"{Encode(publisher.Name)}\">";
+        var caption = $"<span class=\"caption\">{Encode(publisher.Name)}</span>";
+
+        if (!string.IsNullOrWhiteSpace(publisher.Url))
+        {
+            var url = Encode(publisher.Url);
+            img = $"<a href=\"{url}\">{img}</a>";
+            caption = $"<a href=\"{url}\">{caption}</a>";
+        }
+
+        return $"<p style=\"text-align: center\">{img}<br>\n{caption}</p>";
     }
 
     private static string Encode(string? text) => WebUtility.HtmlEncode(text ?? "");

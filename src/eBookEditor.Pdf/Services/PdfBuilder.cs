@@ -142,15 +142,30 @@ public class PdfBuilder
 
                 var authorNames = metadata.Authors.Select(a => a.Name).ToList();
                 if (authorNames.Count > 0)
-                    top.Item().PaddingTop(6).Text($"By {string.Join(", ", authorNames)}").FontSize(10);
+                    top.Item().PaddingTop(6).Text(text =>
+                    {
+                        text.DefaultTextStyle(x => x.FontSize(10));
+                        text.Span("By ");
+                        text.Span(string.Join(", ", authorNames)).Bold();
+                    });
 
                 var illustratorNames = metadata.Illustrators.Select(i => i.Name).ToList();
                 if (illustratorNames.Count > 0)
-                    top.Item().Text($"Illustrated by {string.Join(", ", illustratorNames)}").FontSize(10);
+                    top.Item().Text(text =>
+                    {
+                        text.DefaultTextStyle(x => x.FontSize(10));
+                        text.Span("Illustrated by ");
+                        text.Span(string.Join(", ", illustratorNames)).Bold();
+                    });
 
                 var editorNames = metadata.Editors.Select(e => e.Name).ToList();
                 if (editorNames.Count > 0)
-                    top.Item().Text($"Edited by {string.Join(", ", editorNames)}").FontSize(10);
+                    top.Item().Text(text =>
+                    {
+                        text.DefaultTextStyle(x => x.FontSize(10));
+                        text.Span("Edited by ");
+                        text.Span(string.Join(", ", editorNames)).Bold();
+                    });
 
                 if (metadata.Publisher is { } publisher)
                     top.Item().PaddingTop(6).Text($"Published by {publisher.Name}").FontSize(10);

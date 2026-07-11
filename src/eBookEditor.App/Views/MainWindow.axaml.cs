@@ -163,7 +163,7 @@ public partial class MainWindow : Window
 
         var title = ViewModel.Editor.FilePath is { } path ? Path.GetFileNameWithoutExtension(path) : null;
         var body = CurrentBodyOnly();
-        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), body, title, ChapterHeadingHtmlFor(body), ViewModel.CurrentProject.DirectoryPath);
+        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), body, title, ChapterHeadingHtmlFor(body), CurrentFileDirectory);
         ScrollPreviewToCaret();
     }
 
@@ -172,9 +172,23 @@ public partial class MainWindow : Window
         if (_previewWindow is null || ViewModel is null)
             return;
 
-        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), bodyHtml, title, ChapterHeadingHtmlFor(bodyHtml), ViewModel.CurrentProject.DirectoryPath);
+        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), bodyHtml, title, ChapterHeadingHtmlFor(bodyHtml), CurrentFileDirectory);
         ScrollPreviewToCaret();
     }
+
+    /// <summary>
+    /// The currently-open chapter/page's own directory (e.g. ".../backmatter", not the project
+    /// root) — every stored body's relative image src (e.g. "../images/foo.jpg") is written
+    /// relative to wherever that specific file lives, one directory below the project root, not
+    /// relative to the project root itself. Passing the bare project root as the WebView base
+    /// URI (an earlier, incomplete fix) left "../images/..." resolving one level ABOVE the
+    /// project root instead of back down into images/ — every relative image in every front/
+    /// back-matter page and chapter failed to load regardless of which subdirectory it lived
+    /// in, since only a file stored directly at the project root (never a real case) would have
+    /// resolved correctly against that base.
+    /// </summary>
+    private string? CurrentFileDirectory =>
+        ViewModel?.Editor.FilePath is { } path ? Path.GetDirectoryName(path) : null;
 
     /// <summary>
     /// The synthesized "&lt;h1&gt;Chapter N: Title&lt;/h1&gt;" for whatever's currently
@@ -272,7 +286,7 @@ public partial class MainWindow : Window
         EnsureWysiwygWebView();
         _wysiwygNavigated = false;
         var html = HtmlPageShell.Wrap(ViewModel.GetCurrentTemplateCss(), bodyHtml, editable: true, ChapterHeadingHtmlFor(bodyHtml));
-        _wysiwygWebView!.NavigateToString(html, HtmlPageShell.BuildFileBaseUri(ViewModel.CurrentProject.DirectoryPath));
+        _wysiwygWebView!.NavigateToString(html, HtmlPageShell.BuildFileBaseUri(CurrentFileDirectory));
     }
 
     /// <summary>
@@ -411,6 +425,7 @@ public partial class MainWindow : Window
     {
         var hasSelection = EditorTextBox.SelectionLength > 0;
         ApplyStyleMenuItem.IsEnabled = hasSelection;
+        InsertElementMenuItem.IsEnabled = hasSelection;
         if (!hasSelection)
             return;
 
@@ -421,6 +436,101 @@ public partial class MainWindow : Window
             item.Click += OnApplyStyleClick;
             ApplyStyleMenuItem.Items.Add(item);
         }
+
+        InsertElementMenuItem.Items.Clear();
+        foreach (var element in HtmlElementCatalog.Elements)
+        {
+            var item = new MenuItem { Header = element.Label, Tag = element };
+            item.Click += OnInsertElementClick;
+            InsertElementMenuItem.Items.Add(item);
+        }
+    }
+
+    private void OnBoldClick(object? sender, RoutedEventArgs e) => WrapSelectionInTag("strong");
+
+    private void OnItalicClick(object? sender, RoutedEventArgs e) => WrapSelectionInTag("em");
+
+    /// <summary>
+    /// The toolbar's "Insert Element ▾" button — the WYSIWYG-mode-reachable equivalent of the
+    /// raw editor's right-click "Insert Element" submenu, mirroring OnApplyStyleButtonClick's
+    /// shape. Lists and Horizontal Rule aren't selection-wrap operations like the catalog
+    /// entries (headings/paragraph/blockquote), so they're inserted directly via InsertAtCursor
+    /// instead, appended to the same flyout.
+    /// </summary>
+    private void OnInsertElementButtonClick(object? sender, RoutedEventArgs e)
+    {
+        var flyout = new MenuFlyout();
+        foreach (var element in HtmlElementCatalog.Elements)
+        {
+            var item = new MenuItem { Header = element.Label, Tag = element };
+            item.Click += OnInsertElementClick;
+            flyout.Items.Add(item);
+        }
+
+        flyout.Items.Add(new Separator());
+
+        var bulletedList = new MenuItem { Header = "Bulleted List" };
+        bulletedList.Click += (_, _) => InsertList(ordered: false);
+        flyout.Items.Add(bulletedList);
+
+        var numberedList = new MenuItem { Header = "Numbered List" };
+        numberedList.Click += (_, _) => InsertList(ordered: true);
+        flyout.Items.Add(numberedList);
+
+        var horizontalRule = new MenuItem { Header = "Horizontal Rule" };
+        horizontalRule.Click += (_, _) => InsertAtCursor("<hr>\n");
+        flyout.Items.Add(horizontalRule);
+
+        flyout.ShowAt(InsertElementButton);
+    }
+
+    private void OnInsertElementClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { Tag: HtmlElementOption element })
+            return;
+
+        WrapSelectionInTag(element.Tag);
+    }
+
+    /// <summary>
+    /// Inserts a new 3-item list at the cursor/selection — each &lt;li&gt; a placeholder the
+    /// user replaces, since (unlike a heading/blockquote) a selection rarely maps cleanly onto
+    /// "one list item per line" without more UI than a toolbar button justifies.
+    /// </summary>
+    private void InsertList(bool ordered)
+    {
+        var tag = ordered ? "ol" : "ul";
+        InsertAtCursor($"<{tag}>\n<li>List item</li>\n<li>List item</li>\n<li>List item</li>\n</{tag}>\n");
+    }
+
+    /// <summary>
+    /// Wraps the current selection in a plain "&lt;tag&gt;...&lt;/tag&gt;" with no class
+    /// attribute — the mechanic behind Bold/Italic and Insert Element's headings/paragraph/
+    /// blockquote entries. Same shape as OnApplyStyleClick, minus the CSS class: requires a
+    /// real selection in raw mode (silently no-ops without one, matching Apply Style's own
+    /// raw-mode behavior); WYSIWYG mode's wrapSelection is likewise a no-op with nothing
+    /// selected in the WebView's DOM.
+    /// </summary>
+    private void WrapSelectionInTag(string tag)
+    {
+        if (IsWysiwygMode)
+        {
+            InvokeWysiwygScript(
+                $"window.ebookEditor.wrapSelection({JsonSerializer.Serialize(tag)}, null)");
+            return;
+        }
+
+        var selectionStart = EditorTextBox.SelectionStart;
+        var selectionLength = EditorTextBox.SelectionLength;
+        if (selectionLength <= 0)
+            return;
+
+        var selectedText = EditorTextBox.Document.GetText(selectionStart, selectionLength);
+        var wrapped = $"<{tag}>{selectedText}</{tag}>";
+
+        EditorTextBox.Document.Replace(selectionStart, selectionLength, wrapped);
+        EditorTextBox.CaretOffset = selectionStart + wrapped.Length;
+        EditorTextBox.Focus();
     }
 
     /// <summary>
@@ -772,6 +882,16 @@ public partial class MainWindow : Window
             OpenProjectInNewWindow(project);
     }
 
+    /// <summary>
+    /// Both failure paths here previously only set ViewModel.StatusMessage — a small,
+    /// low-opacity status-bar TextBlock a user can easily miss entirely, especially since
+    /// nothing else visibly happens (no new window opens) — so a real failure read as the
+    /// command having silently done nothing. Both now show a real, impossible-to-miss dialog
+    /// instead. TryGetLocalPath returning null for a folder the user actually picked (as
+    /// opposed to the picker returning nothing at all, i.e. the user cancelled, which stays
+    /// silent) is a real, if rare, failure mode of its own — an untrusted/security-scoped
+    /// location the picker couldn't resolve to a plain filesystem path.
+    /// </summary>
     private async void OnOpenProjectClick(object? sender, RoutedEventArgs e)
     {
         var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
@@ -780,8 +900,17 @@ public partial class MainWindow : Window
             AllowMultiple = false
         });
 
-        if (folders.FirstOrDefault()?.TryGetLocalPath() is not { } path)
+        var folder = folders.FirstOrDefault();
+        if (folder is null)
             return;
+
+        var path = folder.TryGetLocalPath();
+        if (path is null)
+        {
+            await new MessageWindow("Open Project",
+                "That folder couldn't be opened — its location isn't accessible as a regular file path.").ShowDialog(this);
+            return;
+        }
 
         try
         {
@@ -790,8 +919,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            if (ViewModel is not null)
-                ViewModel.StatusMessage = $"Couldn't open project at {path}: {ex.Message}";
+            await new MessageWindow("Open Project", $"Couldn't open a project at:\n{path}\n\n{ex.Message}").ShowDialog(this);
         }
     }
 

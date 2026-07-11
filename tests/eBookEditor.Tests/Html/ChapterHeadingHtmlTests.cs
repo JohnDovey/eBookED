@@ -38,11 +38,50 @@ public class ChapterHeadingHtmlTests
     }
 
     [Fact]
-    public void Build_NonChapterItem_ReturnsNull()
+    public void Build_GeneratedFrontMatterItem_ReturnsNull()
     {
-        var item = new SpineItem { Type = SpineItemType.FrontMatter, Title = "Title Page" };
+        // The app's own fixed pages (title page, imprint, TOC, about the author) already bake
+        // their heading into the body every time PageGeneratorService regenerates them.
+        var item = new SpineItem { Type = SpineItemType.FrontMatter, Title = "Title Page", IsGenerated = true };
 
         Assert.Null(ChapterHeadingHtml.Build(item, BodyWithNoHeading));
+    }
+
+    [Fact]
+    public void Build_CustomFrontMatterItem_SynthesizesAPlainH1()
+    {
+        // Regression test: a user-added custom front-matter page (e.g. "Introduction") whose
+        // body doesn't start with its own heading previously got no heading synthesized at all
+        // (only Chapter items did) — its title never appeared anywhere a reader would see it,
+        // only in the sidebar list and internal navigation.
+        var item = new SpineItem { Type = SpineItemType.FrontMatter, Title = "Introduction", IsGenerated = false };
+
+        var html = ChapterHeadingHtml.Build(item, BodyWithNoHeading);
+
+        Assert.Equal("<h1>Introduction</h1>", html);
+    }
+
+    [Fact]
+    public void Build_CustomBackMatterItem_SynthesizesAPlainH1()
+    {
+        var item = new SpineItem { Type = SpineItemType.BackMatter, Title = "Afterword", IsGenerated = false };
+
+        var html = ChapterHeadingHtml.Build(item, BodyWithNoHeading);
+
+        Assert.Equal("<h1>Afterword</h1>", html);
+    }
+
+    [Fact]
+    public void Build_CustomFrontMatterItem_NoChapterNumberPrefix()
+    {
+        // Only a real Chapter item gets the "Chapter N:" prefix — a custom front/back-matter
+        // page's heading is just its own plain title, even though ResolvedNumber happens to be
+        // unset (null) for both cases and wouldn't distinguish them on its own.
+        var item = new SpineItem { Type = SpineItemType.FrontMatter, Title = "Introduction", IsGenerated = false };
+
+        var html = ChapterHeadingHtml.Build(item, BodyWithNoHeading);
+
+        Assert.DoesNotContain("Chapter", html!);
     }
 
     [Fact]

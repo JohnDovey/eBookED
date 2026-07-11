@@ -84,6 +84,73 @@ public class PageGeneratorServiceTests : IDisposable
     }
 
     [Fact]
+    public void GenerateCopyrightPage_TitleAndContributorBlockIsCentered_AuthorNameIsLarger()
+    {
+        var html = _pageGenerator.GenerateCopyrightPage(SampleMetadata());
+
+        Assert.Contains("<p style=\"text-align: center\">", html);
+        Assert.Contains("<span style=\"font-size: 1.3em\">By <strong>Jane Doe</strong></span>", html);
+        Assert.Contains("Edited by <strong>John Smith</strong>", html);
+    }
+
+    [Fact]
+    public void GenerateCopyrightPage_AuthorEditorAndIllustratorNamesAreBold()
+    {
+        var metadata = SampleMetadata() with
+        {
+            Contributors =
+            [
+                new Contributor("Jane", "Doe", ContributorRole.Author),
+                new Contributor("John", "Smith", ContributorRole.Editor),
+                new Contributor("Ivy", "Artist", ContributorRole.Illustrator)
+            ]
+        };
+
+        var html = _pageGenerator.GenerateCopyrightPage(metadata);
+
+        Assert.Contains("<strong>Jane Doe</strong>", html);
+        Assert.Contains("Illustrated by <strong>Ivy Artist</strong>", html);
+        Assert.Contains("Edited by <strong>John Smith</strong>", html);
+    }
+
+    [Fact]
+    public void GenerateCopyrightPage_PublisherLogoSet_InsertsCenteredLogoWithNameCaption()
+    {
+        var metadata = SampleMetadata() with { Publisher = new PublisherInfo("Acme Press", "images/acme-logo.png") };
+
+        var html = _pageGenerator.GenerateCopyrightPage(metadata);
+
+        Assert.Contains("<p style=\"text-align: center\"><img src=\"../images/acme-logo.png\" alt=\"Acme Press\"><br>", html);
+        Assert.Contains("<span class=\"caption\">Acme Press</span>", html);
+    }
+
+    [Fact]
+    public void GenerateCopyrightPage_PublisherLogoAndUrlSet_ImageAndCaptionAreHyperlinked()
+    {
+        var metadata = SampleMetadata() with
+        {
+            Publisher = new PublisherInfo("Acme Press", "images/acme-logo.png", "https://acmepress.example.com")
+        };
+
+        var html = _pageGenerator.GenerateCopyrightPage(metadata);
+
+        Assert.Contains(
+            "<a href=\"https://acmepress.example.com\"><img src=\"../images/acme-logo.png\" alt=\"Acme Press\"></a>",
+            html);
+        Assert.Contains(
+            "<a href=\"https://acmepress.example.com\"><span class=\"caption\">Acme Press</span></a>",
+            html);
+    }
+
+    [Fact]
+    public void GenerateCopyrightPage_PublisherWithoutLogo_NoLogoFigureInserted()
+    {
+        var html = _pageGenerator.GenerateCopyrightPage(SampleMetadata());
+
+        Assert.DoesNotContain("class=\"caption\"", html);
+    }
+
+    [Fact]
     public void GenerateCopyrightPage_IsAnImprintPageWithCoverAndContributorsNearTopAndCopyrightAtBottom()
     {
         var metadata = SampleMetadata() with { CoverImagePath = "images/cover.jpg" };
@@ -91,11 +158,11 @@ public class PageGeneratorServiceTests : IDisposable
         var html = _pageGenerator.GenerateCopyrightPage(metadata);
 
         Assert.Contains("<img src=\"../images/cover.jpg\" alt=\"Cover\">", html);
-        Assert.Contains("By Jane Doe", html);
-        Assert.Contains("Edited by John Smith", html);
+        Assert.Contains("By <strong>Jane Doe</strong>", html);
+        Assert.Contains("Edited by <strong>John Smith</strong>", html);
 
         var coverIndex = html.IndexOf("<img", StringComparison.Ordinal);
-        var byLineIndex = html.IndexOf("By Jane Doe", StringComparison.Ordinal);
+        var byLineIndex = html.IndexOf("By <strong>Jane Doe", StringComparison.Ordinal);
         var isbnIndex = html.IndexOf("ISBN-13:", StringComparison.Ordinal);
         var copyrightIndex = html.IndexOf("Copyright ©", StringComparison.Ordinal);
         var disclaimerIndex = html.IndexOf(EncodedDefaultDisclaimerText, StringComparison.Ordinal);
