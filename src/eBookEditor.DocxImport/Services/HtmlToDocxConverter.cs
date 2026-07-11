@@ -481,11 +481,27 @@ public class HtmlToDocxConverter
                     {
                         paragraph.Append(linkRun);
                     }
+                    else if (InternalLinkConvention.TryGetDestinationFragment(href, out var linkDestinationId))
+                    {
+                        paragraph.Append(new Hyperlink(linkRun) { Anchor = BookmarkNameFor(linkDestinationId) });
+                    }
                     else
                     {
                         var relationshipId = mainPart.AddHyperlinkRelationship(SafeHyperlinkUri(href), true).Id;
                         paragraph.Append(new Hyperlink(linkRun) { Id = relationshipId });
                     }
+                    break;
+
+                // A "Mark Link Destination" marker (see InternalLinkConvention) becomes a real
+                // Word bookmark — w:bookmarkStart/w:bookmarkEnd bracketing the same run(s) its
+                // marked text renders as — so a matching internal hyperlink's Anchor (above) has
+                // a real, Word-native jump target rather than a dead link.
+                case "SPAN" when element.Id is { } destinationId && destinationId.StartsWith(InternalLinkConvention.DestinationIdPrefix, StringComparison.Ordinal):
+                    var bookmarkId = (mainPart.Document!.Descendants<BookmarkStart>().Count() + 1).ToString();
+                    var bookmarkName = BookmarkNameFor(destinationId);
+                    paragraph.Append(new BookmarkStart { Id = bookmarkId, Name = bookmarkName });
+                    AppendInlineChildren(paragraph, element, mainPart, styles, baseFontSizePt, footnotes, forceBold);
+                    paragraph.Append(new BookmarkEnd { Id = bookmarkId });
                     break;
 
                 case "IMG":
@@ -566,6 +582,14 @@ public class HtmlToDocxConverter
         var encoded = string.Join('/', url.Split('/').Select(Uri.EscapeDataString));
         return new Uri(encoded, UriKind.RelativeOrAbsolute);
     }
+
+    /// <summary>A Word bookmark name is restricted to letters/digits/underscore (no colons or
+    /// hyphens) — this app's own "dest:{slug}" ids use both, so every non-alphanumeric character
+    /// is mapped to '_'. Deterministic from the destination id alone, so a span's own
+    /// w:bookmarkStart/End Name and any &lt;a href="...#dest:{slug}"&gt; pointing at it always
+    /// derive the identical Word bookmark name independently, with no lookup table needed.</summary>
+    private static string BookmarkNameFor(string destinationId) =>
+        string.Concat(destinationId.Select(c => char.IsLetterOrDigit(c) ? c : '_'));
 
     private static Run RunFor(string text, ICssStyleDeclaration style, float baseFontSizePt, bool forceBold)
     {

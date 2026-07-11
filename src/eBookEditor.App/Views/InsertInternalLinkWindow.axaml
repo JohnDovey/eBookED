@@ -1,0 +1,32 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        mc:Ignorable="d"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        x:Class="eBookEditor.App.Views.InsertInternalLinkWindow"
+        Title="Insert Internal Link"
+        Width="520" Height="420"
+        MinWidth="420" MinHeight="320"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid Margin="16" RowDefinitions="Auto,*,Auto">
+    <TextBlock Grid.Row="0" Margin="0,0,0,8" Opacity="0.7" TextWrapping="Wrap"
+               Text="Choose a chapter, then the destination within it to link to." />
+
+    <Grid Grid.Row="1" ColumnDefinitions="*,12,*">
+      <DockPanel Grid.Column="0">
+        <TextBlock DockPanel.Dock="Top" Text="Chapter" FontWeight="Bold" Margin="0,0,0,4" />
+        <ListBox x:Name="ChapterList" SelectionChanged="OnChapterSelectionChanged" />
+      </DockPanel>
+      <DockPanel Grid.Column="2">
+        <TextBlock DockPanel.Dock="Top" Text="Destination" FontWeight="Bold" Margin="0,0,0,4" />
+        <ListBox x:Name="DestinationList" SelectionChanged="OnDestinationSelectionChanged" />
+      </DockPanel>
+    </Grid>
+
+    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,12,0,0">
+      <Button Content="Cancel" Click="OnCancelClick" />
+      <Button x:Name="InsertButton" Content="Insert Link" Classes="accent" IsEnabled="False" Click="OnInsertClick" />
+    </StackPanel>
+  </Grid>
+
+</Window>

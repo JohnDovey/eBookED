@@ -121,6 +121,8 @@
           <Button Content="Insert Table…" Click="OnInsertTableClick" />
           <Button Content="Insert Image…" Click="OnInsertImageClick" />
           <Button Content="Insert Footnote…" Click="OnInsertFootnoteClick" />
+          <Button Content="Mark Link Destination…" Click="OnMarkLinkDestinationClick" />
+          <Button Content="Insert Internal Link…" Click="OnInsertInternalLinkClick" />
           <Button x:Name="ApplyStyleButton" Content="Apply Style ▾" Click="OnApplyStyleButtonClick" />
         </StackPanel>
 
@@ -144,6 +146,8 @@
                 <MenuItem Header="Insert Table…" Click="OnInsertTableClick" />
                 <MenuItem Header="Insert Image…" Click="OnInsertImageClick" />
                 <MenuItem Header="Insert Footnote…" Click="OnInsertFootnoteClick" />
+                <MenuItem Header="Mark Link Destination…" Click="OnMarkLinkDestinationClick" />
+                <MenuItem Header="Insert Internal Link…" Click="OnInsertInternalLinkClick" />
                 <MenuItem Header="Apply Style" x:Name="ApplyStyleMenuItem" />
               </ContextMenu>
             </ae:TextEditor.ContextMenu>

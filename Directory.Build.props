@@ -704,6 +704,23 @@
          &lt;figure&gt;/&lt;figcaption class="caption"&gt; instead of a bare &lt;img&gt;, using
          the explicit caption when the user set one, else falling back to the primary author's
          name, and omitting the figcaption entirely when neither is available. -->
-    <Version>2.21.0</Version>
+    <!-- 2.22.0: new feature, so a minor bump.
+         Cross-document internal links: a new "dest:{slug}" marker convention
+         (InternalLinkConvention) — "Mark Link Destination…" wraps a selection in
+         &lt;span id="dest:{slug}"&gt; (dual-mode: raw-text splice or WYSIWYG DOM surroundContents
+         via new wrapSelectionWithId/insertOrWrapLink JS bridge functions), "Insert Internal
+         Link…" scans every chapter/page's body (new DocumentLinkDestinationScanner — the first
+         service in this codebase to scan bodies rather than just spine metadata) via a new
+         two-step chapter/destination picker (InsertInternalLinkWindow), and shows a
+         "must be created first" message (new reusable MessageWindow) if none exist. Internal
+         links now resolve for real on export instead of rendering as dead/literal links:
+         HtmlToPdfRenderer registers a zero-height QuestPDF Section at each destination's own
+         block and renders a matching &lt;a href&gt; as a real SectionLink (the same mechanism
+         PdfBuilder's table of contents already uses for chapter jumps); HtmlToDocxConverter
+         wraps a destination span in a real w:bookmarkStart/w:bookmarkEnd pair and renders a
+         matching &lt;a href&gt; as a Hyperlink with a real Anchor instead of
+         AddHyperlinkRelationship. EPUB/Preview/WYSIWYG need no new code — a real browser engine
+         already resolves "chapter.ebhtml#dest:slug" as a normal in-document anchor link. -->
+    <Version>2.22.0</Version>
   </PropertyGroup>
 </Project>

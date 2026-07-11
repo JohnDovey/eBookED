@@ -203,6 +203,42 @@ public class PdfBuilderTests : IDisposable
     }
 
     [Fact]
+    public void Build_InternalDestinationLink_RendersAsALinkAndDoesNotThrow()
+    {
+        // "Mark Link Destination"/"Insert Internal Link" (see InternalLinkConvention) resolves
+        // via a QuestPDF Section registered at the destination's own block — a forward reference
+        // (the link, on an earlier page, pointing at a destination defined on a later page) must
+        // not throw, matching how the table of contents already forward-references chapters.
+        var project = BuildSampleProject();
+
+        var chapterPath = _chapterFileService.CreateNewChapterFile(project.ChaptersDir, "Chapter Two");
+        var relativePath = Path.GetRelativePath(project.DirectoryPath, chapterPath).Replace('\\', '/');
+        _chapterFileService.WriteChapter(chapterPath,
+            new ChapterFrontMatter { Title = "Chapter Two" },
+            """
+            <p>Refer back to <a href="chapters/001.ebhtml#dest:the-captain-a1b2c3">the captain</a>.</p>
+            """);
+        _spineService.AddChapter(project, "Chapter Two", relativePath);
+
+        var firstChapterItem = project.Spine.Single(i => i.Title == "Chapter One");
+        var firstChapterPath = project.ResolvePath(firstChapterItem);
+        _chapterFileService.WriteChapter(firstChapterPath,
+            new ChapterFrontMatter { Title = "Chapter One" },
+            "<p>Meet <span id=\"dest:the-captain-a1b2c3\">Captain Reyes</span> for the first time.</p>");
+        _projectService.SaveProject(project);
+
+        var outputPath = Path.Combine(project.OutputDir, "book.pdf");
+        var result = _pdfBuilder.Build(project, outputPath);
+
+        using var document = PdfDocument.Open(outputPath);
+        var allText = string.Join(" ", Enumerable.Range(1, document.NumberOfPages).Select(i => document.GetPage(i).Text));
+
+        Assert.Contains("Captain Reyes", allText);
+        Assert.Contains("Refer back to the captain", allText);
+        Assert.True(result.PageCount >= project.Spine.Count);
+    }
+
+    [Fact]
     public void Build_RendersARealFootnoteReferenceAndNotesSection()
     {
         var project = BuildSampleProject();

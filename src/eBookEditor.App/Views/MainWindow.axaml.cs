@@ -27,6 +27,7 @@ public partial class MainWindow : Window
     private NativeWebView? _wysiwygWebView;
     private bool _wysiwygNavigated;
     private readonly ChapterFileService _chapterFileService = new();
+    private readonly DocumentLinkDestinationScanner _linkDestinationScanner = new();
 
     public MainWindow()
     {
@@ -523,6 +524,123 @@ public partial class MainWindow : Window
 
     [System.Text.RegularExpressions.GeneratedRegex("id=\"fnref:(\\d+)\"")]
     private static partial System.Text.RegularExpressions.Regex FootnoteReferenceIdRegex();
+
+    /// <summary>
+    /// Wraps the current selection in "&lt;span id="dest:{slug}"&gt;" — a cross-document link
+    /// target another chapter's "Insert Internal Link" can jump to (see
+    /// InternalLinkConvention). The dialog's label only feeds the slug; the actual wrapped
+    /// content is whatever's currently selected, exactly like OnApplyStyleClick's own selection-
+    /// wrap. Raw mode requires a real selection (silently no-ops without one, matching
+    /// OnApplyStyleClick's own raw-mode behavior); WYSIWYG mode's JS-side wrapSelectionWithId is
+    /// itself a no-op with nothing selected in the WebView's DOM.
+    /// </summary>
+    private async void OnMarkLinkDestinationClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null)
+            return;
+
+        var selectedText = !IsWysiwygMode && EditorTextBox.SelectionLength > 0
+            ? EditorTextBox.Document.GetText(EditorTextBox.SelectionStart, EditorTextBox.SelectionLength)
+            : null;
+
+        var dialog = new MarkLinkDestinationWindow(selectedText);
+        await dialog.ShowDialog(this);
+
+        if (dialog.Result is not { } label)
+            return;
+
+        var destinationId = $"{InternalLinkConvention.DestinationIdPrefix}{UniqueDestinationSlug(label)}";
+
+        if (IsWysiwygMode)
+        {
+            InvokeWysiwygScript(
+                $"window.ebookEditor.wrapSelectionWithId({JsonSerializer.Serialize(destinationId)})");
+            return;
+        }
+
+        var selectionStart = EditorTextBox.SelectionStart;
+        var selectionLength = EditorTextBox.SelectionLength;
+        if (selectionLength <= 0)
+            return;
+
+        var selectedRaw = EditorTextBox.Document.GetText(selectionStart, selectionLength);
+        var wrapped = $"<span id=\"{destinationId}\">{selectedRaw}</span>";
+        EditorTextBox.Document.Replace(selectionStart, selectionLength, wrapped);
+        EditorTextBox.CaretOffset = selectionStart + wrapped.Length;
+        EditorTextBox.Focus();
+    }
+
+    /// <summary>
+    /// A destination's HTML id must be unique within its own page — appends "-2", "-3", etc. to
+    /// the label-derived slug until no "dest:" id with that value is already present in the
+    /// page's own text. Checks ViewModel.Editor.CurrentText (kept current in both modes — see
+    /// OnWysiwygMessageBody's debounced sync from the WYSIWYG bridge) rather than the DOM
+    /// directly, so this works identically regardless of which pane is active.
+    /// </summary>
+    private string UniqueDestinationSlug(string label)
+    {
+        var baseSlug = Slug.Create(label, "destination");
+        var slug = baseSlug;
+        var suffix = 2;
+        while (ViewModel!.Editor.CurrentText.Contains(
+                   $"id=\"{InternalLinkConvention.DestinationIdPrefix}{slug}\"", StringComparison.Ordinal))
+        {
+            slug = $"{baseSlug}-{suffix++}";
+        }
+
+        return slug;
+    }
+
+    /// <summary>
+    /// Scans every chapter/page in the project for "Mark Link Destination" markers (see
+    /// DocumentLinkDestinationScanner); if none exist yet, tells the user to mark one first
+    /// rather than opening an empty picker. Otherwise wraps the current selection in a real
+    /// link to the chosen destination, or — since there's nothing to wrap when nothing is
+    /// selected — inserts a brand new link using the destination's own marked text.
+    /// </summary>
+    private async void OnInsertInternalLinkClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null)
+            return;
+
+        var destinations = _linkDestinationScanner.FindAll(ViewModel.CurrentProject);
+        if (destinations.Count == 0)
+        {
+            await new MessageWindow("Insert Internal Link",
+                "A Link Destination must be created before you can link to it.").ShowDialog(this);
+            return;
+        }
+
+        var dialog = new InsertInternalLinkWindow(destinations);
+        await dialog.ShowDialog(this);
+
+        if (dialog.Result is not { } destination)
+            return;
+
+        var href = $"{destination.Item.RelativePath}#{destination.DestinationId}";
+
+        if (IsWysiwygMode)
+        {
+            InvokeWysiwygScript(
+                $"window.ebookEditor.insertOrWrapLink({JsonSerializer.Serialize(href)}, {JsonSerializer.Serialize(destination.Label)})");
+            return;
+        }
+
+        var selectionStart = EditorTextBox.SelectionStart;
+        var selectionLength = EditorTextBox.SelectionLength;
+        if (selectionLength > 0)
+        {
+            var selectedRaw = EditorTextBox.Document.GetText(selectionStart, selectionLength);
+            var wrapped = $"<a href=\"{href}\">{selectedRaw}</a>";
+            EditorTextBox.Document.Replace(selectionStart, selectionLength, wrapped);
+            EditorTextBox.CaretOffset = selectionStart + wrapped.Length;
+            EditorTextBox.Focus();
+        }
+        else
+        {
+            InsertAtCursor($"<a href=\"{href}\">{System.Net.WebUtility.HtmlEncode(destination.Label)}</a>");
+        }
+    }
 
     private void OnEditorTextBoxTextChanged(object? sender, EventArgs e)
     {

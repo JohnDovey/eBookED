@@ -86,6 +86,67 @@ public static class HtmlPageShell
               sel.addRange(newRange);
               notifyChange();
             },
+            // Wraps the current selection in <span id="id">, the WYSIWYG-mode half of "Mark
+            // Link Destination" — same surroundContents/extract-and-reinsert shape as
+            // wrapSelection above, but setting an id (a link target) rather than a class.
+            wrapSelectionWithId: function (id) {
+              var sel = window.getSelection();
+              if (!sel.rangeCount) return;
+              var range = sel.getRangeAt(0);
+              if (range.collapsed || !content.contains(range.commonAncestorContainer)) return;
+              var wrapper = document.createElement('span');
+              wrapper.id = id;
+              try {
+                range.surroundContents(wrapper);
+              } catch (e) {
+                var extracted = range.extractContents();
+                wrapper.appendChild(extracted);
+                range.insertNode(wrapper);
+              }
+              sel.removeAllRanges();
+              var newRange = document.createRange();
+              newRange.selectNodeContents(wrapper);
+              sel.addRange(newRange);
+              notifyChange();
+            },
+            // The WYSIWYG-mode half of "Insert Internal Link": wraps the current selection in
+            // <a href="href">, or — since there's nothing to wrap when nothing is selected —
+            // inserts a brand new <a href="href">fallbackText</a> at the caret instead, mirroring
+            // insertHtml's own "no real selection" fallback position (end of #content, or the
+            // caret if one exists there).
+            insertOrWrapLink: function (href, fallbackText) {
+              var sel = window.getSelection();
+              var hasSelection = sel.rangeCount && !sel.getRangeAt(0).collapsed && content.contains(sel.getRangeAt(0).commonAncestorContainer);
+              if (hasSelection) {
+                var range = sel.getRangeAt(0);
+                var wrapper = document.createElement('a');
+                wrapper.setAttribute('href', href);
+                try {
+                  range.surroundContents(wrapper);
+                } catch (e) {
+                  var extracted = range.extractContents();
+                  wrapper.appendChild(extracted);
+                  range.insertNode(wrapper);
+                }
+                sel.removeAllRanges();
+              } else {
+                content.focus();
+                var insertRange;
+                if (sel.rangeCount && content.contains(sel.anchorNode)) {
+                  insertRange = sel.getRangeAt(0);
+                } else {
+                  insertRange = document.createRange();
+                  insertRange.selectNodeContents(content);
+                  insertRange.collapse(false);
+                }
+                var link = document.createElement('a');
+                link.setAttribute('href', href);
+                link.textContent = fallbackText;
+                insertRange.deleteContents();
+                insertRange.insertNode(link);
+              }
+              notifyChange();
+            },
             scrollToFraction: function (fraction) {
               var max = document.documentElement.scrollHeight - window.innerHeight;
               window.scrollTo(0, Math.max(0, max) * fraction);

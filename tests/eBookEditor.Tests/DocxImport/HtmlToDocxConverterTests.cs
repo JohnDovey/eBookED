@@ -118,6 +118,40 @@ public class HtmlToDocxConverterTests : IDisposable
     }
 
     [Fact]
+    public void ConvertToFile_InternalDestinationLink_BecomesARealBookmarkAndAnchorHyperlink()
+    {
+        // "Mark Link Destination"/"Insert Internal Link" (see InternalLinkConvention) should
+        // resolve to a real, working in-document jump in Word — not the AddHyperlinkRelationship
+        // path other links use, since that produces an external-style relationship with nothing
+        // for a same-document anchor to actually point at.
+        var path = Path.Combine(_tempDir, "chapter-internal-link.docx");
+        const string html = """
+            <p>See <span id="dest:the-captain-a1b2c3">Captain Reyes</span> introduced here.</p>
+            <p>Later, refer back to <a href="chapters/001.ebhtml#dest:the-captain-a1b2c3">the captain</a>.</p>
+            """;
+
+        _converter.ConvertToFile(html, "Chapter", path);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        var mainPart = document.MainDocumentPart!;
+        var body = mainPart.Document!.Body!;
+
+        var bookmarkStart = body.Descendants<BookmarkStart>().Single();
+        var bookmarkEnd = body.Descendants<BookmarkEnd>().Single();
+        Assert.Equal(bookmarkStart.Id, bookmarkEnd.Id);
+        Assert.Equal("dest_the_captain_a1b2c3", bookmarkStart.Name);
+
+        var hyperlink = body.Descendants<Hyperlink>().Single();
+        Assert.Equal("the captain", hyperlink.InnerText);
+        Assert.Equal("dest_the_captain_a1b2c3", hyperlink.Anchor!.Value);
+        Assert.Null(hyperlink.Id);
+        Assert.Empty(mainPart.HyperlinkRelationships);
+
+        var errors = new OpenXmlValidator().Validate(document).ToList();
+        Assert.True(errors.Count == 0, string.Join("\n", errors.Select(e => $"{e.Path?.XPath} :: {e.Description}")));
+    }
+
+    [Fact]
     public void ConvertToFile_RendersTables()
     {
         const string html = """

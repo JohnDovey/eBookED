@@ -61,6 +61,7 @@ internal class HtmlToPdfRenderer
             case "H1" or "H2" or "H3" or "H4" or "H5" or "H6":
                 var level = element.TagName[1] - '0';
                 var headingSize = level switch { 1 => 20f, 2 => 16f, _ => 13f };
+                EmitDestinationSections(column, element);
                 column.Item().PaddingTop(level == 1 ? 0 : 10).PaddingBottom(6).Text(text =>
                     RenderInlineChildren(text, element, headingSize, headingFontFamily, styles, forceBold: true));
                 break;
@@ -103,6 +104,7 @@ internal class HtmlToPdfRenderer
             case "FIGCAPTION":
                 var captionStyle = styles.ComputedStyle(element);
                 var captionFontSize = CssValueParser.ParseLength(captionStyle.GetPropertyValue("font-size"), baseFontSize) ?? baseFontSize;
+                EmitDestinationSections(column, element);
                 column.Item().PaddingBottom(8).Text(text =>
                     RenderInlineChildren(text, element, captionFontSize, headingFontFamily, styles));
                 break;
@@ -141,9 +143,26 @@ internal class HtmlToPdfRenderer
             return;
         }
 
+        EmitDestinationSections(column, element);
         IContainer item = column.Item();
         item = ApplyBlockStyle(item, style, baseFontSize);
         item.PaddingBottom(8).Text(text => RenderInlineChildren(text, element, fontSize, headingFontFamily, styles));
+    }
+
+    /// <summary>
+    /// Registers a zero-height QuestPDF Section (see PdfBuilder's own per-spine-item use of the
+    /// same mechanism) for every "Mark Link Destination" marker (see InternalLinkConvention)
+    /// found anywhere inside <paramref name="element"/> — block-level granularity, not the exact
+    /// inline position, since QuestPDF's Section is a container-level primitive with no inline-
+    /// text equivalent. A destination near the end of a long paragraph resolves to that
+    /// paragraph's own page, which is accurate enough for "jump to roughly the right spot"
+    /// purposes and mirrors the Index feature's own documented per-block-not-per-character
+    /// simplification.
+    /// </summary>
+    private static void EmitDestinationSections(ColumnDescriptor column, DomElement element)
+    {
+        foreach (var destination in element.QuerySelectorAll($"[id^='{InternalLinkConvention.DestinationIdPrefix}']"))
+            column.Item().Height(0).Section(destination.Id!);
     }
 
     private static bool IsBlockElement(DomElement element) => element.TagName is
@@ -176,6 +195,7 @@ internal class HtmlToPdfRenderer
         foreach (var item in list.Children.Where(c => c.TagName == "LI"))
         {
             var prefix = ordered ? $"{index}. " : "• ";
+            EmitDestinationSections(column, item);
             column.Item().PaddingLeft(16).PaddingBottom(4).Text(text =>
             {
                 text.Span(prefix);
@@ -234,11 +254,13 @@ internal class HtmlToPdfRenderer
         {
             if (child.TagName == "DT")
             {
+                EmitDestinationSections(column, child);
                 column.Item().PaddingTop(6).Text(text =>
                     RenderInlineChildren(text, child, baseFontSize, null, styles, forceBold: true));
             }
             else if (child.TagName == "DD")
             {
+                EmitDestinationSections(column, child);
                 column.Item().PaddingLeft(16).PaddingBottom(2).Text(text =>
                     RenderInlineChildren(text, child, baseFontSize, null, styles));
             }
@@ -345,6 +367,8 @@ internal class HtmlToPdfRenderer
                     var linkText = TransformText(element.TextContent, linkStyle);
                     if (string.IsNullOrWhiteSpace(href))
                         ApplyStyledSpan(text.Span(linkText), linkStyle, baseFontSize, fallbackFontFamily, forceBold);
+                    else if (InternalLinkConvention.TryGetDestinationFragment(href, out var destinationId))
+                        ApplyStyledSpan(text.SectionLink(linkText, destinationId), linkStyle, baseFontSize, fallbackFontFamily, forceBold);
                     else
                         ApplyStyledSpan(text.Hyperlink(linkText, href), linkStyle, baseFontSize, fallbackFontFamily, forceBold);
                     break;

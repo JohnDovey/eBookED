@@ -59,6 +59,8 @@ public class HtmlPageShellTests
         Assert.Contains("window.ebookEditor", html);
         Assert.Contains("insertHtml", html);
         Assert.Contains("wrapSelection", html);
+        Assert.Contains("wrapSelectionWithId", html);
+        Assert.Contains("insertOrWrapLink", html);
         Assert.Contains("scrollToFraction", html);
         Assert.Contains("appendFootnoteDefinition", html);
     }
