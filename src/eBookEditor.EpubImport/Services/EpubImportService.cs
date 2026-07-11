@@ -13,12 +13,21 @@ using eBookEditor.EpubImport.Models;
 namespace eBookEditor.EpubImport.Services;
 
 /// <summary>Everything read out of a source EPUB, ready to seed a new eBookEditor project —
-/// see EpubProjectImporter for the part that actually writes it to disk.</summary>
+/// see EpubProjectImporter for the part that actually writes it to disk.
+/// <paramref name="SourceHrefsByItem"/> is parallel to <paramref name="Items"/> — the original,
+/// fragment-stripped manifest href that identified each item (null for items without one),
+/// used to rewrite cross-chapter hyperlinks once every item's final on-disk path is known.
+/// <paramref name="SourceStylesheets"/>/<paramref name="SourceFontFilesByFileName"/> are the
+/// source EPUB's own CSS text and embedded font file bytes (keyed by original filename), for
+/// building a new template that reflects the source's own look — see EpubStylesheetImporter.</summary>
 public record EpubImportResult(
     BookMetadata Metadata,
     IReadOnlyList<ChapterImportDraft> Items,
+    IReadOnlyList<string?> SourceHrefsByItem,
     byte[]? CoverImageBytes,
-    string? CoverImageFileName);
+    string? CoverImageFileName,
+    IReadOnlyList<string> SourceStylesheets,
+    IReadOnlyDictionary<string, byte[]> SourceFontFilesByFileName);
 
 /// <summary>
 /// Parses an arbitrary (reasonably well-formed) EPUB file into metadata + a list of chapter
@@ -87,6 +96,7 @@ public partial class EpubImportService
         var bodymatterIndex = kept.FindIndex(k => k.LandmarkType == "bodymatter");
 
         var items = new List<ChapterImportDraft>();
+        var sourceHrefsByItem = new List<string?>();
         for (var index = 0; index < kept.Count; index++)
         {
             var (_, manifestItem, hrefKey, landmarkType) = kept[index];
@@ -104,8 +114,26 @@ public partial class EpubImportService
             var document = _htmlParser.ParseDocument(rawHtml);
             var body = document.Body ?? document.DocumentElement;
 
+            var entryDir = Path.GetDirectoryName(entryPath)?.Replace('\\', '/') ?? "";
+            // hrefKey (and every SourceHrefsByItem value) is always relative to the OPF's own
+            // directory, never the zip root — so an internal href must be resolved against the
+            // chapter's OPF-relative directory too, not entryDir (which includes the
+            // OpfDirectory prefix baked in), or the two would never line up for matching.
+            var opfRelativeEntryDir = Path.GetDirectoryName(manifestItem.Href)?.Replace('\\', '/') ?? "";
             var images = new List<ExtractedImage>();
             RewriteImages(body, entryPath, archive, images);
+            // Normalizes every internal (non-fragment, non-external) href to the same
+            // OPF-relative form hrefKey/SourceHrefsByItem use, since a link written inside a
+            // chapter is relative to *that chapter's own* directory (e.g. a bare
+            // "chapter2.xhtml" when both chapters live in "text/"), not to the OPF's directory
+            // — without this, EpubProjectImporter's later exact-match rewrite pass would never
+            // find it. Must run before footnote conversion touches same-page "#fragment" hrefs
+            // (skipped here, left alone) so the two passes can't interfere with each other.
+            NormalizeInternalHrefs(body, opfRelativeEntryDir);
+            // Footnote conversion runs before namespace stripping — EPUB3-native footnotes are
+            // marked with epub:type attributes that StripEpubNamespaceAttributes would
+            // otherwise destroy before EpubFootnoteConverter ever sees them.
+            EpubFootnoteConverter.RewriteFootnotes(body);
             StripEpubNamespaceAttributes(body);
             var sanitizedBody = _sanitizer.Convert(body.InnerHtml);
 
@@ -117,11 +145,88 @@ public partial class EpubImportService
             var isBeforeFirstChapter = bodymatterIndex >= 0 && index < bodymatterIndex;
             var (type, numberMode) = ClassifyItem(title, landmarkType, isBeforeFirstChapter);
             items.Add(new ChapterImportDraft(title, sanitizedBody, PositionHint: null, images, type, numberMode));
+            sourceHrefsByItem.Add(hrefKey);
         }
 
         var (coverBytes, coverFileName) = ExtractCoverImage(archive, package);
-        return new EpubImportResult(package.Metadata, items, coverBytes, coverFileName);
+        var (sourceStylesheets, sourceFonts) = ReadSourceStylesheetsAndFonts(archive, package);
+        return new EpubImportResult(package.Metadata, items, sourceHrefsByItem, coverBytes, coverFileName, sourceStylesheets, sourceFonts);
     }
+
+    /// <summary>Reads every source text/css manifest item's raw content and every source font
+    /// manifest item's raw bytes (keyed by original filename, matching FontService's own
+    /// Path.GetFileName(url) convention) — the raw material EpubStylesheetImporter merges
+    /// against Vellum Serif.css. No classification of *which* fonts/rules actually end up used
+    /// happens here; that's EpubStylesheetImporter's job, kept separate so this stays a pure
+    /// "read everything the manifest offers" pass with a single zip-archive read, same as the
+    /// chapter/image/cover reads above.</summary>
+    private static (IReadOnlyList<string> Stylesheets, IReadOnlyDictionary<string, byte[]> FontsByFileName) ReadSourceStylesheetsAndFonts(ZipArchive archive, EpubPackage package)
+    {
+        var stylesheets = new List<string>();
+        var fonts = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in package.ManifestById.Values)
+        {
+            if (item.MediaType.Equals("text/css", StringComparison.OrdinalIgnoreCase))
+            {
+                var path = CombineEpubPath(package.OpfDirectory, item.Href);
+                var entry = archive.GetEntry(path);
+                if (entry is null)
+                    continue;
+
+                using var stream = entry.Open();
+                using var reader = new StreamReader(stream);
+                stylesheets.Add(reader.ReadToEnd());
+            }
+            else if (IsFontMediaType(item.MediaType))
+            {
+                var path = CombineEpubPath(package.OpfDirectory, item.Href);
+                var entry = archive.GetEntry(path);
+                if (entry is null)
+                    continue;
+
+                using var stream = entry.Open();
+                using var memoryStream = new MemoryStream();
+                stream.CopyTo(memoryStream);
+                fonts[Path.GetFileName(item.Href)] = memoryStream.ToArray();
+            }
+        }
+
+        return (stylesheets, fonts);
+    }
+
+    /// <summary>Rewrites every internal (non-fragment, non-external) href in-place to its
+    /// OPF-relative form — the same key space as hrefKey/SourceHrefsByItem — so
+    /// EpubProjectImporter's later exact-match rewrite pass can find it regardless of which
+    /// chapter's own directory the link was originally written relative to.</summary>
+    private static void NormalizeInternalHrefs(AngleSharp.Dom.IElement body, string entryDir)
+    {
+        foreach (var anchor in body.QuerySelectorAll("a[href]"))
+        {
+            var href = anchor.GetAttribute("href");
+            if (string.IsNullOrWhiteSpace(href) || href.StartsWith('#') ||
+                href.Contains("://", StringComparison.Ordinal) ||
+                href.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var hashIndex = href.IndexOf('#');
+            var basePart = hashIndex >= 0 ? href[..hashIndex] : href;
+            var fragment = hashIndex >= 0 ? href[hashIndex..] : "";
+            if (basePart.Length == 0)
+                continue;
+
+            anchor.SetAttribute("href", CombineEpubPath(entryDir, basePart) + fragment);
+        }
+    }
+
+    private static bool IsFontMediaType(string mediaType) => mediaType.ToLowerInvariant() switch
+    {
+        "font/ttf" or "font/otf" or "font/woff" or "font/woff2" or
+        "application/font-woff" or "application/font-woff2" or
+        "application/vnd.ms-opentype" or
+        "application/x-font-ttf" or "application/x-font-opentype" => true,
+        _ => false
+    };
 
     private static EpubNavigationInfo ReadNavigation(ZipArchive archive, EpubPackage package)
     {

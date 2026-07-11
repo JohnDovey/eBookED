@@ -7,6 +7,9 @@
     <!-- HtmlImportSanitizer (script/style/event-handler stripping) and ChapterImportDraft,
          reused as-is rather than duplicated. -->
     <ProjectReference Include="..\eBookEditor.ChapterImport\eBookEditor.ChapterImport.csproj" />
+    <!-- FontService.ParseFontFaces (@font-face regex parsing) and TemplateService, reused for
+         building/writing the template a source EPUB's own CSS generates. -->
+    <ProjectReference Include="..\eBookEditor.Epub\eBookEditor.Epub.csproj" />
   </ItemGroup>
 
   <ItemGroup>

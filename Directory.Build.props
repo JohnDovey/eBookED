@@ -645,6 +645,36 @@
          positionHint mechanism, falling back to appending at the end when nothing/a non-
          chapter item is selected — matching how a user would expect an "insert" action
          relative to their current position to behave. -->
-    <Version>2.19.1</Version>
+    <!-- 2.20.0: new feature, so a minor bump. Revisits "Create Project from ePub"'s three
+         previously-documented scope limits and actually builds them.
+         (1) The source EPUB's own CSS is now imported as a new template: EpubStylesheetImporter
+         parses both it and "Vellum Serif.css" via AngleSharp.Css's raw rule API and, for every
+         selector Vellum defines, uses the source's declarations if it defines an equivalent
+         (exact selector-text match — real EPUBs consistently style plain structural elements
+         for baseline readability, while this app's own EditorStyleCatalog classes essentially
+         never exist in a foreign EPUB, so those correctly and consistently fall back to
+         Vellum's declaration), else keeps Vellum's own. Source-defined custom fonts actually
+         referenced by the merged CSS are extracted from the EPUB and embedded the same way
+         Vellum's own fonts are; the new template is named after the book and selected
+         automatically, written into TemplateService's real runtime templates/fonts
+         directories (not the source tree — those are shared, app-wide locations an end user's
+         import writes into at runtime).
+         (2) Internal cross-chapter hyperlinks are rewritten to point at the new project's own
+         chapter files: EpubImportService now normalizes every internal href to a stable,
+         OPF-relative form as each chapter is read (a link is relative to the *linking*
+         chapter's own directory, not the OPF's — this needs resolving explicitly), and
+         EpubProjectImporter rewrites those to final resolved paths in a pass that runs after
+         file-name syncing, once every item's real path is known. A link into a specific
+         section of another chapter loses that finer targeting (only the chapter-level target
+         survives) — a documented limitation, not a bug.
+         (3) Footnotes are now best-effort converted into this app's own convention (the exact
+         shape "Insert Footnote…" itself authors) via new EpubFootnoteConverter: detects both
+         EPUB3-native epub:type="noteref"/"footnote" markup and plain same-page
+         sup+fragment-link/id pairs (a reference only pairs with a target that appears later in
+         the body — a definition can't precede its own reference). Anything that looks like a
+         footnote reference but doesn't resolve gets a real new footnote inserted immediately
+         after it reading "TODO: ...please review and fix it manually," rather than being
+         silently left broken. -->
+    <Version>2.20.0</Version>
   </PropertyGroup>
 </Project>
