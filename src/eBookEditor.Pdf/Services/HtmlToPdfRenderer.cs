@@ -47,8 +47,51 @@ internal class HtmlToPdfRenderer
             column.Item().Height(0).Section(sectionName).CaptureContentPosition(sectionName);
 
         var styled = HtmlStyleDocument.Parse(html, templateCss);
-        foreach (var node in styled.Body.ChildNodes)
-            RenderNode(column, node, sourceDir, headingFontFamily, styled, DefaultFontSize);
+        var children = styled.Body.ChildNodes.ToList();
+
+        // A left/right "flow" image (see ImagePlacement — Insert Image…'s "Flow text around
+        // image" option) needs its own two-node lookahead: the image and the paragraph right
+        // after it render together in one QuestPDF Row, approximating real text wrap (QuestPDF
+        // has no float primitive of its own) — a best-effort approximation of a single adjacent
+        // paragraph, not true multi-paragraph reflow, and only attempted at this top level, not
+        // for an image nested inside another block container.
+        for (var i = 0; i < children.Count; i++)
+        {
+            if (children[i] is DomElement { TagName: "FIGURE" } figure
+                && ImagePlacementParser.Parse(figure.GetAttribute("style")) is { Flow: true } placement
+                && figure.QuerySelector("img") is { } flowImage
+                && i + 1 < children.Count && children[i + 1] is DomElement { TagName: "P" } nextParagraph)
+            {
+                RenderFlowedImageAndParagraph(column, flowImage, nextParagraph, placement, sourceDir, headingFontFamily, styled, DefaultFontSize);
+                i++;
+                continue;
+            }
+
+            RenderNode(column, children[i], sourceDir, headingFontFamily, styled, DefaultFontSize);
+        }
+    }
+
+    private static void RenderFlowedImageAndParagraph(ColumnDescriptor column, DomElement image, DomElement paragraph, ImagePlacement placement, string? sourceDir, string? headingFontFamily, HtmlStyleDocument styles, float baseFontSize)
+    {
+        column.Item().PaddingBottom(8).Row(row =>
+        {
+            var imageWidth = ParseExplicitPixelSize(image, "width") ?? 150f;
+
+            void RenderImageColumn() => RenderImage(row.ConstantItem(imageWidth), image, sourceDir, placement.Alignment, imageWidth);
+            void RenderTextColumn() => row.RelativeItem().PaddingHorizontal(8).Text(text =>
+                RenderInlineChildren(text, paragraph, baseFontSize, headingFontFamily, styles));
+
+            if (placement.Alignment == ImageAlignment.Left)
+            {
+                RenderImageColumn();
+                RenderTextColumn();
+            }
+            else
+            {
+                RenderTextColumn();
+                RenderImageColumn();
+            }
+        });
     }
 
     private static void RenderNode(ColumnDescriptor column, INode node, string? sourceDir, string? headingFontFamily, HtmlStyleDocument styles, float baseFontSize)
@@ -97,8 +140,7 @@ internal class HtmlToPdfRenderer
                 break;
 
             case "FIGURE":
-                foreach (var child in element.Children)
-                    RenderNode(column, child, sourceDir, headingFontFamily, styles, baseFontSize);
+                RenderFigure(column, element, sourceDir, headingFontFamily, styles, baseFontSize);
                 break;
 
             case "FIGCAPTION":
@@ -313,7 +355,12 @@ internal class HtmlToPdfRenderer
         return false;
     }
 
-    private static void RenderImage(IContainer container, DomElement image, string? sourceDir)
+    /// <summary>The image itself, aligned per <paramref name="alignment"/> and sized to
+    /// <paramref name="explicitWidthOverride"/> if given, else the image's own "width" attribute
+    /// (see Insert Image…'s width/height fields) if present, else the previous fixed default —
+    /// height is never read separately since QuestPDF's own FitWidth already preserves the
+    /// original aspect ratio once width is fixed.</summary>
+    private static void RenderImage(IContainer container, DomElement image, string? sourceDir, ImageAlignment alignment = ImageAlignment.Center, float? explicitWidthOverride = null)
     {
         var src = image.GetAttribute("src");
         if (sourceDir is null || string.IsNullOrWhiteSpace(src))
@@ -323,8 +370,46 @@ internal class HtmlToPdfRenderer
         if (!File.Exists(absolutePath))
             return;
 
-        container.PaddingBottom(8).AlignCenter().Element(el => el.MaxWidth(320).Image(absolutePath).FitWidth());
+        var width = explicitWidthOverride ?? ParseExplicitPixelSize(image, "width") ?? 320f;
+        var padded = container.PaddingBottom(8);
+        var aligned = alignment switch
+        {
+            ImageAlignment.Left => padded.AlignLeft(),
+            ImageAlignment.Right => padded.AlignRight(),
+            _ => padded.AlignCenter(),
+        };
+
+        aligned.Element(el => el.MaxWidth(width).Image(absolutePath).FitWidth());
     }
+
+    /// <summary>&lt;figure&gt; rendering for the non-flow case (flow — "float:left"/"right" —
+    /// is instead handled by RenderHtmlBody's own top-level two-node lookahead, so it can pull
+    /// in the following paragraph too; a flow figure reached through this path, e.g. nested
+    /// inside another block container, still renders — just without the adjacent-paragraph
+    /// approximation, a documented "top level only" scope reduction).</summary>
+    private static void RenderFigure(ColumnDescriptor column, DomElement figure, string? sourceDir, string? headingFontFamily, HtmlStyleDocument styles, float baseFontSize)
+    {
+        var img = figure.QuerySelector("img");
+        if (img is null)
+        {
+            foreach (var child in figure.Children)
+                RenderNode(column, child, sourceDir, headingFontFamily, styles, baseFontSize);
+            return;
+        }
+
+        var placement = ImagePlacementParser.Parse(figure.GetAttribute("style"));
+        RenderImage(column.Item(), img, sourceDir, placement.Alignment);
+
+        if (figure.QuerySelector("figcaption") is { } figcaption)
+        {
+            var captionStyle = styles.ComputedStyle(figcaption);
+            var captionFontSize = CssValueParser.ParseLength(captionStyle.GetPropertyValue("font-size"), baseFontSize) ?? baseFontSize;
+            column.Item().PaddingBottom(8).Text(text => RenderInlineChildren(text, figcaption, captionFontSize, headingFontFamily, styles));
+        }
+    }
+
+    private static float? ParseExplicitPixelSize(DomElement element, string attributeName) =>
+        float.TryParse(element.GetAttribute(attributeName), out var value) && value > 0 ? value : null;
 
     private static void RenderInlineChildren(TextDescriptor text, DomElement parent, float baseFontSize, string? fallbackFontFamily, HtmlStyleDocument styles, bool forceBold = false)
     {

@@ -534,6 +534,73 @@ public class PdfBuilderTests : IDisposable
     }
 
     [Fact]
+    public void Build_ImageWithExplicitSizeAndAlignment_RendersWithoutError()
+    {
+        var project = BuildSampleProject();
+        var imagesDir = Path.Combine(project.DirectoryPath, "images");
+        Directory.CreateDirectory(imagesDir);
+        var pngBytes = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        File.WriteAllBytes(Path.Combine(imagesDir, "photo.jpg"), pngBytes);
+
+        var chapterPath = _chapterFileService.CreateNewChapterFile(project.ChaptersDir, "Chapter Two");
+        var relativePath = Path.GetRelativePath(project.DirectoryPath, chapterPath).Replace('\\', '/');
+        _chapterFileService.WriteChapter(chapterPath,
+            new ChapterFrontMatter { Title = "Chapter Two" },
+            """
+            <figure style="text-align:right">
+            <img src="../images/photo.jpg" alt="A photo" width="150" height="100">
+            <figcaption class="caption">Right-aligned</figcaption>
+            </figure>
+            """);
+        _spineService.AddChapter(project, "Chapter Two", relativePath);
+        _projectService.SaveProject(project);
+
+        var outputPath = Path.Combine(project.OutputDir, "book.pdf");
+        var result = _pdfBuilder.Build(project, outputPath);
+
+        Assert.True(File.Exists(outputPath));
+        using var document = PdfDocument.Open(outputPath);
+        var allText = string.Join(" ", Enumerable.Range(1, document.NumberOfPages).Select(i => document.GetPage(i).Text));
+        Assert.Contains("Right-aligned", allText);
+        Assert.True(result.PageCount >= project.Spine.Count);
+    }
+
+    [Fact]
+    public void Build_FlowedImageWithFollowingParagraph_RendersBothWithoutError()
+    {
+        var project = BuildSampleProject();
+        var imagesDir = Path.Combine(project.DirectoryPath, "images");
+        Directory.CreateDirectory(imagesDir);
+        var pngBytes = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        File.WriteAllBytes(Path.Combine(imagesDir, "photo.jpg"), pngBytes);
+
+        var chapterPath = _chapterFileService.CreateNewChapterFile(project.ChaptersDir, "Chapter Two");
+        var relativePath = Path.GetRelativePath(project.DirectoryPath, chapterPath).Replace('\\', '/');
+        _chapterFileService.WriteChapter(chapterPath,
+            new ChapterFrontMatter { Title = "Chapter Two" },
+            """
+            <figure style="float:left">
+            <img src="../images/photo.jpg" alt="A photo" width="120" height="80">
+            <figcaption class="caption">Flowed</figcaption>
+            </figure>
+            <p>This paragraph should flow beside the image, best-effort.</p>
+            """);
+        _spineService.AddChapter(project, "Chapter Two", relativePath);
+        _projectService.SaveProject(project);
+
+        var outputPath = Path.Combine(project.OutputDir, "book.pdf");
+        var result = _pdfBuilder.Build(project, outputPath);
+
+        Assert.True(File.Exists(outputPath));
+        using var document = PdfDocument.Open(outputPath);
+        var allText = string.Join(" ", Enumerable.Range(1, document.NumberOfPages).Select(i => document.GetPage(i).Text));
+        Assert.Contains("This paragraph should flow beside the image", allText);
+        Assert.True(result.PageCount >= project.Spine.Count);
+    }
+
+    [Fact]
     public void Build_AppliesEditorStyleCatalogClassesViaRealCss()
     {
         // Regression coverage for the actual Phase 5 feature: a class the template CSS

@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
+using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using eBookEditor.DocxImport.Services;
 using eBookEditor.Epub.Services;
 
@@ -397,6 +398,76 @@ public class HtmlToDocxConverterTests : IDisposable
         var mainPart = document.MainDocumentPart!;
         Assert.Single(mainPart.ImageParts);
         Assert.Contains("Caption text", mainPart.Document!.Body!.InnerText);
+    }
+
+    [Fact]
+    public void ConvertToFile_ImageWithExplicitSizeAndRightAlignment_UsesExplicitSizeAndJustification()
+    {
+        var pngBytes = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        var imagesDir = Path.Combine(_tempDir, "images");
+        Directory.CreateDirectory(imagesDir);
+        File.WriteAllBytes(Path.Combine(imagesDir, "photo.jpg"), pngBytes);
+        var chaptersDir = Path.Combine(_tempDir, "chapters");
+        Directory.CreateDirectory(chaptersDir);
+
+        const string html = """
+            <figure style="text-align:right">
+            <img src="../images/photo.jpg" alt="A photo" width="150" height="100">
+            <figcaption class="caption">Right-aligned</figcaption>
+            </figure>
+            """;
+        var path = Path.Combine(_tempDir, "chapter-sized-image.docx");
+
+        _converter.ConvertToFile(html, "Chapter", path, chaptersDir);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        var body = document.MainDocumentPart!.Document!.Body!;
+
+        var extent = body.Descendants<DW.Extent>().Single();
+        // 150px * 9525 EMU/px = 1,428,750
+        Assert.Equal(1_428_750L, extent.Cx!.Value);
+        Assert.Equal(952_500L, extent.Cy!.Value);
+
+        var imageParagraph = body.Descendants<Drawing>().Single().Ancestors<Paragraph>().First();
+        Assert.Equal(JustificationValues.Right, imageParagraph.ParagraphProperties!.Justification!.Val!.Value);
+
+        var errors = new OpenXmlValidator().Validate(document).ToList();
+        Assert.True(errors.Count == 0, string.Join("\n", errors.Select(e => $"{e.Path?.XPath} :: {e.Description}")));
+    }
+
+    [Fact]
+    public void ConvertToFile_ImageWithFlowLeft_ProducesARealAnchoredDrawingWithSquareWrap()
+    {
+        var pngBytes = Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+        var imagesDir = Path.Combine(_tempDir, "images");
+        Directory.CreateDirectory(imagesDir);
+        File.WriteAllBytes(Path.Combine(imagesDir, "photo.jpg"), pngBytes);
+        var chaptersDir = Path.Combine(_tempDir, "chapters");
+        Directory.CreateDirectory(chaptersDir);
+
+        const string html = """
+            <figure style="float:left">
+            <img src="../images/photo.jpg" alt="A photo" width="120" height="80">
+            <figcaption class="caption">Flowed</figcaption>
+            </figure>
+            <p>This paragraph should flow beside the image.</p>
+            """;
+        var path = Path.Combine(_tempDir, "chapter-flowed-image.docx");
+
+        _converter.ConvertToFile(html, "Chapter", path, chaptersDir);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        var body = document.MainDocumentPart!.Document!.Body!;
+
+        var anchor = body.Descendants<DW.Anchor>().Single();
+        Assert.NotNull(anchor.GetFirstChild<DW.WrapSquare>());
+        Assert.Empty(body.Descendants<DW.Inline>());
+        Assert.Contains("This paragraph should flow beside the image", body.InnerText);
+
+        var errors = new OpenXmlValidator().Validate(document).ToList();
+        Assert.True(errors.Count == 0, string.Join("\n", errors.Select(e => $"{e.Path?.XPath} :: {e.Description}")));
     }
 
     [Fact]

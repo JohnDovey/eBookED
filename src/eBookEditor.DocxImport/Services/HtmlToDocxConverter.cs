@@ -172,8 +172,7 @@ public class HtmlToDocxConverter
                 break;
 
             case "FIGURE":
-                foreach (var child in element.Children)
-                    AppendNode(body, child, mainPart, sourceDir, styles, baseFontSizePt, footnotes);
+                AppendFigure(body, element, mainPart, sourceDir, styles, baseFontSizePt, footnotes);
                 break;
 
             case "FIGCAPTION":
@@ -354,7 +353,39 @@ public class HtmlToDocxConverter
         return docxTable;
     }
 
-    private static void AppendImage(Body body, DomElement image, MainDocumentPart mainPart, string? sourceDir)
+    /// <summary>&lt;figure&gt; export: the image itself (see AppendImage, given this figure's
+    /// own ImagePlacement — alignment and whether text should flow around it, see
+    /// InsertImageWindow), then its caption paragraph, if any.</summary>
+    private static void AppendFigure(Body body, DomElement figure, MainDocumentPart mainPart, string? sourceDir, HtmlStyleDocument styles, float baseFontSizePt, FootnoteContext footnotes)
+    {
+        var img = figure.QuerySelector("img");
+        if (img is null)
+        {
+            foreach (var child in figure.Children)
+                AppendNode(body, child, mainPart, sourceDir, styles, baseFontSizePt, footnotes);
+            return;
+        }
+
+        AppendImage(body, img, mainPart, sourceDir, ImagePlacementParser.Parse(figure.GetAttribute("style")));
+
+        if (figure.QuerySelector("figcaption") is { } figcaption)
+        {
+            var captionStyle = styles.ComputedStyle(figcaption);
+            var captionSize = CssValueParser.ParseLength(captionStyle.GetPropertyValue("font-size"), baseFontSizePt) ?? baseFontSizePt;
+            var captionParagraph = new Paragraph();
+            AppendInlineChildren(captionParagraph, figcaption, mainPart, styles, captionSize, footnotes);
+            body.Append(captionParagraph);
+        }
+    }
+
+    /// <summary>Sizes to the image's own explicit "width"/"height" attributes (see Insert
+    /// Image…) when present, else its natural pixel dimensions — either way clamped to 6 inches
+    /// wide, same as before. Center (the default) and a non-flowing left/right both place the
+    /// image as a real Inline drawing, just paragraph-justified differently; a flowing left/
+    /// right instead switches to a real Anchor+WrapSquare drawing — Word's actual "float" —
+    /// genuinely new code path, not a parameter tweak, since Inline and Anchor are different
+    /// element shapes entirely.</summary>
+    private static void AppendImage(Body body, DomElement image, MainDocumentPart mainPart, string? sourceDir, ImagePlacement placement = default)
     {
         var src = image.GetAttribute("src");
         if (sourceDir is null || string.IsNullOrWhiteSpace(src))
@@ -373,7 +404,7 @@ public class HtmlToDocxConverter
             imagePart.FeedData(stream);
         var relationshipId = mainPart.GetIdOfPart(imagePart);
 
-        var (widthPx, heightPx) = ImageDimensionReader.TryGetDimensions(absolutePath) ?? (400, 300);
+        var (widthPx, heightPx) = ParseExplicitPixelSize(image) ?? ImageDimensionReader.TryGetDimensions(absolutePath) ?? (400, 300);
         const long maxWidthEmu = 5486400L; // 6 inches
         var widthEmu = (long)widthPx * 9525L;
         var heightEmu = (long)heightPx * 9525L;
@@ -392,8 +423,31 @@ public class HtmlToDocxConverter
         // document (mainPart is already threaded through the whole call chain, so this needs
         // no new state or signature changes) gives a value that's always unique so far.
         var drawingId = (uint)mainPart.Document!.Descendants<Drawing>().Count() + 1;
-        body.Append(new Paragraph(new Run(BuildImageDrawing(relationshipId, drawingId, widthEmu, heightEmu))));
+
+        if (placement is { Flow: true, Alignment: not ImageAlignment.Center })
+        {
+            body.Append(new Paragraph(new Run(BuildAnchoredImageDrawing(relationshipId, drawingId, widthEmu, heightEmu, placement.Alignment))));
+            return;
+        }
+
+        var paragraph = new Paragraph();
+        var justification = placement.Alignment switch
+        {
+            ImageAlignment.Center => JustificationValues.Center,
+            ImageAlignment.Right => JustificationValues.Right,
+            _ => (JustificationValues?)null, // Left is Word's own paragraph default — no explicit jc needed
+        };
+        if (justification is not null)
+            paragraph.Append(new ParagraphProperties(new Justification { Val = justification }));
+        paragraph.Append(new Run(BuildImageDrawing(relationshipId, drawingId, widthEmu, heightEmu)));
+        body.Append(paragraph);
     }
+
+    private static (int Width, int Height)? ParseExplicitPixelSize(DomElement image) =>
+        int.TryParse(image.GetAttribute("width"), out var width) && width > 0 &&
+        int.TryParse(image.GetAttribute("height"), out var height) && height > 0
+            ? (width, height)
+            : null;
 
     private static PartTypeInfo? ImagePartTypeFor(string path) => Path.GetExtension(path).ToLowerInvariant() switch
     {
@@ -410,22 +464,7 @@ public class HtmlToDocxConverter
             new DW.EffectExtent { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 0L },
             new DW.DocProperties { Id = drawingId, Name = "Picture" },
             new DW.NonVisualGraphicFrameDrawingProperties(new A.GraphicFrameLocks { NoChangeAspect = true }),
-            new A.Graphic(
-                new A.GraphicData(
-                    new PIC.Picture(
-                        new PIC.NonVisualPictureProperties(
-                            new PIC.NonVisualDrawingProperties { Id = drawingId, Name = "Picture" },
-                            new PIC.NonVisualPictureDrawingProperties()),
-                        new PIC.BlipFill(
-                            new A.Blip { Embed = relationshipId },
-                            new A.Stretch(new A.FillRectangle())),
-                        new PIC.ShapeProperties(
-                            new A.Transform2D(
-                                new A.Offset { X = 0L, Y = 0L },
-                                new A.Extents { Cx = cx, Cy = cy }),
-                            new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle })
-                    )
-                ) { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" })
+            BuildPictureGraphic(relationshipId, drawingId, cx, cy)
         )
         {
             DistanceFromTop = 0U,
@@ -433,6 +472,58 @@ public class HtmlToDocxConverter
             DistanceFromLeft = 0U,
             DistanceFromRight = 0U,
         });
+
+    /// <summary>A real floating (Anchor) drawing with square text wrap — the shape Word itself
+    /// produces for "Wrap Text → Square" — positioned relative to the column/paragraph rather
+    /// than an absolute page coordinate, so it stays with its surrounding text as the document
+    /// reflows, the same way a browser's CSS float does.</summary>
+    private static Drawing BuildAnchoredImageDrawing(string relationshipId, uint drawingId, long cx, long cy, ImageAlignment alignment) => new(
+        new DW.Anchor(
+            new DW.SimplePosition { X = 0L, Y = 0L },
+            new DW.HorizontalPosition(new DW.HorizontalAlignment(alignment == ImageAlignment.Right ? "right" : "left"))
+            {
+                RelativeFrom = DW.HorizontalRelativePositionValues.Column,
+            },
+            new DW.VerticalPosition(new DW.PositionOffset("0"))
+            {
+                RelativeFrom = DW.VerticalRelativePositionValues.Paragraph,
+            },
+            new DW.Extent { Cx = cx, Cy = cy },
+            new DW.EffectExtent { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 0L },
+            new DW.WrapSquare { WrapText = DW.WrapTextValues.BothSides },
+            new DW.DocProperties { Id = drawingId, Name = "Picture" },
+            new DW.NonVisualGraphicFrameDrawingProperties(new A.GraphicFrameLocks { NoChangeAspect = true }),
+            BuildPictureGraphic(relationshipId, drawingId, cx, cy)
+        )
+        {
+            DistanceFromTop = 0U,
+            DistanceFromBottom = 0U,
+            DistanceFromLeft = 114300U,
+            DistanceFromRight = 114300U,
+            SimplePos = false,
+            RelativeHeight = drawingId + 1000U,
+            BehindDoc = false,
+            Locked = false,
+            LayoutInCell = true,
+            AllowOverlap = true,
+        });
+
+    private static A.Graphic BuildPictureGraphic(string relationshipId, uint drawingId, long cx, long cy) => new(
+        new A.GraphicData(
+            new PIC.Picture(
+                new PIC.NonVisualPictureProperties(
+                    new PIC.NonVisualDrawingProperties { Id = drawingId, Name = "Picture" },
+                    new PIC.NonVisualPictureDrawingProperties()),
+                new PIC.BlipFill(
+                    new A.Blip { Embed = relationshipId },
+                    new A.Stretch(new A.FillRectangle())),
+                new PIC.ShapeProperties(
+                    new A.Transform2D(
+                        new A.Offset { X = 0L, Y = 0L },
+                        new A.Extents { Cx = cx, Cy = cy }),
+                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle })
+            )
+        ) { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" });
 
     private static void AppendInlineChildren(Paragraph paragraph, DomElement parent, MainDocumentPart mainPart, HtmlStyleDocument styles, float baseFontSizePt, FootnoteContext footnotes, bool forceBold = false)
     {

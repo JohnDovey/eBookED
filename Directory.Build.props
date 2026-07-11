@@ -787,6 +787,33 @@
          An XE field has no visible display text of its own, so there's no real "marked text" to
          wrap the way a user's own selection-based marking wraps something — the empty marker is
          still a real, resolvable link target for "Generate/Regenerate Index" to point at. -->
-    <Version>2.25.0</Version>
+    <!-- 2.26.0: new feature, so a minor bump. Final phase of the bug-fixes-and-five-features
+         batch this whole run of version bumps has been implementing (2.20.1 through here).
+         Image sizing, alignment, and text flow: a new InsertImageWindow dialog (opened after
+         picking a file) sets explicit width/height (pre-filled from the file's own natural
+         pixel size, editing one recomputes the other via NumericUpDown ValueChanged handlers to
+         keep the original aspect ratio), alignment (Left/Center/Right), and — Left/Right only,
+         force-disabled for Center — "Flow text around image". These become the generated
+         &lt;figure&gt;'s own explicit width/height attributes and a new shared
+         eBookEditor.Html.Services.ImagePlacement/ImagePlacementParser's "style" attribute
+         (text-align for no-flow, float for flow) — explicit attributes/inline styles rather
+         than template-defined CSS classes, since a custom/foreign CSS template has no guarantee
+         of defining alignment classes (this app's own ".drop-cap" float is already confirmed
+         silently ignored by both renderers, which read no class-based float at all).
+         EPUB/Preview/WYSIWYG need no new code (a real browser engine already supports inline
+         width/height/float/text-align natively). HtmlToPdfRenderer.RenderImage now reads
+         explicit width and AlignLeft/AlignRight/AlignCenter instead of the previous hardcoded
+         320-unit-MaxWidth-always-centered default, and RenderHtmlBody's top-level loop does a
+         two-node lookahead for a flowed figure, rendering it and the immediately-following
+         paragraph together in one QuestPDF Row as a best-effort two-column approximation of
+         text flow (QuestPDF has no float primitive; this pulls in one adjacent paragraph, not
+         true multi-paragraph reflow — the confirmed scope from this whole plan's PDF-flow
+         product decision). HtmlToDocxConverter.AppendImage now reads explicit width/height
+         (converted to EMUs, still clamped to 6in) instead of always deriving from natural size,
+         implements centered/right alignment via paragraph justification (no wrap needed, same
+         DW.Inline shape as before), and implements a flowing left/right via a genuinely new
+         DW.Anchor+DW.WrapSquare drawing shape (real Word "float", replacing the DW.Inline-only
+         placement every image used to get regardless of any attribute). -->
+    <Version>2.26.0</Version>
   </PropertyGroup>
 </Project>

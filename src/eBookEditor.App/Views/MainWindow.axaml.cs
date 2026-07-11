@@ -355,9 +355,11 @@ public partial class MainWindow : Window
 
     /// <summary>
     /// Picks an image (starting in the project's images/ folder, created here if it doesn't
-    /// exist yet), copies it in if it was picked from elsewhere, and inserts it as a real HTML
-    /// &lt;figure&gt; grouping the image with a ".caption"-styled &lt;figcaption&gt; underneath
-    /// — see EditorStyleCatalog.
+    /// exist yet), copies it in if it was picked from elsewhere, then opens InsertImageWindow
+    /// (seeded with the file's own natural pixel dimensions) for width/height/alignment/flow,
+    /// and inserts it as a real HTML &lt;figure&gt; — its own explicit size and
+    /// InternalLinkConvention.ToFigureStyle alignment/flow, grouping the image with a
+    /// ".caption"-styled &lt;figcaption&gt; underneath — see EditorStyleCatalog.
     /// </summary>
     private async void OnInsertImageClick(object? sender, RoutedEventArgs e)
     {
@@ -368,15 +370,41 @@ public partial class MainWindow : Window
         if (fileName is null)
             return;
 
+        var imagePath = Path.Combine(ViewModel.CurrentProject.ImagesDir, fileName);
+        var (naturalWidth, naturalHeight) = TryReadPixelSize(imagePath) ?? (400, 300);
+
+        var dialog = new InsertImageWindow(naturalWidth, naturalHeight);
+        await dialog.ShowDialog(this);
+
+        if (dialog.Result is not { } result)
+            return;
+
+        var placement = new ImagePlacement(result.Alignment, result.Flow);
         var altText = System.Net.WebUtility.HtmlEncode(Path.GetFileNameWithoutExtension(fileName));
         var html = $"""
-            <figure>
-            <img src="../images/{fileName}" alt="{altText}">
+            <figure style="{placement.ToFigureStyle()}">
+            <img src="../images/{fileName}" alt="{altText}" width="{result.Width}" height="{result.Height}">
             <figcaption class="caption">Caption text</figcaption>
             </figure>
             """;
 
         InsertAtCursor(html);
+    }
+
+    private static (int Width, int Height)? TryReadPixelSize(string imagePath)
+    {
+        try
+        {
+            using var stream = File.OpenRead(imagePath);
+            using var bitmap = new Avalonia.Media.Imaging.Bitmap(stream);
+            return (bitmap.PixelSize.Width, bitmap.PixelSize.Height);
+        }
+        catch
+        {
+            // Best-effort — falls back to InsertImageWindow's own default size if the file
+            // can't be decoded (an unsupported/corrupt format).
+            return null;
+        }
     }
 
     private void OnEditorContextMenuOpened(object? sender, RoutedEventArgs e)

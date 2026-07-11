@@ -1,0 +1,45 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        mc:Ignorable="d"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        x:Class="eBookEditor.App.Views.InsertImageWindow"
+        Title="Insert Image"
+        Width="380" Height="360"
+        MinWidth="340" MinHeight="340"
+        WindowStartupLocation="CenterOwner">
+
+  <Grid Margin="16" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+
+    <TextBlock Grid.Row="0" Text="Size" FontWeight="Bold" Margin="0,0,0,4" />
+    <Grid Grid.Row="1" ColumnDefinitions="*,8,*" Margin="0,0,0,12">
+      <StackPanel Grid.Column="0" Spacing="4">
+        <TextBlock Text="Width (px)" FontSize="11" Opacity="0.7" />
+        <NumericUpDown x:Name="WidthUpDown" Minimum="1" Maximum="4000" Increment="1"
+                        FormatString="0" ValueChanged="OnWidthChanged" />
+      </StackPanel>
+      <StackPanel Grid.Column="2" Spacing="4">
+        <TextBlock Text="Height (px)" FontSize="11" Opacity="0.7" />
+        <NumericUpDown x:Name="HeightUpDown" Minimum="1" Maximum="4000" Increment="1"
+                        FormatString="0" ValueChanged="OnHeightChanged" />
+      </StackPanel>
+    </Grid>
+
+    <TextBlock Grid.Row="2" Text="Alignment" FontWeight="Bold" Margin="0,0,0,4" />
+    <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="12" Margin="0,0,0,12">
+      <RadioButton x:Name="LeftRadio" Content="Left" GroupName="Alignment" IsCheckedChanged="OnAlignmentChanged" />
+      <RadioButton x:Name="CenterRadio" Content="Center" GroupName="Alignment" IsChecked="True" IsCheckedChanged="OnAlignmentChanged" />
+      <RadioButton x:Name="RightRadio" Content="Right" GroupName="Alignment" IsCheckedChanged="OnAlignmentChanged" />
+    </StackPanel>
+
+    <CheckBox Grid.Row="4" x:Name="FlowCheckBox" Content="Flow text around image" Margin="0,0,0,4" />
+    <TextBlock Grid.Row="5" Opacity="0.7" FontSize="11" TextWrapping="Wrap"
+               Text="Only available for left/right alignment — a centered image has no side for text to flow to." />
+
+    <StackPanel Grid.Row="6" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" Margin="0,16,0,0">
+      <Button Content="Cancel" Click="OnCancelClick" />
+      <Button Content="Insert" Classes="accent" Click="OnInsertClick" />
+    </StackPanel>
+
+  </Grid>
+
+</Window>
