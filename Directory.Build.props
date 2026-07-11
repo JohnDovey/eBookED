@@ -632,6 +632,19 @@
          methods on MainWindowViewModel, added for DOCX/HTML import) is extracted into a new
          shared SpineImportRouter (eBookEditor.Core), since EPUB import needs the identical
          dispatch before any MainWindowViewModel exists yet — it's still creating the project. -->
-    <Version>2.19.0</Version>
+    <!-- 2.19.1: two bug fixes, so a patch bump.
+         (1) Renaming a custom front/back-matter page via the header title/subheading form
+         silently did nothing — the rename form's visibility was widened to cover these pages
+         (2.19.0), but SaveChapterHeader itself still had a leftover Type==Chapter-only guard
+         clause from before that change, so the save never actually ran for anything but a
+         plain chapter. Both the guard and the IsRenamableItemSelected visibility check now
+         share one IsRenamable(SpineItem) helper, so they can't drift apart like this again.
+         (2) "Add Part Break" always appended the new divider to the end of the chapter list,
+         regardless of what was selected. It now inserts immediately after the currently
+         selected chapter (or divider — both are Type.Chapter) via SpineService's existing
+         positionHint mechanism, falling back to appending at the end when nothing/a non-
+         chapter item is selected — matching how a user would expect an "insert" action
+         relative to their current position to behave. -->
+    <Version>2.19.1</Version>
   </PropertyGroup>
 </Project>

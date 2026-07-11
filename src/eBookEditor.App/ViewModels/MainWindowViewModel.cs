@@ -58,8 +58,10 @@ public partial class MainWindowViewModel : ViewModelBase
     /// <summary>Gates the title/subheading rename form: any chapter (including unnumbered
     /// dividers), or a custom front/back-matter page — but not the fixed generated pages
     /// (title/copyright/TOC/about-author), whose titles come from metadata, not free text.</summary>
-    public bool IsRenamableItemSelected => SelectedSpineItem is { } item &&
-        (item.Type == SpineItemType.Chapter || (item.Type is SpineItemType.FrontMatter or SpineItemType.BackMatter && !item.IsGenerated));
+    public bool IsRenamableItemSelected => SelectedSpineItem is { } item && IsRenamable(item);
+
+    private static bool IsRenamable(SpineItem item) =>
+        item.Type == SpineItemType.Chapter || (item.Type is SpineItemType.FrontMatter or SpineItemType.BackMatter && !item.IsGenerated);
 
     public IReadOnlyList<SpineItem> SpineItems => CurrentProject.Spine.OrderBy(i => i.Order).ToList();
 
@@ -291,13 +293,26 @@ public partial class MainWindowViewModel : ViewModelBase
         var path = _chapterFileService.CreateNewChapterFile(CurrentProject.ChaptersDir, title);
         var relativePath = Path.GetRelativePath(CurrentProject.DirectoryPath, path).Replace('\\', '/');
 
-        var item = _spineService.AddChapterDivider(CurrentProject, title, relativePath);
+        var item = _spineService.AddChapterDivider(CurrentProject, title, relativePath, PositionHintAfterSelectedChapter());
         _chapterFileService.SyncChapterFileNames(CurrentProject);
         item = CurrentProject.Spine.First(i => i.Id == item.Id);
 
         _projectService.SaveProject(CurrentProject);
         RegenerateGeneratedContent();
         OpenSpineItem(item);
+    }
+
+    /// <summary>A 1-based SpineService position hint placing a new chapter-like item
+    /// immediately after the currently selected chapter (or divider — both are Type.Chapter),
+    /// or null to append at the end when nothing/a non-chapter item is selected.</summary>
+    private int? PositionHintAfterSelectedChapter()
+    {
+        if (SelectedSpineItem is not { Type: SpineItemType.Chapter } selected)
+            return null;
+
+        var chapters = CurrentProject.Spine.Where(i => i.Type == SpineItemType.Chapter).OrderBy(i => i.Order).ToList();
+        var index = chapters.FindIndex(c => c.Id == selected.Id);
+        return index < 0 ? null : index + 2;
     }
 
     /// <summary>Adds a custom, optional front-matter page (Acknowledgements, Preface,
@@ -395,7 +410,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void SaveChapterHeader()
     {
-        if (SelectedSpineItem is not { Type: SpineItemType.Chapter } item)
+        if (SelectedSpineItem is not { } item || !IsRenamable(item))
             return;
 
         var path = CurrentProject.ResolvePath(item);

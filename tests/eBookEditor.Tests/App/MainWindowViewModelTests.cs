@@ -112,6 +112,64 @@ public class MainWindowViewModelTests : IDisposable
     }
 
     [Fact]
+    public void SaveChapterHeader_AlsoRenamesACustomFrontMatterPage()
+    {
+        // Regression test: the header rename form's visibility was widened to cover custom
+        // front/back-matter pages, but SaveChapterHeader itself still had a Type==Chapter-only
+        // guard, so clicking Apply on a front-matter page silently did nothing.
+        var vm = NewViewModel();
+        vm.AddFrontMatterPageCommand.Execute(null);
+        var page = Assert.Single(vm.SpineItems, i => i.Type == SpineItemType.FrontMatter && !i.IsGenerated);
+        vm.OpenSpineItem(page);
+
+        vm.ChapterTitleInput = "Foreword";
+        vm.ChapterSubtitleInput = "A note before we begin";
+        vm.SaveChapterHeaderCommand.Execute(null);
+
+        var updated = vm.SpineItems.Single(i => i.Id == page.Id);
+        Assert.Equal("Foreword", updated.Title);
+        Assert.Equal("A note before we begin", updated.Subtitle);
+
+        var (frontMatter, _) = new ChapterFileService().ReadChapter(vm.CurrentProject.ResolvePath(updated));
+        Assert.Equal("Foreword", frontMatter.Title);
+    }
+
+    [Fact]
+    public void AddPartBreak_WithAChapterSelected_InsertsImmediatelyAfterIt()
+    {
+        var vm = NewViewModel();
+        vm.AddChapterCommand.Execute(null);
+        vm.ChapterTitleInput = "One";
+        vm.SaveChapterHeaderCommand.Execute(null);
+        var one = vm.SpineItems.Single(i => i.Type == SpineItemType.Chapter);
+
+        vm.AddChapterCommand.Execute(null);
+        vm.ChapterTitleInput = "Two";
+        vm.SaveChapterHeaderCommand.Execute(null);
+
+        vm.OpenSpineItem(one);
+        vm.AddPartBreakCommand.Execute(null);
+
+        var chapters = vm.SpineItems.Where(i => i.Type == SpineItemType.Chapter).OrderBy(i => i.Order).ToList();
+        Assert.Equal(["One", "New Part", "Two"], chapters.Select(c => c.Title));
+    }
+
+    [Fact]
+    public void AddPartBreak_WithNothingSelected_AppendsAtTheEnd()
+    {
+        var vm = NewViewModel();
+        vm.AddChapterCommand.Execute(null);
+        vm.ChapterTitleInput = "One";
+        vm.SaveChapterHeaderCommand.Execute(null);
+
+        vm.SelectedSpineItem = null;
+        vm.AddPartBreakCommand.Execute(null);
+
+        var chapters = vm.SpineItems.Where(i => i.Type == SpineItemType.Chapter).OrderBy(i => i.Order).ToList();
+        Assert.Equal(["One", "New Part"], chapters.Select(c => c.Title));
+    }
+
+    [Fact]
     public void ReorderChapters_UpdatesSpineOrderAndToc()
     {
         var vm = NewViewModel();
