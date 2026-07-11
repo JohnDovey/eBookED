@@ -1,6 +1,7 @@
 using eBookEditor.ChapterImport.Models;
 using eBookEditor.Core.Services;
 using eBookEditor.DocxImport.Services;
+using eBookEditor.Html.Services;
 
 namespace eBookEditor.ChapterImport.Services;
 
@@ -45,7 +46,7 @@ public class ChapterImportService
 
     private ChapterImportDraft ImportHtmlFile(string filePath, int? hintNumber, string hintTitle)
     {
-        var html = _htmlSanitizer.Convert(File.ReadAllText(filePath));
+        var html = SameDocumentLinkConverter.Convert(_htmlSanitizer.Convert(File.ReadAllText(filePath)));
         var (type, numberMode) = SpecialPageClassifier.Classify(hintTitle);
         return new ChapterImportDraft(hintTitle, html, hintNumber, [], type, numberMode);
     }
@@ -62,12 +63,19 @@ public class ChapterImportService
         // DID auto-split into multiple chapters (same heading detection as the whole-manuscript
         // import) keeps its own internal order and per-heading classification instead — a
         // single hint (or the file name's title) wouldn't make sense across several results.
+        //
+        // SameDocumentLinkConverter runs per-draft (see OpenXmlToHtmlConverter's own doc
+        // comments on how a Word bookmark/internal hyperlink reach this point as raw "id"/
+        // "#name" markup) — a bookmark and the hyperlink referencing it that land in different
+        // drafts (chapters) simply won't resolve, an accepted "best effort, same-chapter-only"
+        // simplification rather than the harder cross-chapter resolution EPUB import performs
+        // (see EpubInternalHrefRewriter).
         if (drafts.Count == 1)
         {
             var (type, numberMode) = SpecialPageClassifier.Classify(hintTitle);
-            return [new ChapterImportDraft(drafts[0].Title, drafts[0].Body, hintNumber, drafts[0].Images, type, numberMode)];
+            return [new ChapterImportDraft(drafts[0].Title, SameDocumentLinkConverter.Convert(drafts[0].Body), hintNumber, drafts[0].Images, type, numberMode)];
         }
 
-        return drafts.Select(d => new ChapterImportDraft(d.Title, d.Body, null, d.Images, d.Type, d.NumberMode)).ToList();
+        return drafts.Select(d => new ChapterImportDraft(d.Title, SameDocumentLinkConverter.Convert(d.Body), null, d.Images, d.Type, d.NumberMode)).ToList();
     }
 }

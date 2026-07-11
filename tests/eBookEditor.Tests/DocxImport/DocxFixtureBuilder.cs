@@ -87,6 +87,36 @@ internal static class DocxFixtureBuilder
         return path;
     }
 
+    /// <summary>A same-chapter internal cross-reference: a hyperlink whose Anchor points at a
+    /// real Word bookmark elsewhere in the same chapter (the common shape Word's own Insert &gt;
+    /// Cross-reference produces), plus one to a bookmark that's never actually defined (an
+    /// author's stale/broken cross-reference).</summary>
+    public static string BuildDocxWithInternalBookmarkLink(string path)
+    {
+        using var document = WordprocessingDocument.Create(path, DocumentFormat.OpenXml.WordprocessingDocumentType.Document);
+        var mainPart = document.AddMainDocumentPart();
+        mainPart.Document = new Document();
+        var body = new Body();
+        mainPart.Document.Append(body);
+
+        body.Append(Heading("Chapter One", "Heading1"));
+        body.Append(new Paragraph(
+            new Run(new Text("See ") { Space = SpaceProcessingModeValues.Preserve }),
+            new Hyperlink(new Run(new Text("the captain's introduction"))) { Anchor = "_Ref_TheCaptain" },
+            new Run(new Text(" for more, or this ") { Space = SpaceProcessingModeValues.Preserve }),
+            new Hyperlink(new Run(new Text("broken reference"))) { Anchor = "_Ref_NeverDefined" },
+            new Run(new Text(".") { Space = SpaceProcessingModeValues.Preserve })));
+
+        var bookmarkedParagraph = new Paragraph(
+            new BookmarkStart { Id = "1", Name = "_Ref_TheCaptain" },
+            new Run(new Text("Meet Captain Reyes.")),
+            new BookmarkEnd { Id = "1" });
+        body.Append(bookmarkedParagraph);
+
+        mainPart.Document.Save();
+        return path;
+    }
+
     private static Table BuildTable(string[] header, string[][] rows)
     {
         var table = new Table();

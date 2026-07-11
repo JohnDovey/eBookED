@@ -61,4 +61,32 @@ public class EpubProjectImporterTests : IDisposable
         Assert.Contains("This is the footnote text.", chapterOneBody);
         Assert.Contains("class=\"footnotes\"", chapterOneBody);
     }
+
+    [Fact]
+    public void Import_ForeignEpub_FragmentLinkIntoAnotherChaptersHeading_BecomesARealDestLink()
+    {
+        var epubPath = ForeignEpubFixtureBuilder.Build(Path.Combine(_sourceDir, "foreign.epub"));
+        var importer = new EpubProjectImporter(_templateService, _fontService);
+
+        var project = importer.Import(epubPath, _destinationDir, "Foreign Test Book");
+
+        var chapterOne = project.Spine.Single(i => i.Title == "Chapter One");
+        var chapterTwo = project.Spine.Single(i => i.Title == "Chapter Two");
+        var (_, chapterOneBody) = _chapterFileService.ReadChapter(project.ResolvePath(chapterOne));
+        var (_, chapterTwoBody) = _chapterFileService.ReadChapter(project.ResolvePath(chapterTwo));
+
+        // The source EPUB's "chapter2.xhtml#section-a" fragment link resolves to a real dest:
+        // link since chapter2 really does have an "id=section-a" element — not dropped, and not
+        // a link to a fragment that doesn't exist.
+        var destIdMatch = System.Text.RegularExpressions.Regex.Match(chapterTwoBody, "id=\"(dest:[^\"]+)\"");
+        Assert.True(destIdMatch.Success, $"Expected chapter two to contain a retargeted dest: id. Body was:\n{chapterTwoBody}");
+        var destId = destIdMatch.Groups[1].Value;
+
+        Assert.Contains($"href=\"{chapterTwo.RelativePath}#{destId}\"", chapterOneBody);
+        Assert.DoesNotContain("id=\"section-a\"", chapterTwoBody);
+
+        // The footnote target's own id must survive untouched — it's a same-page fragment too,
+        // but must not be folded into the generic dest: convention.
+        Assert.Contains("id=\"fn:1\"", chapterOneBody);
+    }
 }

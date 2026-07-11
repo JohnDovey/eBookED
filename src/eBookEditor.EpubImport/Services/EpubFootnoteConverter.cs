@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using eBookEditor.Html.Services;
 
 namespace eBookEditor.EpubImport.Services;
 
@@ -33,8 +34,8 @@ public static class EpubFootnoteConverter
     public static int RewriteFootnotes(IElement body)
     {
         var document = body.Owner!;
-        var nextNumber = SeedNextNumber(body);
-        IElement? footnotesDiv = body.QuerySelector("div.footnotes");
+        var nextNumber = TodoFootnoteInserter.SeedNextNumber(body);
+        var todoInserter = new TodoFootnoteInserter(body);
 
         var idIndex = BuildIdIndex(body);
         var docOrder = BuildDocumentOrderIndex(body);
@@ -54,11 +55,11 @@ public static class EpubFootnoteConverter
             if (resolvable)
             {
                 consumedTargets.Add(target!);
-                ConvertFootnote(referenceContainer, target!, ref nextNumber, ref footnotesDiv, body, document);
+                ConvertFootnote(referenceContainer, target!, nextNumber++, todoInserter, document);
             }
             else
             {
-                InsertTodoFootnote(referenceContainer, ref nextNumber, ref footnotesDiv, body, document);
+                todoInserter.InsertAfter(referenceContainer, nextNumber++, TodoNoteText);
                 todoCount++;
             }
         }
@@ -121,89 +122,21 @@ public static class EpubFootnoteConverter
         return false;
     }
 
-    private static void ConvertFootnote(IElement referenceContainer, IElement target, ref int nextNumber, ref IElement? footnotesDiv, IElement body, IDocument document)
+    private static void ConvertFootnote(IElement referenceContainer, IElement target, int number, TodoFootnoteInserter todoInserter, IDocument document)
     {
-        var number = nextNumber++;
-
-        var newSup = BuildReferenceElement(document, number);
+        var newSup = TodoFootnoteInserter.BuildReferenceElement(document, number);
         referenceContainer.Parent!.ReplaceChild(newSup, referenceContainer);
 
-        footnotesDiv ??= FindOrCreateFootnotesDiv(body, document);
         var p = document.CreateElement("p");
         p.InnerHtml = target.InnerHtml.Trim();
-        AppendBackRef(document, p, number);
+        TodoFootnoteInserter.AppendBackRef(document, p, number);
 
         var li = document.CreateElement("li");
         li.SetAttribute("id", $"fn:{number}");
         li.AppendChild(p);
-        footnotesDiv.QuerySelector("ol")!.AppendChild(li);
+        todoInserter.GetOrCreateFootnotesDiv().QuerySelector("ol")!.AppendChild(li);
 
         target.Remove();
-    }
-
-    private static void InsertTodoFootnote(IElement referenceContainer, ref int nextNumber, ref IElement? footnotesDiv, IElement body, IDocument document)
-    {
-        var number = nextNumber++;
-
-        var newSup = BuildReferenceElement(document, number);
-        referenceContainer.Parent!.InsertBefore(newSup, referenceContainer.NextSibling);
-
-        footnotesDiv ??= FindOrCreateFootnotesDiv(body, document);
-        var p = document.CreateElement("p");
-        p.TextContent = TodoNoteText + " ";
-        AppendBackRef(document, p, number);
-
-        var li = document.CreateElement("li");
-        li.SetAttribute("id", $"fn:{number}");
-        li.AppendChild(p);
-        footnotesDiv.QuerySelector("ol")!.AppendChild(li);
-    }
-
-    private static IElement BuildReferenceElement(IDocument document, int number)
-    {
-        var sup = document.CreateElement("sup");
-        sup.SetAttribute("id", $"fnref:{number}");
-        var anchor = document.CreateElement("a");
-        anchor.SetAttribute("href", $"#fn:{number}");
-        anchor.ClassList.Add("footnote-ref");
-        anchor.TextContent = number.ToString();
-        sup.AppendChild(anchor);
-        return sup;
-    }
-
-    private static void AppendBackRef(IDocument document, IElement paragraph, int number)
-    {
-        var backRef = document.CreateElement("a");
-        backRef.SetAttribute("href", $"#fnref:{number}");
-        backRef.ClassList.Add("footnote-back-ref");
-        backRef.TextContent = "↩";
-        paragraph.AppendChild(backRef);
-    }
-
-    private static IElement FindOrCreateFootnotesDiv(IElement body, IDocument document)
-    {
-        var existing = body.QuerySelector("div.footnotes");
-        if (existing is not null)
-            return existing;
-
-        var div = document.CreateElement("div");
-        div.ClassList.Add("footnotes");
-        div.AppendChild(document.CreateElement("hr"));
-        div.AppendChild(document.CreateElement("ol"));
-        body.AppendChild(div);
-        return div;
-    }
-
-    private static int SeedNextNumber(IElement body)
-    {
-        var max = 0;
-        foreach (var element in body.QuerySelectorAll("[id]"))
-        {
-            if (element.Id is { } id && id.StartsWith("fnref:", StringComparison.Ordinal) && int.TryParse(id["fnref:".Length..], out var n))
-                max = Math.Max(max, n);
-        }
-
-        return max + 1;
     }
 
     private static Dictionary<string, IElement> BuildIdIndex(IElement body)

@@ -137,6 +137,25 @@ public class DocxImportServiceTests : IDisposable
     }
 
     [Fact]
+    public void Import_InternalBookmarkHyperlink_BecomesASameDocumentFragmentLinkInsteadOfBeingDropped()
+    {
+        // Previously an Anchor-based (internal bookmark) hyperlink was dropped to plain text
+        // entirely — DocxImportService alone (not ChapterImportService, which additionally runs
+        // SameDocumentLinkConverter) should now at least preserve it as a raw same-document
+        // fragment link, and the bookmark target paragraph should carry a matching raw id.
+        var docxPath = DocxFixtureBuilder.BuildDocxWithInternalBookmarkLink(Path.Combine(_tempDir, "with-bookmark.docx"));
+
+        var chapters = _importService.Import(docxPath);
+        var body = chapters[0].Body;
+
+        Assert.Contains("<a href=\"#_Ref_TheCaptain\">the captain&#39;s introduction</a>", body);
+        Assert.Contains("id=\"_Ref_TheCaptain\"", body);
+        // A hyperlink to a bookmark that's never actually defined is still preserved as a raw
+        // fragment link (better than being silently dropped) even though it can't resolve.
+        Assert.Contains("<a href=\"#_Ref_NeverDefined\">broken reference</a>", body);
+    }
+
+    [Fact]
     public void Import_DoesNotSplitAHandTypedTableOfContentsListIntoChapters()
     {
         // Regression test for a real user request: a manually-typed "Table of Contents"

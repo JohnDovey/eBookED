@@ -721,6 +721,29 @@
          matching &lt;a href&gt; as a Hyperlink with a real Anchor instead of
          AddHyperlinkRelationship. EPUB/Preview/WYSIWYG need no new code — a real browser engine
          already resolves "chapter.ebhtml#dest:slug" as a normal in-document anchor link. -->
-    <Version>2.22.0</Version>
+    <!-- 2.23.0: new feature, so a minor bump.
+         Import link conversion: EPUB import's cross-chapter link rewriting now converts a
+         fragment link into a specific section (same-chapter or cross-chapter) into a real
+         "dest:" link — via EpubInternalHrefRewriter's new FindFragmentReferences/HasId/
+         RenameIds/RewriteHrefsWithFragments plus EpubProjectImporter's new
+         BuildFragmentDestinations orchestration — instead of the previous fragment-dropping
+         behavior, wherever the fragment's target element can actually be confirmed to exist;
+         footnote fragments ("fn:"/"fnref:") are explicitly excluded so they're never folded
+         into this generic convention.
+         New shared eBookEditor.Html.Services.SameDocumentLinkConverter (a same-document-only,
+         single-html-string sibling of EPUB's own machinery) powers the same conversion for DOCX
+         and HTML import: OpenXmlToHtmlConverter now emits a real "id"/"#name" fragment link for
+         a Word bookmark and the internal hyperlink referencing it (previously dropped to plain
+         text entirely) — including Word's own auto-generated "_Ref###" cross-reference
+         bookmarks, deliberately not treated as reserved/noise the way "_Toc"/"_GoBack"/"_Hlk"
+         are — and ChapterImportService runs the shared converter over each finished DOCX
+         chapter/HTML file, resolving same-chapter references (a bookmark landing in a different
+         chapter than its reference isn't resolved — an accepted, documented "same-chapter-only"
+         simplification, unlike EPUB's own cross-chapter-capable pass).
+         Also extracted EpubFootnoteConverter's own "insert a new footnote with a TODO note"
+         mechanic into a new shared eBookEditor.Html.Services.TodoFootnoteInserter, ready for
+         reuse by any future import path's own "couldn't confidently convert automatically"
+         fallback. -->
+    <Version>2.23.0</Version>
   </PropertyGroup>
 </Project>

@@ -3,6 +3,8 @@ using eBookEditor.Core.Services;
 using eBookEditor.Epub.Services;
 using eBookEditor.Html.Services;
 
+using FragmentKey = (string TargetHref, string Fragment);
+
 namespace eBookEditor.EpubImport.Services;
 
 /// <summary>
@@ -148,11 +150,20 @@ public class EpubProjectImporter
         return sanitized.Length == 0 ? "Imported" : sanitized;
     }
 
-    /// <summary>Rewrites internal cross-chapter hrefs now that SyncChapterFileNames has
-    /// assigned every item's final RelativePath — see EpubInternalHrefRewriter.</summary>
+    /// <summary>
+    /// Rewrites internal cross-chapter hrefs now that SyncChapterFileNames has assigned every
+    /// item's final RelativePath. A same/cross-chapter link into a specific in-page section
+    /// (e.g. "chapter3.xhtml#section2") is converted into a real, working jump using this app's
+    /// own "dest:" cross-document link convention (see InternalLinkConvention) when the
+    /// fragment's target element can actually be found in that chapter's body; otherwise it
+    /// falls back to the previous chapter-level-only rewrite (see EpubInternalHrefRewriter's
+    /// class doc comment) — a documented "best effort" simplification, not a silently dropped
+    /// feature.
+    /// </summary>
     private void RewriteInternalLinks(EbookProject project, EpubImportResult result, Guid?[] itemIds)
     {
         var sourceHrefToRelativePath = new Dictionary<string, string>(StringComparer.Ordinal);
+        var sourceHrefToItem = new Dictionary<string, SpineItem>(StringComparer.Ordinal);
         for (var i = 0; i < result.Items.Count; i++)
         {
             var sourceHref = result.SourceHrefsByItem[i];
@@ -161,19 +172,84 @@ public class EpubProjectImporter
 
             var currentItem = project.Spine.FirstOrDefault(s => s.Id == itemId);
             if (currentItem is not null)
+            {
                 sourceHrefToRelativePath[sourceHref] = currentItem.RelativePath;
+                sourceHrefToItem[sourceHref] = currentItem;
+            }
         }
 
         if (sourceHrefToRelativePath.Count == 0)
             return;
 
-        foreach (var item in project.Spine)
+        var bodies = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var (sourceHref, item) in sourceHrefToItem)
+            bodies[sourceHref] = _chapterFileService.ReadChapter(project.ResolvePath(item)).Body;
+
+        var fragmentDestIds = BuildFragmentDestinations(bodies, sourceHrefToRelativePath);
+
+        var idRenamesByTargetHref = fragmentDestIds
+            .GroupBy(entry => entry.Key.TargetHref)
+            .ToDictionary(g => g.Key, g => (IReadOnlyDictionary<string, string>)g.ToDictionary(e => e.Key.Fragment, e => e.Value));
+
+        foreach (var (sourceHref, item) in sourceHrefToItem)
         {
             var path = project.ResolvePath(item);
             var (frontMatter, body) = _chapterFileService.ReadChapter(path);
-            var rewritten = EpubInternalHrefRewriter.Rewrite(body, sourceHrefToRelativePath);
+
+            var withRenamedIds = idRenamesByTargetHref.TryGetValue(sourceHref, out var idRenames)
+                ? EpubInternalHrefRewriter.RenameIds(body, idRenames)
+                : body;
+            var rewritten = EpubInternalHrefRewriter.RewriteHrefsWithFragments(
+                withRenamedIds, sourceHref, sourceHrefToRelativePath, fragmentDestIds);
+
             if (rewritten != body)
                 _chapterFileService.WriteChapter(path, frontMatter, rewritten);
         }
+    }
+
+    /// <summary>Scans every chapter for anchor-fragment references (same-chapter "#id" or
+    /// cross-chapter "other.xhtml#id"), keeping only the ones whose target element is actually
+    /// found in the referenced chapter's body (a fragment pointing nowhere real isn't converted
+    /// into a dest: link to nowhere), and assigns each a document-wide-unique "dest:" id derived
+    /// from the original fragment — collisions are possible since two different source chapters
+    /// can each legitimately use the same id value (e.g. both have an "#intro"), which this
+    /// app's own dest: ids must not (PDF Section names/Word bookmark names are document-wide).</summary>
+    private static IReadOnlyDictionary<FragmentKey, string> BuildFragmentDestinations(
+        IReadOnlyDictionary<string, string> bodies, IReadOnlyDictionary<string, string> sourceHrefToRelativePath)
+    {
+        var result = new Dictionary<FragmentKey, string>();
+        var usedSlugs = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var (sourceHref, body) in bodies)
+        {
+            foreach (var (targetHref, fragment) in EpubInternalHrefRewriter.FindFragmentReferences(body))
+            {
+                // EpubFootnoteConverter has already run by this point (see EpubImportService),
+                // converting footnote references into this app's own "fn:"/"fnref:" convention
+                // — those are same-page anchor-fragment links too, but must stay exactly as
+                // EpubFootnoteConverter/MainWindow.OnInsertFootnoteClick expect, not get folded
+                // into a generic "dest:" link destination.
+                if (fragment.StartsWith("fn:", StringComparison.Ordinal) || fragment.StartsWith("fnref:", StringComparison.Ordinal))
+                    continue;
+
+                var effectiveTargetHref = targetHref.Length == 0 ? sourceHref : targetHref;
+                var key = (effectiveTargetHref, fragment);
+                if (result.ContainsKey(key) || !sourceHrefToRelativePath.ContainsKey(effectiveTargetHref))
+                    continue;
+
+                if (!bodies.TryGetValue(effectiveTargetHref, out var targetBody) || !EpubInternalHrefRewriter.HasId(targetBody, fragment))
+                    continue;
+
+                var baseSlug = Slug.Create(fragment, "target");
+                var slug = baseSlug;
+                var suffix = 2;
+                while (!usedSlugs.Add(slug))
+                    slug = $"{baseSlug}-{suffix++}";
+
+                result[key] = $"{InternalLinkConvention.DestinationIdPrefix}{slug}";
+            }
+        }
+
+        return result;
     }
 }

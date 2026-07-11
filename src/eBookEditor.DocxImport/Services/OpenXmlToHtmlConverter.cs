@@ -60,21 +60,47 @@ internal class OpenXmlToHtmlConverter
         if (string.IsNullOrWhiteSpace(runHtml))
             return ConvertedParagraph.Empty;
 
+        var idAttribute = BuildIdAttribute(paragraph);
+
         if (ChapterBoundaryDetector.IsSubheading(paragraph))
         {
             var styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
             var level = string.Equals(styleId, "Heading2", StringComparison.OrdinalIgnoreCase) ? "h2" : "h3";
-            return new ConvertedParagraph($"<{level}>{runHtml.Trim()}</{level}>", ParagraphKind.Subheading);
+            return new ConvertedParagraph($"<{level}{idAttribute}>{runHtml.Trim()}</{level}>", ParagraphKind.Subheading);
         }
 
         var numberingProperties = paragraph.ParagraphProperties?.NumberingProperties;
         if (numberingProperties is not null)
         {
             var ordered = IsOrderedList(mainPart, numberingProperties);
-            return new ConvertedParagraph($"<li>{runHtml.Trim()}</li>", ParagraphKind.ListItem, ordered);
+            return new ConvertedParagraph($"<li{idAttribute}>{runHtml.Trim()}</li>", ParagraphKind.ListItem, ordered);
         }
 
-        return new ConvertedParagraph($"<p>{runHtml}</p>", ParagraphKind.Paragraph);
+        return new ConvertedParagraph($"<p{idAttribute}>{runHtml}</p>", ParagraphKind.Paragraph);
+    }
+
+    // Word auto-inserts its own reserved bookmarks (table-of-contents entries, the "last edit
+    // location" marker) that are never meaningful link destinations — excluded so they don't
+    // show up as noise in the imported HTML. "_Ref###" bookmarks are NOT excluded here even
+    // though Word also auto-generates them: that's exactly the name Word's own Insert >
+    // Cross-reference feature assigns to a real, meaningful destination a user picked — the
+    // main case this conversion exists to handle.
+    private static readonly string[] ReservedBookmarkPrefixes = ["_Toc", "_GoBack", "_Hlk"];
+
+    /// <summary>A user-placed Word bookmark (Insert &gt; Bookmark, or the target end of an
+    /// internal cross-reference) starting within this paragraph becomes this paragraph's own
+    /// HTML id — paragraph-level granularity, not the bookmark's exact character position,
+    /// mirroring this app's other cross-document link conventions' own block-level
+    /// simplification (see HtmlToPdfRenderer.EmitDestinationSections). SameDocumentLinkConverter
+    /// (run once over the finished chapter body — see ChapterImportService) later resolves a
+    /// matching "#name" hyperlink against this id into this app's own "dest:" convention.</summary>
+    private static string BuildIdAttribute(Paragraph paragraph)
+    {
+        var bookmarkName = paragraph.Descendants<BookmarkStart>()
+            .Select(b => b.Name?.Value)
+            .FirstOrDefault(name => name is { Length: > 0 } && !ReservedBookmarkPrefixes.Any(prefix => name.StartsWith(prefix, StringComparison.Ordinal)));
+
+        return bookmarkName is null ? "" : $" id=\"{Encode(bookmarkName)}\"";
     }
 
     private static string ConvertRuns(Paragraph paragraph, MainDocumentPart mainPart, List<ExtractedImage> images)
@@ -103,8 +129,15 @@ internal class OpenXmlToHtmlConverter
         if (text.Length == 0)
             return string.Empty;
 
-        // Internal bookmark links (Anchor, no relationship Id) have nowhere meaningful to
-        // point in a standalone chapter, so only the link text is kept.
+        // An internal bookmark link (Anchor, no relationship Id) becomes a same-document "#name"
+        // fragment link using the bookmark's own raw name — SameDocumentLinkConverter (run once
+        // over each finished chapter's whole body, see ChapterImportService) later resolves this
+        // into this app's own "dest:" convention if — and only if — that same chapter also
+        // contains the matching bookmark's own id (see ConvertParagraph); otherwise it's left as
+        // an inert same-document fragment rather than dropped to plain text.
+        if (hyperlink.Anchor?.Value is { Length: > 0 } anchorName)
+            return $"<a href=\"#{Encode(anchorName)}\">{text}</a>";
+
         var relationshipId = hyperlink.Id?.Value;
         var url = relationshipId is null
             ? null

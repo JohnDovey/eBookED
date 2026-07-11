@@ -4,10 +4,11 @@ using System.Text;
 namespace eBookEditor.Tests.EpubImport;
 
 /// <summary>Hand-builds a minimal but structurally real EPUB3 file with its own stylesheet,
-/// a cross-chapter link, and a plain same-page footnote — deliberately NOT using this app's
-/// own EpubBuilder, so tests exercise the importer against a genuinely foreign producer's
-/// layout (a nested OEBPS/text/ directory, its own CSS, its own footnote markup) rather than
-/// round-tripping this app's own conventions.</summary>
+/// a plain cross-chapter link, a cross-chapter link into a specific heading (chapter1's
+/// "#section-a" link into chapter2's own "id=section-a" heading), and a plain same-page
+/// footnote — deliberately NOT using this app's own EpubBuilder, so tests exercise the
+/// importer against a genuinely foreign producer's layout (a nested OEBPS/text/ directory, its
+/// own CSS, its own footnote markup) rather than round-tripping this app's own conventions.</summary>
 internal static class ForeignEpubFixtureBuilder
 {
     public static string Build(string path)
@@ -40,6 +41,7 @@ internal static class ForeignEpubFixtureBuilder
             <body>
             <h1>Chapter One</h1>
             <p>This is the first chapter. See <a href="chapter2.xhtml">the next chapter</a> for more.</p>
+            <p>Jump straight to <a href="chapter2.xhtml#section-a">Section A</a> in the next chapter.</p>
             <p>Here is a note.<sup><a href="#note1">1</a></sup></p>
             <p id="note1">This is the footnote text.</p>
             </body>
@@ -53,6 +55,8 @@ internal static class ForeignEpubFixtureBuilder
             <body>
             <h1>Chapter Two</h1>
             <p>This is the second chapter.</p>
+            <h2 id="section-a">Section A</h2>
+            <p>Section A's own content.</p>
             </body>
             </html>
             """);

@@ -87,6 +87,20 @@ public class ChapterImportServiceTests : IDisposable
     }
 
     [Fact]
+    public void ImportFile_Html_SameDocumentFragmentLink_ConvertsToTheDestConvention()
+    {
+        var path = Path.Combine(_tempDir, "1. Chapter.html");
+        File.WriteAllText(path, "<p>See <a href=\"#note\">the note below</a>.</p><p id=\"note\">Here it is.</p>");
+
+        var draft = Assert.Single(_service.ImportFile(path));
+
+        var destIdMatch = System.Text.RegularExpressions.Regex.Match(draft.Body, "id=\"(dest:[^\"]+)\"");
+        Assert.True(destIdMatch.Success, $"Expected a dest: id in the imported body. Body was:\n{draft.Body}");
+        Assert.Contains($"href=\"#{destIdMatch.Groups[1].Value}\"", draft.Body);
+        Assert.DoesNotContain("id=\"note\"", draft.Body);
+    }
+
+    [Fact]
     public void ImportFile_SingleChapterDocx_AppliesFileNamePositionHint()
     {
         var path = Path.Combine(_tempDir, "7. Solo Chapter.docx");
@@ -95,6 +109,22 @@ public class ChapterImportServiceTests : IDisposable
         var draft = Assert.Single(_service.ImportFile(path));
 
         Assert.Equal(7, draft.PositionHint);
+    }
+
+    [Fact]
+    public void ImportFile_DocxWithInternalBookmarkLink_ConvertsToTheDestConvention()
+    {
+        var path = Path.Combine(_tempDir, "1. Chapter.docx");
+        DocxFixtureBuilder.BuildDocxWithInternalBookmarkLink(path);
+
+        var draft = Assert.Single(_service.ImportFile(path));
+
+        var destIdMatch = System.Text.RegularExpressions.Regex.Match(draft.Body, "id=\"(dest:[^\"]+)\"");
+        Assert.True(destIdMatch.Success, $"Expected a dest: id in the imported body. Body was:\n{draft.Body}");
+        Assert.Contains($"href=\"#{destIdMatch.Groups[1].Value}\"", draft.Body);
+        // The bookmark that's never actually defined can't resolve — it's left as an inert
+        // same-document fragment rather than converted to a dest: link to nowhere.
+        Assert.Contains("href=\"#_Ref_NeverDefined\"", draft.Body);
     }
 
     [Fact]
