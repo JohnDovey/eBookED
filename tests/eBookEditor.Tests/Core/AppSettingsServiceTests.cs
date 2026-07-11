@@ -70,4 +70,27 @@ public class AppSettingsServiceTests : IDisposable
         Assert.DoesNotContain("/projects/BookOne", settings.OpenProjectPaths);
         Assert.Contains("/projects/BookOne", settings.RecentProjectPaths);
     }
+
+    [Fact]
+    public void Load_CorruptSettingsFile_FallsBackToFreshSettingsInsteadOfThrowing()
+    {
+        var paths = new TestAppPaths(_tempDir);
+        Directory.CreateDirectory(paths.AppDataDirectory);
+        File.WriteAllText(paths.SettingsFilePath, "{ this is not valid json");
+
+        var settings = _service.Load();
+
+        Assert.Empty(settings.RecentProjectPaths);
+    }
+
+    [Fact]
+    public void Save_DoesNotLeaveATempFileBehind()
+    {
+        var paths = new TestAppPaths(_tempDir);
+        _service.RecordProjectOpened("/projects/BookOne");
+
+        var leftoverTempFiles = Directory.GetFiles(paths.AppDataDirectory, "*.tmp");
+
+        Assert.Empty(leftoverTempFiles);
+    }
 }

@@ -14,20 +14,40 @@ public class AppSettingsService
         _paths = paths;
     }
 
+    /// <summary>Falls back to a fresh, empty AppSettings on any read/parse failure (missing
+    /// file, corrupt/truncated JSON) rather than throwing — this is read on every menu open
+    /// (see MainWindow.OnRecentProjectsSubmenuOpened, which clears the menu's items before
+    /// calling this), so an uncaught exception here would leave the Recent Projects menu
+    /// permanently empty instead of showing either real entries or the "no recent projects"
+    /// fallback text.</summary>
     public AppSettings Load()
     {
         if (!File.Exists(_paths.SettingsFilePath))
             return new AppSettings();
 
-        var json = File.ReadAllText(_paths.SettingsFilePath);
-        return JsonSerializer.Deserialize<AppSettings>(json, _jsonOptions) ?? new AppSettings();
+        try
+        {
+            var json = File.ReadAllText(_paths.SettingsFilePath);
+            return JsonSerializer.Deserialize<AppSettings>(json, _jsonOptions) ?? new AppSettings();
+        }
+        catch (Exception ex) when (ex is JsonException or IOException)
+        {
+            return new AppSettings();
+        }
     }
 
+    /// <summary>Writes to a temp file and renames it into place rather than writing the real
+    /// settings file directly — a mid-write crash (or another window's own Save racing this
+    /// one, since every MainWindowViewModel holds its own AppSettingsService instance over the
+    /// same file with no locking) can otherwise leave a truncated, unparseable JSON file behind
+    /// for Load() to trip over next time.</summary>
     public void Save(AppSettings settings)
     {
         Directory.CreateDirectory(_paths.AppDataDirectory);
         var json = JsonSerializer.Serialize(settings, _jsonOptions);
-        File.WriteAllText(_paths.SettingsFilePath, json);
+        var tempPath = $"{_paths.SettingsFilePath}.{Guid.NewGuid():N}.tmp";
+        File.WriteAllText(tempPath, json);
+        File.Move(tempPath, _paths.SettingsFilePath, overwrite: true);
     }
 
     public AppSettings RecordProjectOpened(string projectDir)

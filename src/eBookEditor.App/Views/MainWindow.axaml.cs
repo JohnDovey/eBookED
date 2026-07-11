@@ -162,7 +162,7 @@ public partial class MainWindow : Window
 
         var title = ViewModel.Editor.FilePath is { } path ? Path.GetFileNameWithoutExtension(path) : null;
         var body = CurrentBodyOnly();
-        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), body, title, ChapterHeadingHtmlFor(body));
+        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), body, title, ChapterHeadingHtmlFor(body), ViewModel.CurrentProject.DirectoryPath);
         ScrollPreviewToCaret();
     }
 
@@ -171,7 +171,7 @@ public partial class MainWindow : Window
         if (_previewWindow is null || ViewModel is null)
             return;
 
-        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), bodyHtml, title, ChapterHeadingHtmlFor(bodyHtml));
+        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), bodyHtml, title, ChapterHeadingHtmlFor(bodyHtml), ViewModel.CurrentProject.DirectoryPath);
         ScrollPreviewToCaret();
     }
 
@@ -271,7 +271,7 @@ public partial class MainWindow : Window
         EnsureWysiwygWebView();
         _wysiwygNavigated = false;
         var html = HtmlPageShell.Wrap(ViewModel.GetCurrentTemplateCss(), bodyHtml, editable: true, ChapterHeadingHtmlFor(bodyHtml));
-        _wysiwygWebView!.NavigateToString(html, new Uri("about:blank"));
+        _wysiwygWebView!.NavigateToString(html, HtmlPageShell.BuildFileBaseUri(ViewModel.CurrentProject.DirectoryPath));
     }
 
     /// <summary>

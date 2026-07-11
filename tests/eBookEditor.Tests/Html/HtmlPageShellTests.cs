@@ -62,4 +62,51 @@ public class HtmlPageShellTests
         Assert.Contains("scrollToFraction", html);
         Assert.Contains("appendFootnoteDefinition", html);
     }
+
+    [Fact]
+    public void BuildFileBaseUri_WithAProjectDirectory_ReturnsAFileUriWithTrailingSeparator()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "ebookeditor-tests-" + Guid.NewGuid());
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            var uri = HtmlPageShell.BuildFileBaseUri(tempDir);
+
+            Assert.Equal("file", uri.Scheme);
+            Assert.EndsWith("/", uri.AbsoluteUri);
+        }
+        finally
+        {
+            Directory.Delete(tempDir);
+        }
+    }
+
+    [Fact]
+    public void BuildFileBaseUri_ResolvesARelativeImagePathAgainstTheProjectDirectory()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "ebookeditor-tests-" + Guid.NewGuid());
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            var baseUri = HtmlPageShell.BuildFileBaseUri(tempDir);
+
+            var resolved = new Uri(baseUri, "../images/foo.jpg");
+
+            Assert.Equal(Path.Combine(Path.GetDirectoryName(tempDir)!, "images", "foo.jpg"), resolved.LocalPath);
+        }
+        finally
+        {
+            Directory.Delete(tempDir);
+        }
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void BuildFileBaseUri_NoDirectory_FallsBackToAboutBlank(string? directory)
+    {
+        var uri = HtmlPageShell.BuildFileBaseUri(directory);
+
+        Assert.Equal("about:blank", uri.ToString());
+    }
 }

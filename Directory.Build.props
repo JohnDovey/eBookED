@@ -675,6 +675,25 @@
          footnote reference but doesn't resolve gets a real new footnote inserted immediately
          after it reading "TODO: ...please review and fix it manually," rather than being
          silently left broken. -->
-    <Version>2.20.0</Version>
+    <!-- 2.20.1: two bug fixes, so a patch bump.
+         (1) The Recent Projects menu could end up permanently empty: AppSettingsService.Load()
+         had no try/catch around its JSON deserialize, and MainWindow.OnRecentProjectsSubmenuOpened
+         clears the menu's items *before* calling it — an exception (a corrupt/truncated
+         settings.json, plausible since Save() previously wrote directly to the real file with
+         no locking between the several AppSettingsService instances, one per open window, that
+         all share it) left the menu cleared with neither real entries nor the "no recent
+         projects" fallback. Load() now falls back to a fresh AppSettings on any read/parse
+         failure instead of throwing; Save() now writes to a temp file and renames it into place
+         instead of writing the real file directly, so a mid-write crash can no longer produce a
+         truncated file for Load() to trip over next time.
+         (2) No relative image (`&lt;img src="../images/foo.jpg"&gt;`) ever displayed in Preview
+         or the WYSIWYG editor pane — both navigated the WebView with "about:blank" as the base
+         URI, which has no filesystem context for a relative path to resolve against, so every
+         chapter's inserted images (not just the About the Author photo that surfaced this) were
+         silently broken. New HtmlPageShell.BuildFileBaseUri(projectDirectory) builds a real
+         file:// base URI from the project's own directory instead, used by both PreviewWindow
+         (which now takes the project directory as a parameter on UpdateContent, since it was
+         previously fully decoupled from CurrentProject) and MainWindow's WYSIWYG navigation. -->
+    <Version>2.20.1</Version>
   </PropertyGroup>
 </Project>

@@ -124,6 +124,17 @@ public static class HtmlPageShell
     /// only in front matter, never in the body itself — folding the heading into #content would
     /// permanently duplicate it into the saved file the next time WYSIWYG edits synced back).
     /// </summary>
+    /// <summary>The base URI a WebView navigation needs for a wrapped page's relative
+    /// <c>&lt;img src="../images/foo.jpg"&gt;</c> references to actually resolve — "about:blank"
+    /// (this app's previous default) has no filesystem context for a relative path to resolve
+    /// against, so every relative image failed to load regardless of how correct its path was.
+    /// Returns "about:blank" unchanged when there's genuinely no project directory to resolve
+    /// against (e.g. wrapping generated, path-independent content).</summary>
+    public static Uri BuildFileBaseUri(string? projectDirectory) =>
+        projectDirectory is { Length: > 0 }
+            ? new Uri(Path.GetFullPath(projectDirectory) + Path.DirectorySeparatorChar)
+            : new Uri("about:blank");
+
     public static string Wrap(string css, string bodyHtml, bool editable, string? headingHtml = null) =>
         $"""
         <!doctype html>
