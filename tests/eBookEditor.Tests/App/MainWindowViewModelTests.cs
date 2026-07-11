@@ -226,6 +226,39 @@ public class MainWindowViewModelTests : IDisposable
     }
 
     [Fact]
+    public void SaveMetadataAndRegenerate_PreservesTheProjectsIdentifierAcrossSaves()
+    {
+        // Regression test: MetadataViewModel.ToMetadata() always builds a brand-new
+        // BookMetadata from the form fields, none of which include Identifier (it's an
+        // internal book-identity GUID, never user-editable) — BookMetadata.Identifier's own
+        // "= Guid.NewGuid()" default silently minted a fresh one on every single metadata
+        // save, which meant an EPUB's own dc:identifier (built from this field) changed on
+        // every export even with zero content changes.
+        var vm = NewViewModel();
+        var originalIdentifier = vm.CurrentProject.Metadata.Identifier;
+
+        vm.Metadata.Title = "Renamed Book";
+        vm.SaveMetadataAndRegenerate();
+
+        Assert.Equal(originalIdentifier, vm.CurrentProject.Metadata.Identifier);
+
+        var reloaded = _projectService.LoadProject(vm.CurrentProject.DirectoryPath);
+        Assert.Equal(originalIdentifier, reloaded.Metadata.Identifier);
+    }
+
+    [Fact]
+    public void SaveProjectCommand_PreservesTheProjectsIdentifierAcrossSaves()
+    {
+        var vm = NewViewModel();
+        var originalIdentifier = vm.CurrentProject.Metadata.Identifier;
+
+        vm.Metadata.Title = "Renamed Book";
+        vm.SaveProjectCommand.Execute(null);
+
+        Assert.Equal(originalIdentifier, vm.CurrentProject.Metadata.Identifier);
+    }
+
+    [Fact]
     public void ExportEpub_WritesEpubFileToOutputDirAndReportsStatus()
     {
         var vm = NewViewModel();

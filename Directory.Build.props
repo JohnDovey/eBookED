@@ -907,6 +907,22 @@
          edit-sync-back path needed the exact inverse (RestoreAssetPathsAfterProjectRootBase)
          to avoid permanently baking the project-root-relative form into the saved chapter file
          the next time an edit synced. -->
-    <Version>2.27.2</Version>
+    <!-- 2.27.3: user-reported bug fix, no new features, so a patch bump. A project's book
+         identifier (BookMetadata.Identifier) silently regenerated to a brand-new random GUID
+         on every metadata save — reproduced twice via the manual project's own
+         project.ebookproj.json, whose "identifier" field kept changing with zero real edits.
+         Root cause: MetadataViewModel.ToMetadata() always builds a fresh BookMetadata from the
+         form's fields, none of which include Identifier (it's an internal book-identity GUID,
+         never exposed as an editable field) — BookMetadata.Identifier's own
+         "= Guid.NewGuid()" default kicked in every time, discarding whatever was actually on
+         disk. This mattered beyond the project file itself: EpubBuilder.ResolveUniqueIdentifier
+         builds the EPUB's own dc:identifier straight from this field, so every export minted a
+         new book identity even when nothing about the book had changed — bad for e-reader
+         library de-duplication and update detection. Fixed by re-applying the identifier
+         already on CurrentProject.ProjectFile.Metadata (a new MainWindowViewModel.
+         WithPreservedIdentifier helper) at both save paths (SaveProject, SaveMetadataAndRegenerate)
+         before the freshly-built BookMetadata overwrites it — the identifier now only changes
+         when ProjectService.CreateProject mints a real new one for a brand-new project. -->
+    <Version>2.27.3</Version>
   </PropertyGroup>
 </Project>

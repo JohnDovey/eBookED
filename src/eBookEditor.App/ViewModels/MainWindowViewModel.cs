@@ -215,14 +215,28 @@ public partial class MainWindowViewModel : ViewModelBase
         if (Editor.IsDirty)
             Editor.Save();
 
-        CurrentProject.ProjectFile.Metadata = Metadata.ToMetadata();
+        CurrentProject.ProjectFile.Metadata = WithPreservedIdentifier(Metadata.ToMetadata());
         _projectService.SaveProject(CurrentProject);
         StatusMessage = $"Saved project to {CurrentProject.DirectoryPath}";
     }
 
+    /// <summary>
+    /// MetadataViewModel.ToMetadata() always builds a brand-new BookMetadata from the
+    /// ViewModel's form fields — Identifier isn't one of them (it's an internal book-identity
+    /// GUID, never user-editable), so BookMetadata.Identifier's own "= Guid.NewGuid()" default
+    /// kicked in on every single metadata save, silently replacing a project's real identifier
+    /// with a fresh random one (confirmed via the EPUB's own dc:identifier, built from this
+    /// field in EpubBuilder.ResolveUniqueIdentifier, changing on every export even with zero
+    /// content changes). Both save paths below must re-apply the identifier already on disk
+    /// before overwriting CurrentProject.ProjectFile.Metadata, so it only ever changes when
+    /// CreateProject mints a real new one for a brand-new project.
+    /// </summary>
+    private BookMetadata WithPreservedIdentifier(BookMetadata metadata) =>
+        metadata with { Identifier = CurrentProject.ProjectFile.Metadata.Identifier };
+
     public void SaveMetadataAndRegenerate()
     {
-        var metadata = Metadata.ToMetadata();
+        var metadata = WithPreservedIdentifier(Metadata.ToMetadata());
         CurrentProject.ProjectFile.Metadata = metadata;
         _projectService.SaveProject(CurrentProject);
 
