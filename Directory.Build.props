@@ -923,6 +923,14 @@
          WithPreservedIdentifier helper) at both save paths (SaveProject, SaveMetadataAndRegenerate)
          before the freshly-built BookMetadata overwrites it — the identifier now only changes
          when ProjectService.CreateProject mints a real new one for a brand-new project. -->
-    <Version>2.27.3</Version>
+    <!-- 2.27.4: user-reported bug fix, no new features, so a patch bump. The editor pane's
+         formatting toolbar (Bold/Italic/Insert Element/Insert Table/Insert Image/Insert
+         Footnote/Mark Link Destination/Insert Internal Link/Mark as Index Entry/Apply Style —
+         nine buttons, grown one at a time across several rounds of features without anyone
+         re-checking the row still fit) ran off the right edge of the window on anything
+         narrower than a very wide display, with no way to reach whichever buttons overflowed.
+         Swapped the toolbar's StackPanel for a WrapPanel (MainWindow.axaml) — same fixed
+         8px spacing, but now wraps onto a second row instead of clipping. -->
+    <Version>2.27.4</Version>
   </PropertyGroup>
 </Project>
