@@ -10,28 +10,53 @@
         "role": 0,
         "name": "John Dovey",
         "sortName": "Dovey, John"
+      },
+      {
+        "firstName": "Claude",
+        "lastName": "Code",
+        "role": 1,
+        "name": "Claude Code",
+        "sortName": "Code, Claude"
+      },
+      {
+        "firstName": "Screen",
+        "lastName": "Shot",
+        "role": 2,
+        "name": "Screen Shot",
+        "sortName": "Shot, Screen"
       }
     ],
     "copyrightHolder": "John Dovey",
     "copyrightYear": 2026,
-    "publisher": null,
+    "publisher": {
+      "name": "Larry\u0027s Farm",
+      "logoPath": "images/favicon.png"
+    },
     "coverImagePath": null,
-    "publicationDate": null,
+    "publicationDate": "2026-07-11",
     "language": "en",
-    "genreTags": [],
-    "freeTags": [],
-    "blurb": null,
+    "genreTags": [
+      "Non-Fiction",
+      "Manual",
+      "Technical Documentation"
+    ],
+    "freeTags": [
+      "Auto-Generated",
+      "AI"
+    ],
+    "blurb": "This is the user manual for the eBook Editor application.",
     "isbn10": null,
     "isbn13": null,
     "aboutAuthor": {
       "bio": "",
-      "photoPath": null,
+      "photoPath": "images/20240327105108_034A5019.jpg",
+      "photoCaption": null,
       "socialLinks": []
     },
     "storeLinks": [],
     "copyrightDisclaimer": "All rights reserved. No part of this publication may be reproduced, distributed, or transmitted in any form or by any means, including photocopying, recording, or other electronic or mechanical methods, without the prior written permission of the publisher, except in the case of brief quotations embodied in critical reviews and certain other noncommercial uses permitted by copyright law.",
-    "identifier": "0df0586c-2a75-4172-a63e-936628f24827",
-    "selectedTemplate": "Default",
+    "identifier": "ce7c45bf-26b0-438a-ac21-a0b242970d32",
+    "selectedTemplate": "RoyalRoad",
     "pdfPageSize": "A5",
     "authors": [
       {
@@ -42,8 +67,24 @@
         "sortName": "Dovey, John"
       }
     ],
-    "editors": [],
-    "illustrators": []
+    "editors": [
+      {
+        "firstName": "Claude",
+        "lastName": "Code",
+        "role": 1,
+        "name": "Claude Code",
+        "sortName": "Code, Claude"
+      }
+    ],
+    "illustrators": [
+      {
+        "firstName": "Screen",
+        "lastName": "Shot",
+        "role": 2,
+        "name": "Screen Shot",
+        "sortName": "Shot, Screen"
+      }
+    ]
   },
   "spine": [
     {
@@ -86,7 +127,7 @@
       "id": "4d92a3e5-3d40-4329-bb2d-654e0ca4fbae",
       "type": 2,
       "relativePath": "backmatter/about-the-author.ebhtml",
-      "order": 11,
+      "order": 12,
       "isGenerated": true,
       "title": "About the Author",
       "subtitle": null,
@@ -98,7 +139,7 @@
       "id": "eea50138-2021-403b-ab35-c39d67bb69c6",
       "type": 1,
       "relativePath": "chapters/001-Getting-Started.ebhtml",
-      "order": 3,
+      "order": 4,
       "isGenerated": false,
       "title": "Getting Started",
       "subtitle": null,
@@ -110,7 +151,7 @@
       "id": "e87e2e05-7f1a-47ff-bb59-495d18ad7c0f",
       "type": 1,
       "relativePath": "chapters/002-Organizing-Your-Book.ebhtml",
-      "order": 4,
+      "order": 5,
       "isGenerated": false,
       "title": "Organizing Your Book",
       "subtitle": null,
@@ -122,7 +163,7 @@
       "id": "9593cd73-2943-4b7e-9070-916409ef3a2c",
       "type": 1,
       "relativePath": "chapters/003-Writing-in-the-Editor.ebhtml",
-      "order": 5,
+      "order": 6,
       "isGenerated": false,
       "title": "Writing in the Editor",
       "subtitle": null,
@@ -134,7 +175,7 @@
       "id": "bb6def4b-3245-4e1b-a185-5f0ba09025e4",
       "type": 1,
       "relativePath": "chapters/004-Markdown-Syntax-Reference.ebhtml",
-      "order": 6,
+      "order": 7,
       "isGenerated": false,
       "title": "Markdown Syntax Reference",
       "subtitle": null,
@@ -146,7 +187,7 @@
       "id": "ed255838-a36b-41e3-b86b-81a9acdad548",
       "type": 1,
       "relativePath": "chapters/005-Inserting-Tables-the-Easy-Way.ebhtml",
-      "order": 7,
+      "order": 8,
       "isGenerated": false,
       "title": "Inserting Tables the Easy Way",
       "subtitle": null,
@@ -158,7 +199,7 @@
       "id": "7db99e65-4a47-4da6-8f17-80f5cbbef34a",
       "type": 1,
       "relativePath": "chapters/006-Book-Metadata.ebhtml",
-      "order": 8,
+      "order": 9,
       "isGenerated": false,
       "title": "Book Metadata",
       "subtitle": null,
@@ -170,7 +211,7 @@
       "id": "aff76590-9d60-4b69-8aa8-a250798a2f09",
       "type": 1,
       "relativePath": "chapters/007-Exporting-Your-Book.ebhtml",
-      "order": 9,
+      "order": 10,
       "isGenerated": false,
       "title": "Exporting Your Book",
       "subtitle": null,
@@ -182,15 +223,27 @@
       "id": "f4079d41-7f9b-44b1-aa9e-6d83bdcb1611",
       "type": 1,
       "relativePath": "chapters/008-Tips,-Limitations-\u0026-Troubleshooting.ebhtml",
-      "order": 10,
+      "order": 11,
       "isGenerated": false,
       "title": "Tips, Limitations \u0026 Troubleshooting",
       "subtitle": null,
       "numberMode": 0,
       "numberOverride": null,
       "resolvedNumber": 8
+    },
+    {
+      "id": "d6be70b4-ffbe-4bf3-8f2e-241b129fd9c6",
+      "type": 0,
+      "relativePath": "frontmatter/new-front-matter-page-d8f657af.ebhtml",
+      "order": 3,
+      "isGenerated": false,
+      "title": "Introduction",
+      "subtitle": "",
+      "numberMode": 0,
+      "numberOverride": null,
+      "resolvedNumber": null
     }
   ],
   "createdUtc": "2026-07-09T16:03:27.607296Z",
-  "modifiedUtc": "2026-07-11T06:38:52.969133Z"
+  "modifiedUtc": "2026-07-11T13:28:42.830959Z"
 }
