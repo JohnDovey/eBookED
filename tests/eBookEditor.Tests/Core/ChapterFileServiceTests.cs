@@ -52,6 +52,26 @@ public class ChapterFileServiceTests : IDisposable
     }
 
     [Fact]
+    public void ReplaceBody_PreservesFrontMatterVerbatimAndSwapsOnlyBody()
+    {
+        var original = "---\ntitle: Chapter One\nnumberMode: Auto\n---\n\n<p>Old body.</p>";
+
+        var replaced = _service.ReplaceBody(original, "<p>New body.</p>");
+
+        var (frontMatter, body) = _service.ParseChapter(replaced);
+        Assert.Equal("Chapter One", frontMatter.Title);
+        Assert.Equal("<p>New body.</p>", body);
+    }
+
+    [Fact]
+    public void ReplaceBody_NoFrontMatter_ReturnsBodyAsIs()
+    {
+        var replaced = _service.ReplaceBody("<p>No front matter here.</p>", "<p>New body.</p>");
+
+        Assert.Equal("<p>New body.</p>", replaced);
+    }
+
+    [Fact]
     public void CreateNewChapterFile_GeneratesSlugifiedUniqueFileName()
     {
         var chaptersDir = Path.Combine(_tempDir, "chapters");

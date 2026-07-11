@@ -25,6 +25,7 @@ public partial class MainWindow : Window
     private PreviewWindow? _previewWindow;
     private NativeWebView? _wysiwygWebView;
     private bool _wysiwygNavigated;
+    private readonly ChapterFileService _chapterFileService = new();
 
     public MainWindow()
     {
@@ -120,11 +121,21 @@ public partial class MainWindow : Window
         }
 
         if (IsWysiwygMode && !_suppressWysiwygPush)
-            PushContentToWysiwyg(text);
+            PushContentToWysiwyg(CurrentBodyOnly());
 
         if (ViewModel.Editor.FilePath is { } path)
-            UpdatePreviewWindow(text, Path.GetFileNameWithoutExtension(path));
+            UpdatePreviewWindow(CurrentBodyOnly(), Path.GetFileNameWithoutExtension(path));
     }
+
+    /// <summary>
+    /// CurrentText is the raw full file (front matter YAML block included — see
+    /// EditorViewModel.LoadFile/Save) since the raw editor pane is meant to show/edit it
+    /// directly. Preview and Rich Text mode should only ever show the rendered body, not the
+    /// literal "---\ntitle: ...\n---" block above it — a real bug caught by a user screenshot
+    /// showing that block as visible text at the top of a Preview window.
+    /// </summary>
+    private string CurrentBodyOnly() =>
+        ViewModel is null ? string.Empty : _chapterFileService.ParseChapter(ViewModel.Editor.CurrentText).Body;
 
     /// <summary>
     /// Opens a standalone preview window for the chapter currently in the editor, or brings the
@@ -149,7 +160,7 @@ public partial class MainWindow : Window
         }
 
         var title = ViewModel.Editor.FilePath is { } path ? Path.GetFileNameWithoutExtension(path) : null;
-        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), ViewModel.Editor.CurrentText, title, CurrentChapterHeadingHtml());
+        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), CurrentBodyOnly(), title, CurrentChapterHeadingHtml());
         ScrollPreviewToCaret();
     }
 
@@ -186,9 +197,9 @@ public partial class MainWindow : Window
         ViewModel.SaveChapterHeaderCommand.Execute(null);
 
         if (IsWysiwygMode)
-            PushContentToWysiwyg(ViewModel.Editor.CurrentText);
+            PushContentToWysiwyg(CurrentBodyOnly());
 
-        UpdatePreviewWindow(ViewModel.Editor.CurrentText, ViewModel.Editor.FilePath is { } path ? Path.GetFileNameWithoutExtension(path) : null);
+        UpdatePreviewWindow(CurrentBodyOnly(), ViewModel.Editor.FilePath is { } path ? Path.GetFileNameWithoutExtension(path) : null);
     }
 
     private void OnEditorCaretPositionChanged(object? sender, EventArgs e) => ScrollPreviewToCaret();
@@ -225,7 +236,7 @@ public partial class MainWindow : Window
         {
             EditorTextBox.IsVisible = false;
             WysiwygHost.IsVisible = true;
-            PushContentToWysiwyg(ViewModel?.Editor.CurrentText ?? string.Empty);
+            PushContentToWysiwyg(CurrentBodyOnly());
         }
         else
         {
@@ -263,7 +274,11 @@ public partial class MainWindow : Window
     /// Receives the debounced { event: "change", html: "..." } message the WYSIWYG page's JS
     /// bridge posts after an edit (see HtmlPageShell's BridgeScript) and folds it back into
     /// CurrentText — guarded by _suppressWysiwygPush so SyncEditorTextFromViewModel doesn't
-    /// immediately re-navigate the WebView back to the content it just sent us.
+    /// immediately re-navigate the WebView back to the content it just sent us. The WYSIWYG
+    /// page only ever showed the body (see PushContentToWysiwyg/CurrentBodyOnly), so the edited
+    /// html here is just the body too — ChapterFileService.ReplaceBody folds it back in under
+    /// CurrentText's existing front matter block, left untouched, rather than overwriting the
+    /// whole file with body-only text and losing the front matter entirely.
     /// </summary>
     private void OnWysiwygMessageBody(string? body)
     {
@@ -276,9 +291,9 @@ public partial class MainWindow : Window
             if (message.RootElement.GetProperty("event").GetString() != "change")
                 return;
 
-            var html = message.RootElement.GetProperty("html").GetString() ?? string.Empty;
+            var editedBody = message.RootElement.GetProperty("html").GetString() ?? string.Empty;
             _suppressWysiwygPush = true;
-            ViewModel.Editor.CurrentText = html;
+            ViewModel.Editor.CurrentText = _chapterFileService.ReplaceBody(ViewModel.Editor.CurrentText, editedBody);
             _suppressWysiwygPush = false;
         }
         catch (JsonException)

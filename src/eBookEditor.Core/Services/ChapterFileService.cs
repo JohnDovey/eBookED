@@ -39,6 +39,27 @@ public class ChapterFileService
         return (frontMatter, body);
     }
 
+    /// <summary>
+    /// Replaces just the body portion of a raw chapter/page file's text, leaving its front
+    /// matter block byte-for-byte as it was — used to fold a WYSIWYG-edited body (which only
+    /// ever sees/edits the body, never the front matter — see MainWindow.PushContentToWysiwyg)
+    /// back into the editor's full CurrentText without re-serializing the YAML through
+    /// ChapterFrontMatter, which could reformat it (key order, quoting) even when nothing the
+    /// user actually touched changed.
+    /// </summary>
+    public string ReplaceBody(string text, string newBody)
+    {
+        if (!text.StartsWith(Delimiter, StringComparison.Ordinal))
+            return newBody;
+
+        var endIndex = text.IndexOf($"\n{Delimiter}", Delimiter.Length, StringComparison.Ordinal);
+        if (endIndex < 0)
+            return newBody;
+
+        var prefix = text[..(endIndex + 1 + Delimiter.Length)];
+        return $"{prefix}\n\n{newBody.TrimStart('\n', '\r')}";
+    }
+
     public void WriteChapter(string path, ChapterFrontMatter frontMatter, string body)
     {
         var yaml = _serializer.Serialize(frontMatter).TrimEnd('\n', '\r');

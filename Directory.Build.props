@@ -508,6 +508,22 @@
          rendering its text — Word's footnote pane already provides its own way back to the
          reference, and PDF has no in-document jump target for the arrow to point at either way,
          so showing it there would just be a dead link. -->
-    <Version>2.13.0</Version>
+    <!-- 2.13.1: user-reported bug fix, no new features, so a patch bump. Preview and Rich Text
+         mode were rendering a page's raw front matter YAML block (the delimiter-fenced "title:
+         ..." header at the top of every .ebhtml file) as literal visible text at the top of the
+         page — caught by a real screenshot of the
+         manual's own TOC page. Root cause: EditorViewModel.CurrentText is always the whole raw
+         file (front matter included — the raw editor pane is meant to show/edit it directly),
+         but Preview/Rich Text mode was pushing CurrentText straight into HtmlPageShell as if it
+         were just the body. Fixed by stripping front matter via
+         ChapterFileService.ParseChapter(...).Body before every Preview/Rich-Text push (see
+         MainWindow.CurrentBodyOnly). Rich Text mode's edit-back path needed the reverse
+         operation too: since it now only ever shows/edits the body, folding an edit straight
+         back into CurrentText would have overwritten the front matter block entirely on the
+         next save — fixed with a new ChapterFileService.ReplaceBody, which swaps in a new body
+         while leaving the existing front matter block's exact original text untouched (not
+         re-serialized through ChapterFrontMatter, which could reformat it even when nothing the
+         user actually touched changed). -->
+    <Version>2.13.1</Version>
   </PropertyGroup>
 </Project>
