@@ -36,6 +36,24 @@ public class ChapterFileService
             ? new ChapterFrontMatter()
             : _deserializer.Deserialize<ChapterFrontMatter>(yaml) ?? new ChapterFrontMatter();
 
+        // Defensive: a well-formed chapter file never has more than one front-matter block, but
+        // a rare historical bug (confirmed against a real user project — a stray second block,
+        // stacked directly on top of the real body, presumably from some past operation that
+        // fed an already-front-mattered file's full text back in as if it were plain body) can
+        // leave one behind. Left alone, that stale block renders as literal "---\ntitle: ..."
+        // text at the top of the chapter in every exported format. Strip any further leading
+        // "---...---" block(s) too, discarding their content — the first block (already parsed
+        // above) stays authoritative, matching this project's own spine metadata — so the file
+        // self-heals the moment it's read, and permanently the next time it's saved.
+        while (body.StartsWith(Delimiter, StringComparison.Ordinal))
+        {
+            var staleEndIndex = body.IndexOf($"\n{Delimiter}", Delimiter.Length, StringComparison.Ordinal);
+            if (staleEndIndex < 0)
+                break;
+
+            body = body[(staleEndIndex + 1 + Delimiter.Length)..].TrimStart('\n', '\r');
+        }
+
         return (frontMatter, body);
     }
 

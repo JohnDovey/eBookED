@@ -32,6 +32,18 @@ internal class HtmlToPdfRenderer
 {
     private const float DefaultFontSize = 11f;
 
+    /// <summary>Every width/height already stored in this app's own generated HTML (Insert
+    /// Image…, GalleryHtmlBuilder) is in CSS pixels — the same 96px-per-inch reference density
+    /// used throughout the rest of the app. QuestPDF's own sizing methods (MaxWidth, ConstantItem,
+    /// etc.) take a bare float in its own default unit, points (72 per inch), when no Unit is
+    /// given — passing a raw pixel value straight through rendered every image roughly a third
+    /// larger than intended (96/72 ≈ 1.33×), which could push an image that had already been
+    /// page-fit-clamped at insert time back past the printable area, causing it to spill or split
+    /// across a page boundary. Use this to convert before any QuestPDF sizing call.</summary>
+    private const float PointsPerPixel = 72f / 96f;
+
+    private static float PixelsToPoints(float pixels) => pixels * PointsPerPixel;
+
     public void RenderHtmlBody(ColumnDescriptor column, string html, string? sourceDir, string? templateCss, string? sectionName = null, string? headingFontFamily = null)
     {
         // Registering the section on whichever content item happened to render first used to
@@ -76,9 +88,9 @@ internal class HtmlToPdfRenderer
     {
         column.Item().PaddingBottom(8).Row(row =>
         {
-            var imageWidth = ParseExplicitPixelSize(image, "width") ?? 150f;
+            var imageWidthPt = PixelsToPoints(ParseExplicitPixelSize(image, "width") ?? 150f);
 
-            void RenderImageColumn() => RenderImage(row.ConstantItem(imageWidth), image, sourceDir, placement.Alignment, imageWidth);
+            void RenderImageColumn() => RenderImage(row.ConstantItem(imageWidthPt), image, sourceDir, placement.Alignment, imageWidthPt);
             void RenderTextColumn() => row.RelativeItem().PaddingHorizontal(8).Text(text =>
                 RenderInlineChildren(text, paragraph, baseFontSize, headingFontFamily, styles));
 
@@ -382,11 +394,14 @@ internal class HtmlToPdfRenderer
     }
 
     /// <summary>The image itself, aligned per <paramref name="alignment"/> and sized to
-    /// <paramref name="explicitWidthOverride"/> if given, else the image's own "width" attribute
-    /// (see Insert Image…'s width/height fields) if present, else the previous fixed default —
-    /// height is never read separately since QuestPDF's own FitWidth already preserves the
-    /// original aspect ratio once width is fixed.</summary>
-    private static void RenderImage(IContainer container, DomElement image, string? sourceDir, ImageAlignment alignment = ImageAlignment.Center, float? explicitWidthOverride = null)
+    /// <paramref name="explicitWidthOverridePt"/> (already in points — see PixelsToPoints) if
+    /// given, else the image's own "width" attribute (see Insert Image…'s width/height fields,
+    /// in CSS pixels, converted here) if present, else the previous fixed default — height is
+    /// never read separately since QuestPDF's own FitWidth already preserves the original aspect
+    /// ratio once width is fixed. ShowEntire means a large image that doesn't fit in the
+    /// remaining space on the current page moves whole to the next one instead of being sliced
+    /// across the page boundary.</summary>
+    private static void RenderImage(IContainer container, DomElement image, string? sourceDir, ImageAlignment alignment = ImageAlignment.Center, float? explicitWidthOverridePt = null)
     {
         var src = image.GetAttribute("src");
         if (sourceDir is null || string.IsNullOrWhiteSpace(src))
@@ -396,7 +411,7 @@ internal class HtmlToPdfRenderer
         if (!File.Exists(absolutePath))
             return;
 
-        var width = explicitWidthOverride ?? ParseExplicitPixelSize(image, "width") ?? 320f;
+        var widthPt = explicitWidthOverridePt ?? PixelsToPoints(ParseExplicitPixelSize(image, "width") ?? 320f);
         var padded = container.PaddingBottom(8);
         var aligned = alignment switch
         {
@@ -405,7 +420,7 @@ internal class HtmlToPdfRenderer
             _ => padded.AlignCenter(),
         };
 
-        aligned.Element(el => el.MaxWidth(width).Image(absolutePath).FitWidth());
+        aligned.Element(el => el.MaxWidth(widthPt).ShowEntire().Image(absolutePath).FitWidth());
     }
 
     /// <summary>&lt;figure&gt; rendering for the non-flow case (flow — "float:left"/"right" —
@@ -426,14 +441,19 @@ internal class HtmlToPdfRenderer
         }
 
         var placement = ImagePlacementParser.Parse(figure.GetAttribute("style"));
-        RenderImage(column.Item(), img, sourceDir, placement.Alignment);
+        var figcaption = figure.QuerySelector("figcaption");
 
-        if (figure.QuerySelector("figcaption") is { } figcaption)
+        column.Item().ShowEntire().Column(figureColumn =>
         {
-            var captionStyle = styles.ComputedStyle(figcaption);
-            var captionFontSize = CssValueParser.ParseLength(captionStyle.GetPropertyValue("font-size"), baseFontSize) ?? baseFontSize;
-            column.Item().PaddingBottom(8).Text(text => RenderInlineChildren(text, figcaption, captionFontSize, headingFontFamily, styles));
-        }
+            RenderImage(figureColumn.Item(), img, sourceDir, placement.Alignment);
+
+            if (figcaption is not null)
+            {
+                var captionStyle = styles.ComputedStyle(figcaption);
+                var captionFontSize = CssValueParser.ParseLength(captionStyle.GetPropertyValue("font-size"), baseFontSize) ?? baseFontSize;
+                figureColumn.Item().PaddingBottom(8).Text(text => RenderInlineChildren(text, figcaption, captionFontSize, headingFontFamily, styles));
+            }
+        });
     }
 
     private static float? ParseExplicitPixelSize(DomElement element, string attributeName) =>

@@ -1151,6 +1151,27 @@
          figures in the same table would otherwise hit (each deriving its id from a "how many
          bookmarks already exist" count that, for a still-detached table, never saw any of its
          own earlier cells). -->
-    <Version>2.32.0</Version>
+    <!-- 2.32.1: two user-reported bug fixes, no new features, so a patch bump.
+         (1) A stray, stale second front-matter delimiter block, stacked directly on top of a
+         chapter's real body, rendered as literal visible YAML-looking header text at the top of
+         the exported EPUB (and Preview/Rich Text) — found in a real user project's chapter file,
+         confirmed via hex dump not to be a one-off. ChapterFileService.ParseChapter now loops
+         to strip any further leading delimiter block(s) it finds stacked on the body after the
+         first (authoritative) one, discarding their content — the file self-heals the moment
+         it's read, and permanently the next time it's saved.
+         (2) A large inserted image could split across two PDF pages even when InsertImageWindow's
+         own page-fit clamping (2.20.0-era) had already sized it to fit. Root cause: QuestPDF's
+         sizing APIs (MaxWidth, etc.) default to Unit.Point (72/inch) when given a bare float, but
+         this app's own HTML width/height attributes are always CSS pixels (96/inch, the
+         convention InsertImageWindow/GalleryHtmlBuilder already use) — every PDF-rendered image
+         was silently rendering about 1.33x larger than its stored width, confirmed via a
+         reflection probe against the installed QuestPDF assembly rather than assumed. Added
+         HtmlToPdfRenderer.PixelsToPoints and applied it at every image-sizing call site
+         (RenderImage, RenderFlowedImageAndParagraph). Also wrapped RenderImage's own Image()
+         call and RenderFigure's image+caption pair in ShowEntire() so a correctly-sized image
+         that still doesn't fit in the remaining space on a page moves as a whole to the next
+         page instead of splitting its content (or separating from its caption) across the
+         boundary. -->
+    <Version>2.32.1</Version>
   </PropertyGroup>
 </Project>

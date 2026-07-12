@@ -64,6 +64,69 @@ public class ChapterFileServiceTests : IDisposable
     }
 
     [Fact]
+    public void ParseChapter_StaleSecondFrontMatterBlockStackedOnTheBody_IsStrippedRatherThanLeakedAsText()
+    {
+        // Regression test for a real corrupted chapter file found in a user project: a second,
+        // stale "---...---" block was stacked directly on top of the real body (presumably from
+        // some past operation that fed an already-front-mattered file's full text back in as
+        // plain body) — left alone, that stale block rendered as literal "---\ntitle: ..." text
+        // at the top of every exported chapter. The FIRST block stays authoritative (it's the
+        // one already trusted elsewhere, e.g. the project's own spine metadata); the stale
+        // second one is discarded entirely, not merged or preferred.
+        const string corrupted = """
+            ---
+            title: The Approach
+            subtitle: ''
+            numberMode: Auto
+            numberOverride:
+            ---
+
+            ---
+            title: Chapter 01 The Approach
+            subtitle:
+            numberMode: Auto
+            numberOverride:
+            ---
+
+            <p align="justify"></p><div class="drop-cap">I thought it was SPAM.</div>
+            """;
+
+        var (frontMatter, body) = _service.ParseChapter(corrupted);
+
+        Assert.Equal("The Approach", frontMatter.Title);
+        Assert.DoesNotContain("---", body);
+        Assert.DoesNotContain("Chapter 01 The Approach", body);
+        Assert.StartsWith("<p align=\"justify\">", body);
+    }
+
+    [Fact]
+    public void ParseChapter_StaleBlockFixIsSelfHealing_NextWriteProducesJustOneCleanBlock()
+    {
+        const string corrupted = """
+            ---
+            title: The Approach
+            numberMode: Auto
+            ---
+
+            ---
+            title: Chapter 01 The Approach
+            numberMode: Auto
+            ---
+
+            <p>Real body.</p>
+            """;
+        var path = Path.Combine(_tempDir, "chapter.ebhtml");
+        File.WriteAllText(path, corrupted);
+
+        var (frontMatter, body) = _service.ReadChapter(path);
+        _service.WriteChapter(path, frontMatter, body);
+
+        var rewritten = File.ReadAllText(path);
+        var delimiterLineCount = System.Text.RegularExpressions.Regex.Matches(rewritten, "(?m)^---$").Count;
+        Assert.Equal(2, delimiterLineCount); // exactly one clean front-matter block: an opening and a closing "---" line
+    }
+
+    [Fact]
     public void ReplaceBody_NoFrontMatter_ReturnsBodyAsIs()
     {
         var replaced = _service.ReplaceBody("<p>No front matter here.</p>", "<p>New body.</p>");
