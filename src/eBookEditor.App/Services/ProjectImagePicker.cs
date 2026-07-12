@@ -36,6 +36,39 @@ public static class ProjectImagePicker
         if (file?.TryGetLocalPath() is not { } sourcePath)
             return null;
 
+        return CopyIntoImagesDir(imagesDir, sourcePath);
+    }
+
+    /// <summary>The "Insert as Gallery" multi-select equivalent (see InsertImageWindow) —
+    /// returns the picked files' final names within imagesDir, in the order the user selected
+    /// them, capped at <paramref name="maxCount"/> (extra selections beyond that are silently
+    /// dropped rather than blocking the whole picker over one too many). Empty if the user
+    /// cancelled.</summary>
+    public static async Task<IReadOnlyList<string>> PickAndCopyMultipleIntoImagesDirAsync(IStorageProvider storageProvider, string imagesDir, string dialogTitle, int maxCount)
+    {
+        Directory.CreateDirectory(imagesDir);
+
+        var startLocation = await storageProvider.TryGetFolderFromPathAsync(imagesDir);
+        var files = await storageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = dialogTitle,
+            AllowMultiple = true,
+            SuggestedStartLocation = startLocation,
+            FileTypeFilter = [ImageFileType]
+        });
+
+        var results = new List<string>();
+        foreach (var file in files.Take(maxCount))
+        {
+            if (file.TryGetLocalPath() is { } sourcePath)
+                results.Add(CopyIntoImagesDir(imagesDir, sourcePath));
+        }
+
+        return results;
+    }
+
+    private static string CopyIntoImagesDir(string imagesDir, string sourcePath)
+    {
         var fileName = Path.GetFileName(sourcePath);
         var destinationPath = Path.Combine(imagesDir, fileName);
 

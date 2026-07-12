@@ -129,5 +129,30 @@ public static class DefaultStylesheet
         .author-name {
             font-size: 1.3em;
         }
+
+        /* "Insert as Gallery" (see GalleryHtmlBuilder) — a plain table.gallery grid, borders
+           removed and cells centered so it reads as a photo grid rather than a data table, with
+           a small drop shadow on each image (PDF/Word have no way to represent box-shadow — a
+           documented, acknowledged no-op there, not an attempted approximation). */
+        .gallery {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0 auto;
+        }
+
+        .gallery td {
+            border: none;
+            text-align: center;
+            vertical-align: top;
+            padding: 8px;
+        }
+
+        .gallery figure {
+            margin: 0;
+        }
+
+        .gallery img {
+            box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.35);
+        }
         """;
 }

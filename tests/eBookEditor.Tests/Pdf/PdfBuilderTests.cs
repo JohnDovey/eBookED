@@ -304,6 +304,41 @@ public class PdfBuilderTests : IDisposable
     }
 
     [Fact]
+    public void Build_GalleryTable_RendersEveryCaptionWithoutThrowing()
+    {
+        // A "table.gallery" cell's content goes through a different QuestPDF path than a plain
+        // data table (RenderFigure inside the cell instead of plain inline text) — this confirms
+        // that path doesn't throw and every caption actually reaches the page, across a
+        // multi-row gallery (3 images, so one full row plus a partial second row).
+        var project = BuildSampleProject();
+
+        var firstChapterItem = project.Spine.Single(i => i.Title == "Chapter One");
+        var firstChapterPath = project.ResolvePath(firstChapterItem);
+        _chapterFileService.WriteChapter(firstChapterPath,
+            new ChapterFrontMatter { Title = "Chapter One" },
+            """
+            <table class="gallery">
+            <tr>
+            <td><figure id="fig:one"><img src="../images/missing1.jpg" alt="One" width="100" height="80"><figcaption class="caption">First photo</figcaption></figure></td>
+            <td><figure id="fig:two"><img src="../images/missing2.jpg" alt="Two" width="100" height="80"><figcaption class="caption">Second photo</figcaption></figure></td>
+            </tr>
+            </table>
+            """);
+
+        _projectService.SaveProject(project);
+        var outputPath = Path.Combine(project.OutputDir, "book.pdf");
+
+        var result = _pdfBuilder.Build(project, outputPath);
+
+        using var document = PdfDocument.Open(outputPath);
+        var allText = string.Join(" ", Enumerable.Range(1, document.NumberOfPages).Select(i => document.GetPage(i).Text));
+
+        Assert.Contains("First photo", allText);
+        Assert.Contains("Second photo", allText);
+        Assert.True(result.PageCount >= project.Spine.Count);
+    }
+
+    [Fact]
     public void Build_RendersARealFootnoteReferenceAndNotesSection()
     {
         var project = BuildSampleProject();

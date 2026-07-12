@@ -133,7 +133,7 @@ internal class HtmlToPdfRenderer
                 break;
 
             case "TABLE":
-                RenderTable(column, element, styles, baseFontSize);
+                RenderTable(column, element, sourceDir, headingFontFamily, styles, baseFontSize);
                 break;
 
             case "PRE":
@@ -256,7 +256,14 @@ internal class HtmlToPdfRenderer
         }
     }
 
-    private static void RenderTable(ColumnDescriptor column, DomElement table, HtmlStyleDocument styles, float baseFontSize)
+    /// <summary>
+    /// A "table.gallery" (see GalleryHtmlBuilder) renders each cell's &lt;figure&gt; as a real
+    /// image via RenderFigure instead of the plain inline-text path every other table uses —
+    /// borderless too, since a gallery is a layout grid, not tabular data. QuestPDF's Table
+    /// component breaks rows cleanly across pages on its own, which is why galleries reuse this
+    /// renderer rather than a Row-based grid (Row has no equivalent pagination).
+    /// </summary>
+    private static void RenderTable(ColumnDescriptor column, DomElement table, string? sourceDir, string? headingFontFamily, HtmlStyleDocument styles, float baseFontSize)
     {
         var rows = table.QuerySelectorAll("tr").ToList();
         if (rows.Count == 0)
@@ -265,6 +272,8 @@ internal class HtmlToPdfRenderer
         var columnCount = rows[0].Children.Count(c => c.TagName is "TD" or "TH");
         if (columnCount == 0)
             return;
+
+        var isGallery = table.ClassList.Contains("gallery");
 
         column.Item().PaddingVertical(6).Table(questTable =>
         {
@@ -280,12 +289,21 @@ internal class HtmlToPdfRenderer
                 uint colIndex = 1;
                 foreach (var cell in row.Children.Where(c => c.TagName is "TD" or "TH"))
                 {
-                    var isHeader = cell.TagName == "TH";
-                    var cellContainer = questTable.Cell().Row(rowIndex).Column(colIndex)
-                        .Border(0.5f).BorderColor(Colors.Grey.Lighten1).Padding(4)
-                        .Background(isHeader ? Colors.Grey.Lighten3 : Colors.White);
+                    if (isGallery)
+                    {
+                        var galleryCell = questTable.Cell().Row(rowIndex).Column(colIndex).Padding(6);
+                        if (cell.QuerySelector("figure") is { } figure)
+                            galleryCell.Column(cellColumn => RenderFigure(cellColumn, figure, sourceDir, headingFontFamily, styles, baseFontSize * 10 / 11));
+                    }
+                    else
+                    {
+                        var isHeader = cell.TagName == "TH";
+                        var cellContainer = questTable.Cell().Row(rowIndex).Column(colIndex)
+                            .Border(0.5f).BorderColor(Colors.Grey.Lighten1).Padding(4)
+                            .Background(isHeader ? Colors.Grey.Lighten3 : Colors.White);
 
-                    cellContainer.Text(text => RenderInlineChildren(text, cell, baseFontSize * 10 / 11, null, styles, forceBold: isHeader));
+                        cellContainer.Text(text => RenderInlineChildren(text, cell, baseFontSize * 10 / 11, null, styles, forceBold: isHeader));
+                    }
                     colIndex++;
                 }
                 rowIndex++;

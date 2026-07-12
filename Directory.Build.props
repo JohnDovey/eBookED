@@ -1125,6 +1125,32 @@
          of the label being either unemphasized (Editor/Illustrator) or the name being bold
          instead of emphasized (Publisher). PageGeneratorService.GenerateCopyrightPage (the
          imprint page) is unaffected — this was specifically a title-page-only request. -->
-    <Version>2.31.1</Version>
+    <!-- 2.32.0: new feature, so a minor bump. "Insert Image…" gains an "Insert as Gallery"
+         option: check it before choosing files to pick up to GalleryHtmlBuilder.MaxImages (20)
+         at once, laid out as a "table.gallery" grid (3 per row, one captioned &lt;figure&gt; per
+         cell, each with its own real InternalLinkConvention.FigureIdPrefix id so right-click
+         "Edit Image…" and the List of Figures page both work on individual gallery images with
+         no gallery-specific handling needed in either) instead of the usual width/alignment/
+         flow/caption fields, which don't apply to a whole grid. Each image is scaled to a shared
+         column width computed from the project's page size, with its own height following from
+         its own natural aspect ratio (so a portrait photo next to a landscape one isn't
+         stretched to match).
+         A real HTML &lt;table&gt; is the shared markup for every export format — EPUB/Preview/
+         Rich Text render it directly; HtmlToPdfRenderer.RenderTable and
+         HtmlToDocxConverter.AppendTable are both extended to recognize a "gallery" table's cells
+         as figures (real images, not plain text) rather than building a new grid primitive from
+         scratch, so galleries get QuestPDF's Table's own clean cross-page row breaking for free.
+         A small drop shadow on each image is real box-shadow CSS (EPUB/Preview/Rich Text only —
+         PDF/Word have no way to represent it, an acknowledged no-op there rather than an
+         attempted approximation, matching this app's established handling of other
+         PDF/Word-unsupported CSS).
+         Along the way, HtmlToDocxConverter.AppendFigure/AppendImage were generalized from Body
+         to OpenXmlCompositeElement so they work inside a TableCell too, and AppendTable now
+         attaches its Table/TableRow to the live document BEFORE filling in cells rather than
+         building the whole thing detached — fixes a real bookmark-id collision bug multiple
+         figures in the same table would otherwise hit (each deriving its id from a "how many
+         bookmarks already exist" count that, for a still-detached table, never saw any of its
+         own earlier cells). -->
+    <Version>2.32.0</Version>
   </PropertyGroup>
 </Project>

@@ -589,37 +589,35 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Picks an image (starting in the project's images/ folder, created here if it doesn't
-    /// exist yet), copies it in if it was picked from elsewhere, then opens InsertImageWindow
-    /// (seeded with the file's own natural pixel dimensions, clamped to fit the project's chosen
-    /// PDF page size) for width/height/alignment/flow/caption, and inserts it as a real HTML
-    /// &lt;figure&gt; — its own explicit size and InternalLinkConvention.ToFigureStyle
-    /// alignment/flow, grouping the image with a ".caption"-styled &lt;figcaption&gt; underneath
-    /// — see EditorStyleCatalog. The figure gets its own InternalLinkConvention.FigureIdPrefix
-    /// id so the List of Figures/Photos page can link back to it.
+    /// Opens InsertImageWindow in "insert new" mode (see its own doc comment) — it handles its
+    /// own file picking (single or, checked "Insert as Gallery", multiple) against the project's
+    /// images/ folder and page-fit clamping. A single image comes back as an explicit HTML
+    /// &lt;figure&gt; — its own size and InternalLinkConvention.ToFigureStyle alignment/flow,
+    /// grouping the image with a ".caption"-styled &lt;figcaption&gt; underneath, see
+    /// EditorStyleCatalog — and its own InternalLinkConvention.FigureIdPrefix id so the List of
+    /// Figures/Photos page can link back to it. A gallery selection instead goes through
+    /// GalleryHtmlBuilder, which gives each of its own figures the same id treatment.
     /// </summary>
     private async void OnInsertImageClick(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is null)
             return;
 
-        var fileName = await ProjectImagePicker.PickAndCopyIntoImagesDirAsync(StorageProvider, ViewModel.CurrentProject.ImagesDir, "Insert Image");
-        if (fileName is null)
-            return;
-
-        var imagePath = Path.Combine(ViewModel.CurrentProject.ImagesDir, fileName);
-        var (naturalWidth, naturalHeight) = TryReadPixelSize(imagePath) ?? (400, 300);
         var pageSize = PdfPageSizeCatalog.Resolve(ViewModel.CurrentProject.Metadata.PdfPageSize);
-        var defaultCaption = Path.GetFileNameWithoutExtension(fileName);
-
-        var dialog = new InsertImageWindow(naturalWidth, naturalHeight, pageSize, defaultCaption);
+        var dialog = new InsertImageWindow(ViewModel.CurrentProject.ImagesDir, pageSize);
         await dialog.ShowDialog(this);
 
-        if (dialog.Result is not { } result)
+        if (dialog.GalleryResult is { Count: > 0 } galleryImages)
+        {
+            InsertAtCursor(GalleryHtmlBuilder.Build(galleryImages, pageSize));
+            return;
+        }
+
+        if (dialog.Result is not { } result || dialog.SelectedFileName is not { } fileName)
             return;
 
         var placement = new ImagePlacement(result.Alignment, result.Flow);
-        var altText = System.Net.WebUtility.HtmlEncode(defaultCaption);
+        var altText = System.Net.WebUtility.HtmlEncode(Path.GetFileNameWithoutExtension(fileName));
         var caption = System.Net.WebUtility.HtmlEncode(result.Caption);
         var figureId = $"{InternalLinkConvention.FigureIdPrefix}{Guid.NewGuid():N}";
         var html = $"""
@@ -630,22 +628,6 @@ public partial class MainWindow : Window
             """;
 
         InsertAtCursor(html);
-    }
-
-    private static (int Width, int Height)? TryReadPixelSize(string imagePath)
-    {
-        try
-        {
-            using var stream = File.OpenRead(imagePath);
-            using var bitmap = new Avalonia.Media.Imaging.Bitmap(stream);
-            return (bitmap.PixelSize.Width, bitmap.PixelSize.Height);
-        }
-        catch
-        {
-            // Best-effort — falls back to InsertImageWindow's own default size if the file
-            // can't be decoded (an unsupported/corrupt format).
-            return null;
-        }
     }
 
     /// <summary>A right-clicked &lt;figure&gt;'s current state, as read back out of the DOM by

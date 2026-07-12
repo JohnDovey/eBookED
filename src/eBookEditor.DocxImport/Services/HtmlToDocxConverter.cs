@@ -164,7 +164,7 @@ public class HtmlToDocxConverter
                 break;
 
             case "TABLE":
-                body.Append(BuildTable(element, mainPart, styles, baseFontSizePt, footnotes));
+                AppendTable(body, element, mainPart, sourceDir, styles, baseFontSizePt, footnotes);
                 break;
 
             case "PRE":
@@ -317,16 +317,22 @@ public class HtmlToDocxConverter
         return paragraph;
     }
 
-    private static DocumentFormat.OpenXml.Wordprocessing.Table BuildTable(DomElement table, MainDocumentPart mainPart, HtmlStyleDocument styles, float baseFontSizePt, FootnoteContext footnotes)
+    /// <summary>
+    /// Builds a &lt;table&gt; and appends it to <paramref name="body"/> — deliberately attaching
+    /// the (initially empty) Table/TableRow elements to the live document tree BEFORE filling in
+    /// their cells, rather than building the whole thing detached and appending it at the end:
+    /// a gallery table's cells each go through AppendFigure, which derives its bookmark id from
+    /// "how many BookmarkStart elements already exist in mainPart.Document" — if the table were
+    /// still detached while its cells were being filled, every figure in it would see the exact
+    /// same (stale) count and collide on the same id. Attaching first means each figure's
+    /// bookmark is already part of the live tree by the time the next one looks.
+    /// </summary>
+    private static void AppendTable(Body body, DomElement table, MainDocumentPart mainPart, string? sourceDir, HtmlStyleDocument styles, float baseFontSizePt, FootnoteContext footnotes)
     {
+        var isGallery = table.ClassList.Contains("gallery");
+
         var docxTable = new DocumentFormat.OpenXml.Wordprocessing.Table();
-        docxTable.AppendChild(new TableProperties(new TableBorders(
-            new TopBorder { Val = BorderValues.Single, Size = 4 },
-            new LeftBorder { Val = BorderValues.Single, Size = 4 },
-            new BottomBorder { Val = BorderValues.Single, Size = 4 },
-            new RightBorder { Val = BorderValues.Single, Size = 4 },
-            new InsideHorizontalBorder { Val = BorderValues.Single, Size = 4 },
-            new InsideVerticalBorder { Val = BorderValues.Single, Size = 4 })));
+        docxTable.AppendChild(new TableProperties(isGallery ? BorderlessTableBorders() : DefaultTableBorders()));
 
         var rows = table.QuerySelectorAll("tr").ToList();
         var columnCount = rows.Count > 0 ? rows[0].Children.Count(c => c.TagName is "TD" or "TH") : 0;
@@ -335,56 +341,93 @@ public class HtmlToDocxConverter
             tableGrid.Append(new GridColumn());
         docxTable.AppendChild(tableGrid);
 
+        body.Append(docxTable);
+
         foreach (var row in rows)
         {
             var docxRow = new DocumentFormat.OpenXml.Wordprocessing.TableRow();
+            docxTable.Append(docxRow);
+
             foreach (var cell in row.Children.Where(c => c.TagName is "TD" or "TH"))
             {
+                var tableCell = new DocumentFormat.OpenXml.Wordprocessing.TableCell();
+                docxRow.Append(tableCell);
+
+                if (isGallery && cell.QuerySelector("figure") is { } figure)
+                {
+                    AppendFigure(tableCell, figure, mainPart, sourceDir, styles, baseFontSizePt, footnotes);
+                    continue;
+                }
+
                 var paragraph = new Paragraph();
                 AppendInlineChildren(paragraph, cell, mainPart, styles, baseFontSizePt, footnotes, forceBold: cell.TagName == "TH");
                 if (!paragraph.HasChildren)
                     paragraph.Append(new Run(new Text(string.Empty)));
-
-                docxRow.Append(new DocumentFormat.OpenXml.Wordprocessing.TableCell(paragraph));
+                tableCell.Append(paragraph);
             }
-            docxTable.Append(docxRow);
         }
-
-        return docxTable;
     }
+
+    private static TableBorders DefaultTableBorders() => new(
+        new TopBorder { Val = BorderValues.Single, Size = 4 },
+        new LeftBorder { Val = BorderValues.Single, Size = 4 },
+        new BottomBorder { Val = BorderValues.Single, Size = 4 },
+        new RightBorder { Val = BorderValues.Single, Size = 4 },
+        new InsideHorizontalBorder { Val = BorderValues.Single, Size = 4 },
+        new InsideVerticalBorder { Val = BorderValues.Single, Size = 4 });
+
+    /// <summary>A gallery table is a layout grid, not tabular data — no visible borders,
+    /// matching the "table.gallery" CSS's own border-collapse:collapse + no border rules used
+    /// in EPUB/WYSIWYG/Preview.</summary>
+    private static TableBorders BorderlessTableBorders() => new(
+        new TopBorder { Val = BorderValues.None },
+        new LeftBorder { Val = BorderValues.None },
+        new BottomBorder { Val = BorderValues.None },
+        new RightBorder { Val = BorderValues.None },
+        new InsideHorizontalBorder { Val = BorderValues.None },
+        new InsideVerticalBorder { Val = BorderValues.None });
 
     /// <summary>&lt;figure&gt; export: the image itself (see AppendImage, given this figure's
     /// own ImagePlacement — alignment and whether text should flow around it, see
     /// InsertImageWindow), then its caption paragraph, if any. When the figure carries a
     /// "fig:" id (see InternalLinkConvention.FigureIdPrefix — every figure "Insert Image…"
-    /// creates has one), the whole thing is bracketed in a body-level Word bookmark — unlike the
+    /// creates has one), the whole thing is bracketed in a Word bookmark — unlike the
     /// "Mark Link Destination"/"Mark as Index Entry" SPAN case below, which brackets a bookmark
     /// around inline runs within one paragraph, a figure's bookmark needs to span both the image
-    /// paragraph and its caption paragraph, so it's appended directly to Body rather than nested
-    /// inside a single Paragraph — a real, supported OOXML shape (a bookmark can bracket several
-    /// sibling block elements, not just inline content). A matching &lt;a
+    /// paragraph and its caption paragraph, so it's appended as a sibling of those paragraphs
+    /// rather than nested inside a single one — a real, supported OOXML shape (a bookmark can
+    /// bracket several sibling block elements, not just inline content). <paramref
+    /// name="container"/> is Body for a normal top-level figure, or a TableCell for one of a
+    /// "table.gallery"'s cells (see AppendTable) — both are OpenXmlCompositeElement, and nothing
+    /// here needs anything more specific than Append. A matching &lt;a
     /// href="...#fig:{id}"&gt; (see PageGeneratorService.GenerateListOfFiguresPage) resolves to
     /// this bookmark via the same InternalLinkConvention.TryGetDestinationFragment/
     /// BookmarkNameFor path the SPAN case already uses.</summary>
-    private static void AppendFigure(Body body, DomElement figure, MainDocumentPart mainPart, string? sourceDir, HtmlStyleDocument styles, float baseFontSizePt, FootnoteContext footnotes)
+    private static void AppendFigure(OpenXmlCompositeElement container, DomElement figure, MainDocumentPart mainPart, string? sourceDir, HtmlStyleDocument styles, float baseFontSizePt, FootnoteContext footnotes)
     {
         var hasMarker = figure.Id is { } figureId && InternalLinkConvention.IsInternalMarkerId(figureId);
         string? bookmarkId = null;
         if (hasMarker)
         {
             bookmarkId = (mainPart.Document!.Descendants<BookmarkStart>().Count() + 1).ToString();
-            body.Append(new BookmarkStart { Id = bookmarkId, Name = BookmarkNameFor(figure.Id!) });
+            container.Append(new BookmarkStart { Id = bookmarkId, Name = BookmarkNameFor(figure.Id!) });
         }
 
         var img = figure.QuerySelector("img");
         if (img is null)
         {
-            foreach (var child in figure.Children)
-                AppendNode(body, child, mainPart, sourceDir, styles, baseFontSizePt, footnotes);
+            // A captionless/imageless <figure> only ever occurs at the top level — this app's
+            // own "Insert Image…"/gallery markup always includes a real <img> — so recursing
+            // through the full AppendNode dispatch (which needs a real Body) only runs there.
+            if (container is Body body)
+            {
+                foreach (var child in figure.Children)
+                    AppendNode(body, child, mainPart, sourceDir, styles, baseFontSizePt, footnotes);
+            }
         }
         else
         {
-            AppendImage(body, img, mainPart, sourceDir, ImagePlacementParser.Parse(figure.GetAttribute("style")));
+            AppendImage(container, img, mainPart, sourceDir, ImagePlacementParser.Parse(figure.GetAttribute("style")));
 
             if (figure.QuerySelector("figcaption") is { } figcaption)
             {
@@ -392,12 +435,12 @@ public class HtmlToDocxConverter
                 var captionSize = CssValueParser.ParseLength(captionStyle.GetPropertyValue("font-size"), baseFontSizePt) ?? baseFontSizePt;
                 var captionParagraph = new Paragraph();
                 AppendInlineChildren(captionParagraph, figcaption, mainPart, styles, captionSize, footnotes);
-                body.Append(captionParagraph);
+                container.Append(captionParagraph);
             }
         }
 
         if (hasMarker)
-            body.Append(new BookmarkEnd { Id = bookmarkId! });
+            container.Append(new BookmarkEnd { Id = bookmarkId! });
     }
 
     /// <summary>Sizes to the image's own explicit "width"/"height" attributes (see Insert
@@ -406,8 +449,9 @@ public class HtmlToDocxConverter
     /// image as a real Inline drawing, just paragraph-justified differently; a flowing left/
     /// right instead switches to a real Anchor+WrapSquare drawing — Word's actual "float" —
     /// genuinely new code path, not a parameter tweak, since Inline and Anchor are different
-    /// element shapes entirely.</summary>
-    private static void AppendImage(Body body, DomElement image, MainDocumentPart mainPart, string? sourceDir, ImagePlacement placement = default)
+    /// element shapes entirely. See AppendFigure for why <paramref name="container"/> isn't
+    /// typed as Body specifically.</summary>
+    private static void AppendImage(OpenXmlCompositeElement container, DomElement image, MainDocumentPart mainPart, string? sourceDir, ImagePlacement placement = default)
     {
         var src = image.GetAttribute("src");
         if (sourceDir is null || string.IsNullOrWhiteSpace(src))
@@ -448,7 +492,7 @@ public class HtmlToDocxConverter
 
         if (placement is { Flow: true, Alignment: not ImageAlignment.Center })
         {
-            body.Append(new Paragraph(new Run(BuildAnchoredImageDrawing(relationshipId, drawingId, widthEmu, heightEmu, placement.Alignment))));
+            container.Append(new Paragraph(new Run(BuildAnchoredImageDrawing(relationshipId, drawingId, widthEmu, heightEmu, placement.Alignment))));
             return;
         }
 
@@ -462,7 +506,7 @@ public class HtmlToDocxConverter
         if (justification is not null)
             paragraph.Append(new ParagraphProperties(new Justification { Val = justification }));
         paragraph.Append(new Run(BuildImageDrawing(relationshipId, drawingId, widthEmu, heightEmu)));
-        body.Append(paragraph);
+        container.Append(paragraph);
     }
 
     private static (int Width, int Height)? ParseExplicitPixelSize(DomElement image) =>

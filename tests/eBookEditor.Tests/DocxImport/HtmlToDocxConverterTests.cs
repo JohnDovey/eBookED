@@ -179,6 +179,48 @@ public class HtmlToDocxConverterTests : IDisposable
     }
 
     [Fact]
+    public void ConvertToFile_GalleryTable_GivesEachFigureAUniqueBookmarkIdAndNoCellBorders()
+    {
+        // Regression test: a "table.gallery" cell's figure is built via AppendFigure/AppendImage
+        // called against a TableCell rather than Body — AppendTable must attach the (empty)
+        // Table/TableRow to the document BEFORE filling in cells, or every figure in the same
+        // gallery would derive the same bookmark id from a stale "how many bookmarks already
+        // exist" count and collide.
+        const string html = """
+            <table class="gallery">
+            <tr>
+            <td><figure id="fig:one"><img src="one.jpg" alt="One"><figcaption class="caption">First</figcaption></figure></td>
+            <td><figure id="fig:two"><img src="two.jpg" alt="Two"><figcaption class="caption">Second</figcaption></figure></td>
+            <td><figure id="fig:three"><img src="three.jpg" alt="Three"><figcaption class="caption">Third</figcaption></figure></td>
+            </tr>
+            </table>
+            """;
+        var path = Path.Combine(_tempDir, "gallery.docx");
+
+        _converter.ConvertToFile(html, "Chapter", path);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        var mainPart = document.MainDocumentPart!;
+        var body = mainPart.Document!.Body!;
+
+        var bookmarkStarts = body.Descendants<BookmarkStart>().ToList();
+        Assert.Equal(3, bookmarkStarts.Count);
+        Assert.Equal(3, bookmarkStarts.Select(b => b.Id!.Value).Distinct().Count());
+        Assert.Equal(["fig_one", "fig_two", "fig_three"], bookmarkStarts.Select(b => b.Name!.Value));
+
+        var table = body.Descendants<DocumentFormat.OpenXml.Wordprocessing.Table>().Single();
+        var borders = table.GetFirstChild<TableProperties>()!.GetFirstChild<TableBorders>()!;
+        Assert.Equal(BorderValues.None, borders.TopBorder!.Val!.Value);
+
+        Assert.Contains("First", body.InnerText);
+        Assert.Contains("Second", body.InnerText);
+        Assert.Contains("Third", body.InnerText);
+
+        var errors = new OpenXmlValidator().Validate(document).ToList();
+        Assert.True(errors.Count == 0, string.Join("\n", errors.Select(e => $"{e.Path?.XPath} :: {e.Description}")));
+    }
+
+    [Fact]
     public void ConvertToFile_FigureWithId_BecomesARealBookmarkBracketingImageAndCaption()
     {
         // The List of Figures page's own generated links to "fig:" markers (see
