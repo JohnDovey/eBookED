@@ -20,7 +20,7 @@ public static class SampleProjectFactory
         var projectDir = Path.Combine(sampleRoot, "My Sample Book");
 
         if (Directory.Exists(projectDir))
-            return projectService.LoadProject(projectDir);
+            return projectService.LoadProject(projectDir).Project;
 
         var metadata = new BookMetadata
         {

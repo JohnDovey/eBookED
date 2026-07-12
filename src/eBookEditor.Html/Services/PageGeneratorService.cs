@@ -38,7 +38,7 @@ public class PageGeneratorService
         }
 
         if (metadata.Publisher is { } publisher)
-            sb.AppendLine($"<p><strong>{Encode(publisher.Name)}</strong></p>");
+            sb.AppendLine($"<p><strong class=\"contributor-name\">{Encode(publisher.Name)}</strong></p>");
 
         return sb.ToString();
     }
@@ -63,24 +63,24 @@ public class PageGeneratorService
 
         var authorNames = metadata.Authors.Select(a => a.Name).ToList();
         if (authorNames.Count > 0)
-            titleLines.Add($"<span style=\"font-size: 1.3em\">By <strong>{Encode(string.Join(", ", authorNames))}</strong></span>");
+            titleLines.Add($"<span class=\"author-name\">By <strong class=\"contributor-name\">{Encode(string.Join(", ", authorNames))}</strong></span>");
 
         var illustratorNames = metadata.Illustrators.Select(i => i.Name).ToList();
         if (illustratorNames.Count > 0)
-            titleLines.Add($"Illustrated by <strong>{Encode(string.Join(", ", illustratorNames))}</strong>");
+            titleLines.Add($"Illustrated by <strong class=\"contributor-name\">{Encode(string.Join(", ", illustratorNames))}</strong>");
 
         var editorNames = metadata.Editors.Select(e => e.Name).ToList();
         if (editorNames.Count > 0)
-            titleLines.Add($"Edited by <strong>{Encode(string.Join(", ", editorNames))}</strong>");
+            titleLines.Add($"Edited by <strong class=\"contributor-name\">{Encode(string.Join(", ", editorNames))}</strong>");
 
-        sb.AppendLine($"<p style=\"text-align: center\">{string.Join("<br>\n", titleLines)}</p>");
+        sb.AppendLine($"<p class=\"centered-block\">{string.Join("<br>\n", titleLines)}</p>");
 
         if (metadata.Publisher is { LogoPath: { Length: > 0 } logoPath } publisherWithLogo)
             sb.AppendLine(BuildPublisherLogoFigure(publisherWithLogo, logoPath));
 
         var publisherLines = new List<string>();
         if (metadata.Publisher is { } publisher)
-            publisherLines.Add($"Published by <strong>{Encode(publisher.Name)}</strong>");
+            publisherLines.Add($"Published by <strong class=\"contributor-name\">{Encode(publisher.Name)}</strong>");
         if (!string.IsNullOrWhiteSpace(metadata.Isbn13))
             publisherLines.Add($"ISBN-13: {Encode(metadata.Isbn13)}");
         if (!string.IsNullOrWhiteSpace(metadata.Isbn10))
@@ -249,7 +249,7 @@ public class PageGeneratorService
             caption = $"<a href=\"{url}\">{caption}</a>";
         }
 
-        return $"<p style=\"text-align: center\">{img}<br>\n{caption}</p>";
+        return $"<p class=\"centered-block\">{img}<br>\n{caption}</p>";
     }
 
     private static string Encode(string? text) => WebUtility.HtmlEncode(text ?? "");

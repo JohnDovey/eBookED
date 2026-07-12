@@ -87,7 +87,7 @@ public class ProjectServiceTests : IDisposable
         };
 
         var created = _service.CreateProject(_tempDir, "Round Trip", metadata);
-        var loaded = _service.LoadProject(created.DirectoryPath);
+        var loaded = _service.LoadProject(created.DirectoryPath).Project;
 
         Assert.Equal(metadata.Title, loaded.Metadata.Title);
         Assert.Equal(metadata.Subtitle, loaded.Metadata.Subtitle);
@@ -100,12 +100,31 @@ public class ProjectServiceTests : IDisposable
     }
 
     [Fact]
-    public void LoadProject_ThrowsWhenSpineFileMissing()
+    public void LoadProject_SpineFileMissing_ExcludesItAndReportsWhichOneWasMissing()
     {
+        // A missing content file (moved/deleted outside the app) shouldn't block opening the
+        // whole project — see ProjectService.LoadProject's own doc comment.
         var metadata = new BookMetadata { Title = "Missing File" };
         var project = _service.CreateProject(_tempDir, "Missing File", metadata);
-        File.Delete(Path.Combine(project.DirectoryPath, project.Spine[0].RelativePath));
+        var missingItem = project.Spine[0];
+        File.Delete(Path.Combine(project.DirectoryPath, missingItem.RelativePath));
 
-        Assert.Throws<FileNotFoundException>(() => _service.LoadProject(project.DirectoryPath));
+        var result = _service.LoadProject(project.DirectoryPath);
+
+        Assert.Equal(project.Spine.Count - 1, result.Project.Spine.Count);
+        Assert.DoesNotContain(result.Project.Spine, i => i.Id == missingItem.Id);
+        Assert.Equal([missingItem.RelativePath], result.MissingSpineItemPaths);
+    }
+
+    [Fact]
+    public void LoadProject_NoSpineFilesMissing_ReportsNoMissingItems()
+    {
+        var metadata = new BookMetadata { Title = "Complete Project" };
+        var project = _service.CreateProject(_tempDir, "Complete Project", metadata);
+
+        var result = _service.LoadProject(project.DirectoryPath);
+
+        Assert.Empty(result.MissingSpineItemPaths);
+        Assert.Equal(project.Spine.Count, result.Project.Spine.Count);
     }
 }

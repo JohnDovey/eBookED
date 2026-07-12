@@ -209,6 +209,18 @@ public partial class MainWindowViewModel : ViewModelBase
             StatusMessage = $"Installed font(s): {string.Join(", ", installed)}";
     }
 
+    /// <summary>
+    /// Adds any of PageGeneratorService's required generated-page classes (see
+    /// GeneratedPageStyleCatalog) the given template is missing, using their default
+    /// declarations, and persists the addition to the template's own file. Called whenever the
+    /// template picker's selection changes — see EnsureTemplateFontsInstalled's sibling call in
+    /// StyleWindow — so an imported or hand-authored template that's missing one of these ends
+    /// up correctly styled the moment it's picked, rather than a generated page silently losing
+    /// its centering/sizing/bold treatment.
+    /// </summary>
+    public void EnsureTemplateHasRequiredStyles(string? templateName) =>
+        _templateService.EnsureRequiredStylesPresent(templateName);
+
     [RelayCommand]
     private void SaveProject()
     {

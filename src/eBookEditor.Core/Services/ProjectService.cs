@@ -76,7 +76,15 @@ public class ProjectService
         return project;
     }
 
-    public EbookProject LoadProject(string projectDir)
+    /// <summary>
+    /// Loads a project, excluding (rather than failing over) any spine item whose referenced
+    /// content file is missing on disk — a project the user can still open and keep working on
+    /// is far more useful than a hard failure over one file that, say, got moved or deleted
+    /// outside the app. The caller decides how prominently to surface
+    /// ProjectLoadResult.MissingSpineItemPaths (a blocking dialog for an explicit "Open
+    /// Project"/"Open Recent" action; silently noted for an unattended app-launch restore).
+    /// </summary>
+    public ProjectLoadResult LoadProject(string projectDir)
     {
         var projectFilePath = Path.Combine(projectDir, ProjectPaths.ProjectFileName);
         if (!File.Exists(projectFilePath))
@@ -87,13 +95,13 @@ public class ProjectService
             ?? throw new InvalidDataException($"Project file at '{projectFilePath}' could not be parsed.");
 
         var project = new EbookProject { DirectoryPath = projectDir, ProjectFile = projectFile };
-        foreach (var item in project.Spine)
-        {
-            var path = project.ResolvePath(item);
-            if (!File.Exists(path))
-                throw new FileNotFoundException($"Spine item '{item.RelativePath}' referenced in project file is missing on disk.");
-        }
-        return project;
+
+        var missingItems = project.Spine.Where(item => !File.Exists(project.ResolvePath(item))).ToList();
+        if (missingItems.Count > 0)
+            projectFile.Spine = project.Spine.Except(missingItems).ToList();
+
+        var missingPaths = missingItems.Select(item => item.RelativePath).ToList();
+        return new ProjectLoadResult(project, missingPaths);
     }
 
     public void SaveProject(EbookProject project)

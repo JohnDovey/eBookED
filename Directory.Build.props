@@ -963,6 +963,27 @@
          signal for the thing that's actually being gated on, rather than an indirect one.
          (2) The publisher's name is now bold everywhere it's generated: the Title page's bare
          publisher-name paragraph, and the Imprint page's "Published by ..." line. -->
-    <Version>2.27.6</Version>
+    <!-- 2.28.0: a bug fix and a new feature together, so a minor bump.
+         (1) Bug fix: opening a project referencing a spine item file missing on disk
+         (moved/deleted outside the app) failed outright with a blocking error dialog and
+         wouldn't open the project at all — user-reported directly against this exact failure
+         mode. ProjectService.LoadProject now excludes any such item instead of throwing,
+         returning a new ProjectLoadResult(Project, MissingSpineItemPaths) so the project still
+         opens; an explicit "Open Project"/"Open Recent" action shows a MessageWindow listing
+         what was excluded, while the unattended app-launch restore notes it in StatusMessage
+         instead of interrupting startup with a dialog for a window that isn't visible yet.
+         (2) New feature: PageGeneratorService's auto-generated pages (Title, Imprint, etc.)
+         no longer hardcode centering/sizing/bold formatting as inline style="..." attributes —
+         a template can't override those without !important, defeating the whole point of a
+         template system. They're now three CSS classes (new GeneratedPageStyleCatalog,
+         mirroring EditorStyleCatalog's own shape) — .centered-block, .contributor-name,
+         .author-name — defined with the same default values in the Default/Vellum Serif/
+         RoyalRoad stylesheets. A template imported from an EPUB already gets them for free
+         (EpubStylesheetImporter derives its full selector list from Vellum Serif's own, so
+         these come along automatically); a hand-authored or older template missing one now
+         gets it added with its default declarations, persisted to the template's own file,
+         the moment it's selected (new TemplateService.EnsureRequiredStylesPresent, wired into
+         StyleWindow's template picker alongside the existing EnsureTemplateFontsInstalled). -->
+    <Version>2.28.0</Version>
   </PropertyGroup>
 </Project>

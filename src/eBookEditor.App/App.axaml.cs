@@ -65,8 +65,11 @@ public partial class App : Application
 
             try
             {
-                var project = projectService.LoadProject(path);
-                windows.Add(new MainWindow { DataContext = new MainWindowViewModel(project, appSettingsService) });
+                var result = projectService.LoadProject(path);
+                var viewModel = new MainWindowViewModel(result.Project, appSettingsService);
+                if (result.MissingSpineItemPaths.Count > 0)
+                    viewModel.StatusMessage = $"{result.MissingSpineItemPaths.Count} file(s) referenced in this project were missing on disk and have been excluded: {string.Join(", ", result.MissingSpineItemPaths)}";
+                windows.Add(new MainWindow { DataContext = viewModel });
             }
             catch
             {

@@ -37,8 +37,11 @@ public partial class StyleWindow : Window
 
     private void OnTemplateDropDownOpened(object? sender, EventArgs e) => _mainViewModel.RefreshAvailableTemplates();
 
-    private void OnTemplateSelectionChanged(object? sender, SelectionChangedEventArgs e) =>
+    private void OnTemplateSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
         _mainViewModel.EnsureTemplateFontsInstalled(_mainViewModel.Metadata.SelectedTemplate);
+        _mainViewModel.EnsureTemplateHasRequiredStyles(_mainViewModel.Metadata.SelectedTemplate);
+    }
 
     /// <summary>Renders the template picker's live (possibly unsaved) selection against a
     /// generated showcase document exercising every style the template targets — see

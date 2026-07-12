@@ -66,7 +66,7 @@ public class PageGeneratorServiceTests : IDisposable
     {
         var html = _pageGenerator.GenerateTitlePage(SampleMetadata());
 
-        Assert.Contains("<p><strong>Acme Press</strong></p>", html);
+        Assert.Contains("<p><strong class=\"contributor-name\">Acme Press</strong></p>", html);
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public class PageGeneratorServiceTests : IDisposable
         var html = _pageGenerator.GenerateCopyrightPage(SampleMetadata());
 
         Assert.Contains("Copyright © 2026 Jane Doe", html);
-        Assert.Contains("Published by <strong>Acme Press</strong>", html);
+        Assert.Contains("Published by <strong class=\"contributor-name\">Acme Press</strong>", html);
         Assert.Contains("ISBN-13: 9780306406157", html);
         Assert.Contains(EncodedDefaultDisclaimerText, html);
     }
@@ -96,9 +96,9 @@ public class PageGeneratorServiceTests : IDisposable
     {
         var html = _pageGenerator.GenerateCopyrightPage(SampleMetadata());
 
-        Assert.Contains("<p style=\"text-align: center\">", html);
-        Assert.Contains("<span style=\"font-size: 1.3em\">By <strong>Jane Doe</strong></span>", html);
-        Assert.Contains("Edited by <strong>John Smith</strong>", html);
+        Assert.Contains("<p class=\"centered-block\">", html);
+        Assert.Contains("<span class=\"author-name\">By <strong class=\"contributor-name\">Jane Doe</strong></span>", html);
+        Assert.Contains("Edited by <strong class=\"contributor-name\">John Smith</strong>", html);
     }
 
     [Fact]
@@ -116,9 +116,9 @@ public class PageGeneratorServiceTests : IDisposable
 
         var html = _pageGenerator.GenerateCopyrightPage(metadata);
 
-        Assert.Contains("<strong>Jane Doe</strong>", html);
-        Assert.Contains("Illustrated by <strong>Ivy Artist</strong>", html);
-        Assert.Contains("Edited by <strong>John Smith</strong>", html);
+        Assert.Contains("<strong class=\"contributor-name\">Jane Doe</strong>", html);
+        Assert.Contains("Illustrated by <strong class=\"contributor-name\">Ivy Artist</strong>", html);
+        Assert.Contains("Edited by <strong class=\"contributor-name\">John Smith</strong>", html);
     }
 
     [Fact]
@@ -128,7 +128,7 @@ public class PageGeneratorServiceTests : IDisposable
 
         var html = _pageGenerator.GenerateCopyrightPage(metadata);
 
-        Assert.Contains("<p style=\"text-align: center\"><img src=\"../images/acme-logo.png\" alt=\"Acme Press\"><br>", html);
+        Assert.Contains("<p class=\"centered-block\"><img src=\"../images/acme-logo.png\" alt=\"Acme Press\"><br>", html);
         Assert.Contains("<span class=\"caption\">Acme Press</span>", html);
     }
 
@@ -166,11 +166,11 @@ public class PageGeneratorServiceTests : IDisposable
         var html = _pageGenerator.GenerateCopyrightPage(metadata);
 
         Assert.Contains("<img src=\"../images/cover.jpg\" alt=\"Cover\">", html);
-        Assert.Contains("By <strong>Jane Doe</strong>", html);
-        Assert.Contains("Edited by <strong>John Smith</strong>", html);
+        Assert.Contains("By <strong class=\"contributor-name\">Jane Doe</strong>", html);
+        Assert.Contains("Edited by <strong class=\"contributor-name\">John Smith</strong>", html);
 
         var coverIndex = html.IndexOf("<img", StringComparison.Ordinal);
-        var byLineIndex = html.IndexOf("By <strong>Jane Doe", StringComparison.Ordinal);
+        var byLineIndex = html.IndexOf("By <strong class=\"contributor-name\">Jane Doe", StringComparison.Ordinal);
         var isbnIndex = html.IndexOf("ISBN-13:", StringComparison.Ordinal);
         var copyrightIndex = html.IndexOf("Copyright ©", StringComparison.Ordinal);
         var disclaimerIndex = html.IndexOf(EncodedDefaultDisclaimerText, StringComparison.Ordinal);

@@ -923,14 +923,23 @@ public partial class MainWindow : Window
 
         try
         {
-            var project = new ProjectService().LoadProject(path);
-            OpenProjectInNewWindow(project);
+            var result = new ProjectService().LoadProject(path);
+            OpenProjectInNewWindow(result.Project);
+            if (result.MissingSpineItemPaths.Count > 0)
+                await new MessageWindow("Open Project", BuildMissingSpineItemsMessage(result.MissingSpineItemPaths)).ShowDialog(this);
         }
         catch (Exception ex)
         {
             await new MessageWindow("Open Project", $"Couldn't open a project at:\n{path}\n\n{ex.Message}").ShowDialog(this);
         }
     }
+
+    /// <summary>Shared by OnOpenProjectClick/OpenRecentProject — a project referencing a
+    /// content file that's missing on disk (moved/deleted outside the app) now loads anyway
+    /// with that item excluded, rather than failing outright; this is the notice shown for
+    /// it.</summary>
+    private static string BuildMissingSpineItemsMessage(IReadOnlyList<string> missingPaths) =>
+        $"The project opened, but {(missingPaths.Count == 1 ? "this file was" : $"these {missingPaths.Count} files were")} missing on disk and {(missingPaths.Count == 1 ? "has" : "have")} been excluded:\n\n{string.Join("\n", missingPaths)}";
 
     private static void OpenProjectInNewWindow(EbookProject project)
     {
@@ -957,12 +966,14 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OpenRecentProject(string path)
+    private async void OpenRecentProject(string path)
     {
         try
         {
-            var project = new ProjectService().LoadProject(path);
-            OpenProjectInNewWindow(project);
+            var result = new ProjectService().LoadProject(path);
+            OpenProjectInNewWindow(result.Project);
+            if (result.MissingSpineItemPaths.Count > 0)
+                await new MessageWindow("Open Project", BuildMissingSpineItemsMessage(result.MissingSpineItemPaths)).ShowDialog(this);
         }
         catch (Exception ex)
         {

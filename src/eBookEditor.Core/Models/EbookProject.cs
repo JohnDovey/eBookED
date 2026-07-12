@@ -19,6 +19,15 @@ public class EbookProject
     public string ResolvePath(SpineItem item) => Path.Combine(DirectoryPath, item.RelativePath);
 }
 
+/// <summary>
+/// ProjectService.LoadProject's result — the loaded project, plus the relative path of any
+/// spine item referenced in the project file whose actual content file was missing on disk.
+/// Those items are already excluded from Project.Spine by the time this is returned; a caller
+/// that cares (an explicit "Open Project"/"Open Recent" action) can tell the user what got
+/// dropped instead of the load failing outright over one missing file.
+/// </summary>
+public record ProjectLoadResult(EbookProject Project, IReadOnlyList<string> MissingSpineItemPaths);
+
 public static class ProjectPaths
 {
     public const string ProjectFileName = "project.ebookproj.json";

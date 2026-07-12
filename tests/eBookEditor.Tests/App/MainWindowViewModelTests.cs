@@ -242,7 +242,7 @@ public class MainWindowViewModelTests : IDisposable
 
         Assert.Equal(originalIdentifier, vm.CurrentProject.Metadata.Identifier);
 
-        var reloaded = _projectService.LoadProject(vm.CurrentProject.DirectoryPath);
+        var reloaded = _projectService.LoadProject(vm.CurrentProject.DirectoryPath).Project;
         Assert.Equal(originalIdentifier, reloaded.Metadata.Identifier);
     }
 
@@ -434,7 +434,7 @@ public class MainWindowViewModelTests : IDisposable
         Assert.False(vm.Editor.IsDirty);
         Assert.Equal("Renamed Book", vm.CurrentProject.Metadata.Title);
 
-        var reloaded = _projectService.LoadProject(vm.CurrentProject.DirectoryPath);
+        var reloaded = _projectService.LoadProject(vm.CurrentProject.DirectoryPath).Project;
         Assert.Equal("Renamed Book", reloaded.Metadata.Title);
 
         var titlePage = File.ReadAllText(vm.Editor.FilePath!);

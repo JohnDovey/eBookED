@@ -79,4 +79,68 @@ public class TemplateServiceTests : IDisposable
 
         Assert.Equal(DefaultStylesheet.Css, css);
     }
+
+    [Fact]
+    public void EnsureRequiredStylesPresent_AddsMissingClassesWithDefaultDeclarations()
+    {
+        Directory.CreateDirectory(_tempDir);
+        File.WriteAllText(Path.Combine(_tempDir, "HandAuthored.css"), "body { color: red; }");
+
+        _templateService.EnsureRequiredStylesPresent("HandAuthored");
+
+        var css = File.ReadAllText(Path.Combine(_tempDir, "HandAuthored.css"));
+        Assert.Contains(".centered-block { text-align: center; }", css);
+        Assert.Contains(".contributor-name { font-weight: bold; }", css);
+        Assert.Contains(".author-name { font-size: 1.3em; }", css);
+        Assert.Contains("body { color: red; }", css);
+    }
+
+    [Fact]
+    public void EnsureRequiredStylesPresent_ClassAlreadyDefined_LeavesItUntouched()
+    {
+        Directory.CreateDirectory(_tempDir);
+        File.WriteAllText(Path.Combine(_tempDir, "PartiallyStyled.css"),
+            "body { color: red; }\n.centered-block { text-align: center; font-weight: bold; }");
+
+        _templateService.EnsureRequiredStylesPresent("PartiallyStyled");
+
+        var css = File.ReadAllText(Path.Combine(_tempDir, "PartiallyStyled.css"));
+        Assert.Contains(".centered-block { text-align: center; font-weight: bold; }", css);
+        Assert.DoesNotContain(".centered-block { text-align: center; }\n", css);
+        Assert.Contains(".contributor-name { font-weight: bold; }", css);
+    }
+
+    [Fact]
+    public void EnsureRequiredStylesPresent_AllClassesAlreadyDefined_DoesNotRewriteTheFile()
+    {
+        Directory.CreateDirectory(_tempDir);
+        var path = Path.Combine(_tempDir, "FullyStyled.css");
+        File.WriteAllText(path, DefaultStylesheet.Css);
+        var originalWriteTime = File.GetLastWriteTimeUtc(path);
+
+        Thread.Sleep(10);
+        _templateService.EnsureRequiredStylesPresent("FullyStyled");
+
+        Assert.Equal(originalWriteTime, File.GetLastWriteTimeUtc(path));
+    }
+
+    [Fact]
+    public void EnsureRequiredStylesPresent_UnknownTemplateName_DoesNothing()
+    {
+        // No throw, no file created — a defensive no-op rather than an error, matching
+        // GetTemplateCss's own fallback-not-failure behavior for a missing template.
+        _templateService.EnsureRequiredStylesPresent("DoesNotExist");
+
+        Assert.False(File.Exists(Path.Combine(_tempDir, "DoesNotExist.css")));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void EnsureRequiredStylesPresent_NoTemplateName_DoesNothing(string? name)
+    {
+        var exception = Record.Exception(() => _templateService.EnsureRequiredStylesPresent(name));
+
+        Assert.Null(exception);
+    }
 }

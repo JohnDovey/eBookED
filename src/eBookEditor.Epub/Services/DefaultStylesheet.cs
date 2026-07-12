@@ -112,5 +112,22 @@ public static class DefaultStylesheet
             font-size: 50%;
             font-style: italic;
         }
+
+        /* Used by PageGeneratorService's auto-generated front/back-matter pages (Title,
+           Imprint, etc.) — see GeneratedPageStyleCatalog. Every shipped template defines
+           these so a generated page renders correctly regardless of which template is
+           selected; TemplateService.EnsureRequiredStylesPresent adds them with these same
+           default values to any template (imported or hand-authored) that's missing one. */
+        .centered-block {
+            text-align: center;
+        }
+
+        .contributor-name {
+            font-weight: bold;
+        }
+
+        .author-name {
+            font-size: 1.3em;
+        }
         """;
 }
