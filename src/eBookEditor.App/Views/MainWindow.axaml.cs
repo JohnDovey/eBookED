@@ -363,6 +363,29 @@ public partial class MainWindow : Window
                 return;
             }
 
+            if (eventName == "contextmenu")
+            {
+                WysiwygFigureContext? figure = null;
+                if (message.RootElement.TryGetProperty("figure", out var figureProp) && figureProp.ValueKind == JsonValueKind.Object)
+                {
+                    figure = new WysiwygFigureContext(
+                        figureProp.GetProperty("id").GetString() ?? "",
+                        figureProp.GetProperty("width").GetInt32(),
+                        figureProp.GetProperty("height").GetInt32(),
+                        figureProp.GetProperty("alignment").GetString() switch
+                        {
+                            "left" => ImageAlignment.Left,
+                            "right" => ImageAlignment.Right,
+                            _ => ImageAlignment.Center,
+                        },
+                        figureProp.GetProperty("flow").GetBoolean(),
+                        figureProp.GetProperty("caption").GetString() ?? "");
+                }
+
+                ShowWysiwygContextMenu(figure);
+                return;
+            }
+
             if (eventName != "change")
                 return;
 
@@ -578,6 +601,79 @@ public partial class MainWindow : Window
             // can't be decoded (an unsupported/corrupt format).
             return null;
         }
+    }
+
+    /// <summary>A right-clicked &lt;figure&gt;'s current state, as read back out of the DOM by
+    /// the JS bridge's "contextmenu" listener (see HtmlPageShell) — enough to reopen
+    /// InsertImageWindow pre-filled and, on confirm, write the changes back via updateFigure.</summary>
+    private sealed record WysiwygFigureContext(string Id, int Width, int Height, ImageAlignment Alignment, bool Flow, string Caption);
+
+    /// <summary>
+    /// WYSIWYG mode's right-click menu — built and opened here rather than declared as a static
+    /// Avalonia ContextMenu (compare EditorTextBox's own, in XAML), since a right-click inside
+    /// the embedded native WebView's own content is handled by the WebView itself, not routed
+    /// through Avalonia's control tree the way it is for ordinary controls; the JS bridge's
+    /// "contextmenu" listener suppresses the native menu and posts the click here instead (see
+    /// HtmlPageShell). Mirrors the raw editor's own context menu items plus the Phase B
+    /// Cut/Copy/Paste/Delete commands, plus "Edit Image…" — only enabled when the right-click
+    /// landed on a &lt;figure&gt;.
+    /// </summary>
+    private void ShowWysiwygContextMenu(WysiwygFigureContext? figure)
+    {
+        var menu = new ContextMenu();
+
+        void AddItem(string header, Action action, bool enabled = true)
+        {
+            var item = new MenuItem { Header = header, IsEnabled = enabled };
+            item.Click += (_, _) => action();
+            menu.Items.Add(item);
+        }
+
+        AddItem("Cut", () => OnWysiwygOrRawCutClick(this, new RoutedEventArgs()));
+        AddItem("Copy", () => OnWysiwygOrRawCopyClick(this, new RoutedEventArgs()));
+        AddItem("Paste", () => OnWysiwygOrRawPasteClick(this, new RoutedEventArgs()));
+        AddItem("Delete", () => OnWysiwygOrRawDeleteClick(this, new RoutedEventArgs()));
+        menu.Items.Add(new Separator());
+        AddItem("Bold", () => WrapSelectionInTag("strong"));
+        AddItem("Italic", () => WrapSelectionInTag("em"));
+        AddItem("Insert Element", () => OnInsertElementButtonClick(this, new RoutedEventArgs()));
+        AddItem("Insert Table…", () => OnInsertTableClick(this, new RoutedEventArgs()));
+        AddItem("Insert Image…", () => OnInsertImageClick(this, new RoutedEventArgs()));
+        AddItem("Insert Footnote…", () => OnInsertFootnoteClick(this, new RoutedEventArgs()));
+        AddItem("Mark Link Destination…", () => OnMarkLinkDestinationClick(this, new RoutedEventArgs()));
+        AddItem("Insert Internal Link…", () => OnInsertInternalLinkClick(this, new RoutedEventArgs()));
+        AddItem("Mark as Index Entry…", () => OnMarkIndexEntryClick(this, new RoutedEventArgs()));
+        AddItem("Apply Style", () => OnApplyStyleButtonClick(this, new RoutedEventArgs()));
+        menu.Items.Add(new Separator());
+        AddItem("Edit Image…", () => OnEditFigureClick(figure!), enabled: figure is not null);
+
+        menu.Open(WysiwygHost);
+    }
+
+    /// <summary>
+    /// Right-click "Edit Image…": reopens InsertImageWindow pre-filled with the figure's current
+    /// width/height/alignment/flow/caption (rather than a freshly-picked file's natural size),
+    /// and on confirm updates that same &lt;figure&gt; in place via the updateFigure bridge call
+    /// instead of inserting a new one.
+    /// </summary>
+    private async void OnEditFigureClick(WysiwygFigureContext figure)
+    {
+        if (ViewModel is null)
+            return;
+
+        var pageSize = PdfPageSizeCatalog.Resolve(ViewModel.CurrentProject.Metadata.PdfPageSize);
+        var dialog = new InsertImageWindow(
+            figure.Width, figure.Height, pageSize, figure.Caption,
+            figure.Alignment, figure.Flow, title: "Edit Image");
+        await dialog.ShowDialog(this);
+
+        if (dialog.Result is not { } result)
+            return;
+
+        var placement = new ImagePlacement(result.Alignment, result.Flow);
+        var caption = System.Net.WebUtility.HtmlEncode(result.Caption);
+        InvokeWysiwygScript(
+            $"window.ebookEditor.updateFigure({JsonSerializer.Serialize(figure.Id)}, {result.Width}, {result.Height}, {JsonSerializer.Serialize(placement.ToFigureStyle())}, {JsonSerializer.Serialize(caption)})");
     }
 
     private void OnEditorContextMenuOpened(object? sender, RoutedEventArgs e)

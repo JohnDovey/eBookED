@@ -1042,6 +1042,21 @@
          reaches the embedded native WebView depends on whether its OS-level key events are even
          visible to Avalonia's routed-event system, which isn't verifiable in this sandbox; the
          toolbar buttons are the mechanism guaranteed to work regardless. -->
-    <Version>2.29.1</Version>
+    <!-- 2.29.2: new feature, so a minor bump (third phase of the same batch as 2.29.0/2.29.1).
+         WYSIWYG mode had no right-click menu at all (only the raw editor's own, declared in
+         XAML) and no way to edit an already-inserted image's size/alignment/caption short of
+         deleting and re-inserting it. A right-click landing on the embedded native WebView's own
+         content is handled by the WebView itself, not routed through Avalonia's control tree —
+         so a declarative Avalonia ContextMenu attached to WysiwygHost wouldn't reliably fire for
+         it. Instead, HtmlPageShell's bridge gained a "contextmenu" listener (editable pages
+         only, so read-only Preview keeps its normal browser menu) that suppresses the native
+         menu and posts the click to the host — MainWindow.ShowWysiwygContextMenu builds and
+         opens a real Avalonia ContextMenu from there, mirroring the raw editor's own item set
+         plus Cut/Copy/Paste/Delete. When the click landed on a &lt;figure&gt;, its current id/
+         size/alignment/flow/caption ride along in that same message, enabling a new "Edit
+         Image…" item that reopens InsertImageWindow pre-filled (new optional
+         initialAlignment/initialFlow/title parameters) and, on confirm, updates that figure in
+         place via a new updateFigure bridge call instead of inserting a duplicate. -->
+    <Version>2.29.2</Version>
   </PropertyGroup>
 </Project>

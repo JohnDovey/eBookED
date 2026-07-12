@@ -67,6 +67,7 @@ public class HtmlPageShellTests
         Assert.Contains("appendFootnoteDefinition", html);
         Assert.Contains("deleteSelection", html);
         Assert.Contains("getSelectionHtml", html);
+        Assert.Contains("updateFigure", html);
     }
 
     [Fact]
@@ -81,6 +82,30 @@ public class HtmlPageShellTests
 
         Assert.Contains("FIGURE: 1", html);
         Assert.Contains("node.remove()", html);
+    }
+
+    [Fact]
+    public void Wrap_Editable_SuppressesNativeContextMenuAndPostsBridgeEvent()
+    {
+        // Regression test: MainWindow.ShowWysiwygContextMenu depends on the "contextmenu" bridge
+        // event actually firing (with the native menu suppressed) whenever the page is editable
+        // — see the contextmenu listener's own doc comment for why this can't just be a
+        // declarative Avalonia ContextMenu the way the raw editor's is.
+        var html = HtmlPageShell.Wrap("", "<p>Hello</p>", editable: true);
+
+        Assert.Contains("addEventListener('contextmenu'", html);
+        Assert.Contains("e.preventDefault()", html);
+        Assert.Contains("event: 'contextmenu'", html);
+    }
+
+    [Fact]
+    public void Wrap_ReadOnly_ContextMenuListenerChecksIsContentEditableBeforeActing()
+    {
+        // The Preview window shares this same bridge script — it must keep its normal browser
+        // context menu (e.g. "Save Image As…"), not have it silently suppressed too.
+        var html = HtmlPageShell.Wrap("", "<p>Hello</p>", editable: false);
+
+        Assert.Contains("if (!content.isContentEditable) return;", html);
     }
 
     [Fact]

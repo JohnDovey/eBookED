@@ -28,6 +28,39 @@ public static class HtmlPageShell
 
           content.addEventListener('input', notifyChange);
 
+          // Right-click support for WYSIWYG mode (see MainWindow.ShowWysiwygContextMenu): the
+          // embedded native WebView's own context menu is suppressed only while editable (never
+          // in read-only Preview, so that still gets its normal browser menu), and this app's
+          // own menu is opened from the host side instead — a real Avalonia ContextMenu can't be
+          // reliably wired to fire from a native WebView's own right-click the way it can for
+          // ordinary Avalonia controls, so this app drives it itself via the same message-bridge
+          // every other WYSIWYG command already uses. When the click landed on/inside a
+          // &lt;figure&gt;, its current id/size/alignment/flow/caption are read back out (the
+          // same &lt;figure style="..."&gt; shape ImagePlacement.ToFigureStyle produces) so
+          // "Edit Image…" can pre-fill InsertImageWindow with them.
+          content.addEventListener('contextmenu', function (e) {
+            if (!content.isContentEditable) return;
+            e.preventDefault();
+            var figureEl = e.target.closest ? e.target.closest('figure') : null;
+            var figure = null;
+            if (figureEl && content.contains(figureEl)) {
+              var img = figureEl.querySelector('img');
+              var figcaption = figureEl.querySelector('figcaption');
+              var style = figureEl.getAttribute('style') || '';
+              var flowMatch = /float\s*:\s*(left|right)/.exec(style);
+              var alignMatch = /text-align\s*:\s*(left|center|right)/.exec(style);
+              figure = {
+                id: figureEl.id,
+                width: img ? (parseInt(img.getAttribute('width'), 10) || 0) : 0,
+                height: img ? (parseInt(img.getAttribute('height'), 10) || 0) : 0,
+                alignment: flowMatch ? flowMatch[1] : (alignMatch ? alignMatch[1] : 'center'),
+                flow: !!flowMatch,
+                caption: figcaption ? figcaption.textContent : ''
+              };
+            }
+            invokeCSharpAction(JSON.stringify({ event: 'contextmenu', figure: figure }));
+          });
+
           window.ebookEditor = {
             setContent: function (html) {
               content.innerHTML = html;
@@ -269,6 +302,25 @@ public static class HtmlPageShell
               var wrapper = document.createElement('div');
               wrapper.appendChild(range.cloneContents());
               return wrapper.innerHTML;
+            },
+            // Right-click "Edit Image…"'s WYSIWYG-mode half: updates an existing <figure> (found
+            // by the id the contextmenu listener above captured) in place instead of inserting a
+            // new one — its own <img>'s width/height, the <figure>'s own style (see
+            // ImagePlacement.ToFigureStyle — same shape this writes), and its <figcaption>'s
+            // text. A no-op if the figure isn't found (e.g. deleted between right-click and
+            // confirming the dialog).
+            updateFigure: function (id, width, height, figureStyle, captionText) {
+              var figure = document.getElementById(id);
+              if (!figure || !content.contains(figure)) return;
+              figure.setAttribute('style', figureStyle);
+              var img = figure.querySelector('img');
+              if (img) {
+                img.setAttribute('width', width);
+                img.setAttribute('height', height);
+              }
+              var figcaption = figure.querySelector('figcaption');
+              if (figcaption) figcaption.textContent = captionText;
+              notifyChange();
             },
             scrollToFraction: function (fraction) {
               var max = document.documentElement.scrollHeight - window.innerHeight;

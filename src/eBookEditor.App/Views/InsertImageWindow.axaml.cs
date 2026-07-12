@@ -35,9 +35,19 @@ public partial class InsertImageWindow : Window
     {
     }
 
-    public InsertImageWindow(int naturalWidth, int naturalHeight, PdfPageSizeOption pageSize, string defaultCaption)
+    /// <summary>
+    /// initialAlignment/initialFlow let right-click "Edit Image…" (see
+    /// MainWindow.OnEditFigureClick) reopen this dialog pre-filled with an existing figure's
+    /// current placement, rather than always defaulting to Center/no-flow the way a brand new
+    /// "Insert Image…" does.
+    /// </summary>
+    public InsertImageWindow(
+        int naturalWidth, int naturalHeight, PdfPageSizeOption pageSize, string defaultCaption,
+        ImageAlignment initialAlignment = ImageAlignment.Center, bool initialFlow = false,
+        string title = "Insert Image")
     {
         InitializeComponent();
+        Title = title;
         _aspectRatio = naturalHeight / (double)naturalWidth;
         _maxWidthPx = (decimal)Math.Max(1, (pageSize.WidthInches - 2 * MarginInches) * PixelsPerInch);
         _maxHeightPx = (decimal)Math.Max(1, (pageSize.HeightInches - 2 * MarginInches) * PixelsPerInch);
@@ -52,6 +62,14 @@ public partial class InsertImageWindow : Window
         _suppressSizeSync = false;
 
         CaptionTextBox.Text = defaultCaption;
+
+        (initialAlignment switch
+        {
+            ImageAlignment.Left => LeftRadio,
+            ImageAlignment.Right => RightRadio,
+            _ => CenterRadio,
+        }).IsChecked = true;
+        FlowCheckBox.IsChecked = initialFlow && initialAlignment != ImageAlignment.Center;
     }
 
     private (decimal Width, decimal Height) ClampFromWidth(decimal proposedWidth)
