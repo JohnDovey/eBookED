@@ -1099,6 +1099,17 @@
          "ViewModel sets a nullable property, View reacts and clears it" shape LastExportResult
          already uses — MainWindow shows a MessageWindow ("Project saved." or the failure
          message) for it, on every explicit Save (menu click or Ctrl/Cmd+S). -->
-    <Version>2.30.2</Version>
+    <!-- 2.31.0: new feature, so a minor bump (seventh and final phase of the batch spanning
+         2.29.0-2.30.2 — see the "Image insertion improvements, WYSIWYG editing gaps, List of
+         Figures, save feedback, Close Project" plan). Added "File → Close Project": checks for
+         unsaved changes exactly like closing the window does (both now share a new
+         ConfirmCloseIfDirtyAsync helper, factored out of OnWindowClosing's own Save/Discard/
+         Cancel logic), then opens a new WelcomeWindow (New Project…/Open Project…/Recent
+         Projects — reusing MainWindow's own OpenProjectInNewWindow/BuildMissingSpineItemsMessage
+         helpers, now internal rather than private) before closing the current project window —
+         since ShutdownMode is OnLastWindowClose, the app keeps running as long as the
+         WelcomeWindow stays open, rather than quitting the way closing the last project window
+         normally would. -->
+    <Version>2.31.0</Version>
   </PropertyGroup>
 </Project>

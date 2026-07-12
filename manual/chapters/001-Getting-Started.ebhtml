@@ -27,11 +27,12 @@ numberOverride:
 <h2 id="a-tour-of-the-main-window">A tour of the main window</h2>
 <p>The main window has three parts:</p>
 <ul>
-<li><strong>Title bar menu</strong> — File (new/open/save/import), Project (regenerate front matter, upgrade an older project — see below), Meta Data (the book's metadata, split across several focused windows — see <em>Book Metadata</em>), Export (EPUB/PDF/Word), and About.</li>
+<li><strong>Title bar menu</strong> — File (new/open/close/save/import), Project (regenerate front matter, an optional List of Figures — see <em>Writing in the Editor</em>, upgrade an older project — see below), Meta Data (the book's metadata, split across several focused windows — see <em>Book Metadata</em>), Export (EPUB/PDF/Word), and About.</li>
 <li><strong>Sidebar</strong> (left) — an ordered list of everything in your book: front matter, chapters, and back matter, in the order they'll appear in the finished book. A <strong>+ Add Chapter</strong> button sits at the top.</li>
 <li><strong>Editor pane</strong> (right) — shows whatever's selected in the sidebar, either as raw HTML or as styled Rich Text (a <strong>Rich Text</strong> toggle switches between them — see <em>Writing in the Editor</em>). An <strong>Open Preview</strong> button opens a separate window with a rendered view of the same content, kept in sync as you edit.</li>
 </ul>
 <p>A status bar along the bottom shows the result of your last action (a save, an export, an error).</p>
 <p><img src="../images/main-window-overview.png" alt="Illustrative mockup of the main window layout: title bar menu, sidebar chapter list, and editor pane" /></p>
 <h2 id="saving-your-work">Saving your work</h2>
-<p><strong>File → Save Project</strong> (or <strong>Cmd/Ctrl+S</strong>) writes everything — the metadata file and the currently open file's contents — to disk. If you close a window with unsaved changes, eBook Editor asks whether to save, discard, or cancel first, so you won't lose work by accident.</p>
+<p><strong>File → Save Project</strong> (or <strong>Cmd/Ctrl+S</strong>) writes everything — the metadata file and the currently open file's contents — to disk, and shows a small popup confirming it saved (or explaining what went wrong, if it didn't). If you close a window with unsaved changes, eBook Editor asks whether to save, discard, or cancel first, so you won't lose work by accident.</p>
+<p><strong>File → Close Project</strong> closes the current project (asking to save first if you have unsaved changes, same as closing the window) and takes you to a Welcome screen with New Project…, Open Project…, and your Recent Projects, rather than quitting the app — useful when you want to switch projects without a fresh window popping up alongside whatever else you have open. If exporting would ship an out-of-date Index or List of Figures page (content changed since either was last generated), eBook Editor offers to regenerate them first.</p>

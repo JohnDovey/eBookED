@@ -98,6 +98,24 @@ public partial class MainWindow : Window
 
         e.Cancel = true;
 
+        if (!await ConfirmCloseIfDirtyAsync())
+            return;
+
+        _forceClose = true;
+        Close();
+    }
+
+    /// <summary>
+    /// Shared by OnWindowClosing and OnCloseProjectClick: if the editor has unsaved changes,
+    /// asks Save/Discard/Cancel and acts on the answer. Returns whether it's safe to proceed —
+    /// true immediately if nothing's dirty, true after Save/Discard, false only if the user
+    /// picks Cancel.
+    /// </summary>
+    private async Task<bool> ConfirmCloseIfDirtyAsync()
+    {
+        if (ViewModel?.Editor.IsDirty != true)
+            return true;
+
         var dialog = new UnsavedChangesDialog();
         var result = await dialog.ShowDialog<UnsavedChangesResult>(this);
 
@@ -105,16 +123,29 @@ public partial class MainWindow : Window
         {
             case UnsavedChangesResult.Save:
                 ViewModel.SaveProjectCommand.Execute(null);
-                _forceClose = true;
-                Close();
-                break;
+                return true;
             case UnsavedChangesResult.Discard:
-                _forceClose = true;
-                Close();
-                break;
-            case UnsavedChangesResult.Cancel:
-                break;
+                return true;
+            default:
+                return false;
         }
+    }
+
+    /// <summary>
+    /// "Close Project" — checks for unsaved changes exactly like closing the window does, then
+    /// (unlike closing the window) opens a new WelcomeWindow before actually closing this one,
+    /// so the app keeps running rather than exiting the way closing the last project window
+    /// normally would (ShutdownMode is OnLastWindowClose — as long as the WelcomeWindow stays
+    /// open, the app doesn't quit).
+    /// </summary>
+    private async void OnCloseProjectClick(object? sender, RoutedEventArgs e)
+    {
+        if (!await ConfirmCloseIfDirtyAsync())
+            return;
+
+        new WelcomeWindow().Show();
+        _forceClose = true;
+        Close();
     }
 
     private MainWindowViewModel? ViewModel => DataContext as MainWindowViewModel;
@@ -1194,14 +1225,14 @@ public partial class MainWindow : Window
         }
     }
 
-    /// <summary>Shared by OnOpenProjectClick/OpenRecentProject — a project referencing a
-    /// content file that's missing on disk (moved/deleted outside the app) now loads anyway
-    /// with that item excluded, rather than failing outright; this is the notice shown for
-    /// it.</summary>
-    private static string BuildMissingSpineItemsMessage(IReadOnlyList<string> missingPaths) =>
+    /// <summary>Shared by OnOpenProjectClick/OpenRecentProject/WelcomeWindow — a project
+    /// referencing a content file that's missing on disk (moved/deleted outside the app) now
+    /// loads anyway with that item excluded, rather than failing outright; this is the notice
+    /// shown for it.</summary>
+    internal static string BuildMissingSpineItemsMessage(IReadOnlyList<string> missingPaths) =>
         $"The project opened, but {(missingPaths.Count == 1 ? "this file was" : $"these {missingPaths.Count} files were")} missing on disk and {(missingPaths.Count == 1 ? "has" : "have")} been excluded:\n\n{string.Join("\n", missingPaths)}";
 
-    private static void OpenProjectInNewWindow(EbookProject project)
+    internal static void OpenProjectInNewWindow(EbookProject project)
     {
         var window = new MainWindow { DataContext = new MainWindowViewModel(project) };
         window.Show();

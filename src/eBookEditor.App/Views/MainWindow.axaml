@@ -29,6 +29,7 @@
             <MenuItem Header="(No recent projects)" IsEnabled="False" />
           </MenuItem>
           <MenuItem Header="Save Project" Command="{Binding SaveProjectCommand}" InputGesture="Ctrl+S" />
+          <MenuItem Header="Close Project" Click="OnCloseProjectClick" />
           <Separator />
           <MenuItem Header="Import DOCX…" Click="OnImportDocxClick" />
           <MenuItem Header="Import Chapters…" Click="OnImportChaptersClick" />
