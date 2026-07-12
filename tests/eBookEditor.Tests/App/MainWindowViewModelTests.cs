@@ -506,6 +506,30 @@ public class MainWindowViewModelTests : IDisposable
     }
 
     [Fact]
+    public void SaveProjectCommand_OnSuccess_SetsLastSaveResultToSuccess()
+    {
+        var vm = NewViewModel();
+
+        vm.SaveProjectCommand.Execute(null);
+
+        Assert.NotNull(vm.LastSaveResult);
+        Assert.True(vm.LastSaveResult!.Success);
+    }
+
+    [Fact]
+    public void SaveProjectCommand_ProjectDirectoryGone_SetsLastSaveResultToFailureAndReportsInStatusMessage()
+    {
+        var vm = NewViewModel();
+        Directory.Delete(vm.CurrentProject.DirectoryPath, recursive: true);
+
+        vm.SaveProjectCommand.Execute(null);
+
+        Assert.NotNull(vm.LastSaveResult);
+        Assert.False(vm.LastSaveResult!.Success);
+        Assert.Contains("Save failed", vm.StatusMessage);
+    }
+
+    [Fact]
     public void ImportChapterFiles_AddsChapterAtItsFileNamesHintedPosition()
     {
         var vm = NewViewModel();

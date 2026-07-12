@@ -63,6 +63,12 @@ public partial class MainWindowViewModel : ViewModelBase
     [ObservableProperty]
     private GenerationResult? _lastExportResult;
 
+    /// <summary>Set once per SaveProject call (success or failure), cleared by MainWindow after
+    /// showing a MessageWindow for it — same one-shot "ViewModel sets a property, View reacts
+    /// and clears it" shape LastExportResult already uses.</summary>
+    [ObservableProperty]
+    private SaveResult? _lastSaveResult;
+
     public bool IsChapterSelected => SelectedSpineItem?.Type == SpineItemType.Chapter;
 
     /// <summary>Gates the title/subheading rename form: any chapter (including unnumbered
@@ -233,12 +239,21 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private void SaveProject()
     {
-        if (Editor.IsDirty)
-            Editor.Save();
+        try
+        {
+            if (Editor.IsDirty)
+                Editor.Save();
 
-        CurrentProject.ProjectFile.Metadata = WithPreservedIdentifier(Metadata.ToMetadata());
-        _projectService.SaveProject(CurrentProject);
-        StatusMessage = $"Saved project to {CurrentProject.DirectoryPath}";
+            CurrentProject.ProjectFile.Metadata = WithPreservedIdentifier(Metadata.ToMetadata());
+            _projectService.SaveProject(CurrentProject);
+            StatusMessage = $"Saved project to {CurrentProject.DirectoryPath}";
+            LastSaveResult = new SaveResult(true, "Project saved.");
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Save failed: {ex.Message}";
+            LastSaveResult = new SaveResult(false, $"Couldn't save the project: {ex.Message}");
+        }
     }
 
     /// <summary>

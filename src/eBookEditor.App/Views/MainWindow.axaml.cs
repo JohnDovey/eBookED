@@ -138,11 +138,18 @@ public partial class MainWindow : Window
 
     private async void OnMainViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(MainWindowViewModel.LastExportResult) || ViewModel?.LastExportResult is not { } result)
+        if (e.PropertyName == nameof(MainWindowViewModel.LastExportResult) && ViewModel?.LastExportResult is { } exportResult)
+        {
+            ViewModel!.LastExportResult = null;
+            await new GenerationResultWindow(exportResult).ShowDialog(this);
             return;
+        }
 
-        ViewModel.LastExportResult = null;
-        await new GenerationResultWindow(result).ShowDialog(this);
+        if (e.PropertyName == nameof(MainWindowViewModel.LastSaveResult) && ViewModel?.LastSaveResult is { } saveResult)
+        {
+            ViewModel!.LastSaveResult = null;
+            await new MessageWindow("Save Project", saveResult.Message).ShowDialog(this);
+        }
     }
 
     private void OnEditorViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
