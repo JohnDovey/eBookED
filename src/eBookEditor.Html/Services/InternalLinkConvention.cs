@@ -24,6 +24,11 @@ public static class InternalLinkConvention
     public const string IndexEntryClass = "index-entry";
     public const string IndexTermDataAttribute = "data-index-term";
 
+    /// <summary>Every &lt;figure&gt; inserted via "Insert Image…" gets one of these ids (see
+    /// MainWindow.OnInsertImageClick) so the List of Figures/Photos page can link back to it —
+    /// same role as "dest:"/"idx:" above, see FigureScanner/PageGeneratorService.GenerateListOfFiguresPage.</summary>
+    public const string FigureIdPrefix = "fig:";
+
     public static bool IsInternalMarkerId(string? id) =>
         id is { Length: > 0 } && (id.StartsWith(DestinationIdPrefix, StringComparison.Ordinal) || id.StartsWith(IndexEntryIdPrefix, StringComparison.Ordinal));
 

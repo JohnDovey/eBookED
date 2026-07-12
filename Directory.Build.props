@@ -1014,6 +1014,18 @@
          XAML, so the submenu is always recognized as openable; the existing handler still
          clears and repopulates it with real entries (or the same placeholder) every time
          it's actually opened. -->
-    <Version>2.28.2</Version>
+    <!-- 2.29.0: new feature, so a minor bump (first of a multi-phase batch — see the
+         "Image insertion improvements, WYSIWYG editing gaps, List of Figures, save feedback,
+         Close Project" plan). Insert Image no longer lets you pick a size bigger than the
+         project's own page: InsertImageWindow now takes the resolved PdfPageSizeOption and
+         clamps width/height to (pageInches - 2*0.75in margin) * 96px/in, recalculating on
+         whichever axis is tighter so both stay within the printable area (matches PdfBuilder's
+         own hardcoded 0.75in margin) — applied both when the dialog opens and as the user types
+         into either field. Also added a Caption field (seeded from the filename, freely
+         editable) that now actually reaches the generated &lt;figcaption&gt; instead of the
+         previous hardcoded "Caption text" literal. Every inserted &lt;figure&gt; also gets a new
+         InternalLinkConvention.FigureIdPrefix ("fig:") id, laying the groundwork for the
+         upcoming List of Figures/Photos page to link back to it. -->
+    <Version>2.29.0</Version>
   </PropertyGroup>
 </Project>

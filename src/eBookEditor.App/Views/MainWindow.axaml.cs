@@ -379,10 +379,12 @@ public partial class MainWindow : Window
     /// <summary>
     /// Picks an image (starting in the project's images/ folder, created here if it doesn't
     /// exist yet), copies it in if it was picked from elsewhere, then opens InsertImageWindow
-    /// (seeded with the file's own natural pixel dimensions) for width/height/alignment/flow,
-    /// and inserts it as a real HTML &lt;figure&gt; — its own explicit size and
-    /// InternalLinkConvention.ToFigureStyle alignment/flow, grouping the image with a
-    /// ".caption"-styled &lt;figcaption&gt; underneath — see EditorStyleCatalog.
+    /// (seeded with the file's own natural pixel dimensions, clamped to fit the project's chosen
+    /// PDF page size) for width/height/alignment/flow/caption, and inserts it as a real HTML
+    /// &lt;figure&gt; — its own explicit size and InternalLinkConvention.ToFigureStyle
+    /// alignment/flow, grouping the image with a ".caption"-styled &lt;figcaption&gt; underneath
+    /// — see EditorStyleCatalog. The figure gets its own InternalLinkConvention.FigureIdPrefix
+    /// id so the List of Figures/Photos page can link back to it.
     /// </summary>
     private async void OnInsertImageClick(object? sender, RoutedEventArgs e)
     {
@@ -395,19 +397,23 @@ public partial class MainWindow : Window
 
         var imagePath = Path.Combine(ViewModel.CurrentProject.ImagesDir, fileName);
         var (naturalWidth, naturalHeight) = TryReadPixelSize(imagePath) ?? (400, 300);
+        var pageSize = PdfPageSizeCatalog.Resolve(ViewModel.CurrentProject.Metadata.PdfPageSize);
+        var defaultCaption = Path.GetFileNameWithoutExtension(fileName);
 
-        var dialog = new InsertImageWindow(naturalWidth, naturalHeight);
+        var dialog = new InsertImageWindow(naturalWidth, naturalHeight, pageSize, defaultCaption);
         await dialog.ShowDialog(this);
 
         if (dialog.Result is not { } result)
             return;
 
         var placement = new ImagePlacement(result.Alignment, result.Flow);
-        var altText = System.Net.WebUtility.HtmlEncode(Path.GetFileNameWithoutExtension(fileName));
+        var altText = System.Net.WebUtility.HtmlEncode(defaultCaption);
+        var caption = System.Net.WebUtility.HtmlEncode(result.Caption);
+        var figureId = $"{InternalLinkConvention.FigureIdPrefix}{Guid.NewGuid():N}";
         var html = $"""
-            <figure style="{placement.ToFigureStyle()}">
+            <figure id="{figureId}" style="{placement.ToFigureStyle()}">
             <img src="../images/{fileName}" alt="{altText}" width="{result.Width}" height="{result.Height}">
-            <figcaption class="caption">Caption text</figcaption>
+            <figcaption class="caption">{caption}</figcaption>
             </figure>
             """;
 
