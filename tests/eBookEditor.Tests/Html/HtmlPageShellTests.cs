@@ -65,6 +65,22 @@ public class HtmlPageShellTests
         Assert.Contains("markAllOccurrences", html);
         Assert.Contains("scrollToFraction", html);
         Assert.Contains("appendFootnoteDefinition", html);
+        Assert.Contains("deleteSelection", html);
+        Assert.Contains("getSelectionHtml", html);
+    }
+
+    [Fact]
+    public void Wrap_DeleteSelection_RemovesTheNearestBlockAncestorWhenCollapsed()
+    {
+        // Regression test: a collapsed selection (a bare caret, no highlighted text) has nothing
+        // for range.deleteContents() to remove, so Delete needs to walk up to the nearest
+        // block-level ancestor (figure/table/list item/paragraph/heading/etc.) and remove that
+        // whole element instead — otherwise clicking Delete with just a caret in a figure's
+        // caption would silently do nothing.
+        var html = HtmlPageShell.Wrap("", "<p>Hello</p>", editable: true);
+
+        Assert.Contains("FIGURE: 1", html);
+        Assert.Contains("node.remove()", html);
     }
 
     [Fact]

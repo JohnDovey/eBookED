@@ -230,6 +230,46 @@ public static class HtmlPageShell
 
               notifyChange();
             },
+            // The WYSIWYG-mode half of Delete: removes the current (non-collapsed) selection
+            // outright, or — since there's nothing to "delete" out of a mere caret position —
+            // walks up from the caret to the nearest block-level ancestor (figure/table/list
+            // item/paragraph/heading/blockquote/pre, stopping at #content itself) and removes
+            // that whole element instead, mirroring right-click "Edit Image…"'s figure-lookup
+            // shape but for deletion rather than editing.
+            deleteSelection: function () {
+              var sel = window.getSelection();
+              if (!sel.rangeCount || !content.contains(sel.anchorNode)) return;
+              var range = sel.getRangeAt(0);
+              if (!range.collapsed) {
+                range.deleteContents();
+                notifyChange();
+                return;
+              }
+              var blockTags = { FIGURE: 1, TABLE: 1, LI: 1, P: 1, BLOCKQUOTE: 1, PRE: 1,
+                H1: 1, H2: 1, H3: 1, H4: 1, H5: 1, H6: 1 };
+              var node = range.startContainer;
+              while (node && node !== content) {
+                if (node.nodeType === 1 && blockTags[node.tagName]) {
+                  node.remove();
+                  notifyChange();
+                  return;
+                }
+                node = node.parentNode;
+              }
+            },
+            // Returns the current selection's HTML (empty string if nothing/collapsed) — the
+            // WYSIWYG-mode half of Copy/Cut, read by the host via InvokeScript's own return
+            // value rather than a posted bridge message, since this needs to be awaited inline
+            // rather than reacted to asynchronously.
+            getSelectionHtml: function () {
+              var sel = window.getSelection();
+              if (!sel.rangeCount) return '';
+              var range = sel.getRangeAt(0);
+              if (range.collapsed || !content.contains(range.commonAncestorContainer)) return '';
+              var wrapper = document.createElement('div');
+              wrapper.appendChild(range.cloneContents());
+              return wrapper.innerHTML;
+            },
             scrollToFraction: function (fraction) {
               var max = document.documentElement.scrollHeight - window.innerHeight;
               window.scrollTo(0, Math.max(0, max) * fraction);

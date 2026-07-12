@@ -123,6 +123,10 @@
              WrapPanel (not StackPanel) so a narrow window wraps buttons onto a second row
              instead of running them off the right edge. -->
         <WrapPanel DockPanel.Dock="Top" Orientation="Horizontal" ItemSpacing="8" LineSpacing="8" Margin="0,0,0,8">
+          <Button Content="Cut" Click="OnWysiwygOrRawCutClick" ToolTip.Tip="Cut selection (Ctrl/Cmd+X)" />
+          <Button Content="Copy" Click="OnWysiwygOrRawCopyClick" ToolTip.Tip="Copy selection (Ctrl/Cmd+C)" />
+          <Button Content="Paste" Click="OnWysiwygOrRawPasteClick" ToolTip.Tip="Paste (Ctrl/Cmd+V)" />
+          <Button Content="Delete" Click="OnWysiwygOrRawDeleteClick" ToolTip.Tip="Delete selection (Delete)" />
           <Button Content="B" FontWeight="Bold" Width="32" Click="OnBoldClick" ToolTip.Tip="Bold (wraps selection in &lt;strong&gt;)" />
           <Button Content="I" FontStyle="Italic" Width="32" Click="OnItalicClick" ToolTip.Tip="Italic (wraps selection in &lt;em&gt;)" />
           <Button x:Name="InsertElementButton" Content="Insert Element ▾" Click="OnInsertElementButtonClick" />

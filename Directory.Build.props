@@ -1026,6 +1026,22 @@
          previous hardcoded "Caption text" literal. Every inserted &lt;figure&gt; also gets a new
          InternalLinkConvention.FigureIdPrefix ("fig:") id, laying the groundwork for the
          upcoming List of Figures/Photos page to link back to it. -->
-    <Version>2.29.0</Version>
+    <!-- 2.29.1: new feature, so a minor bump (second phase of the same batch as 2.29.0).
+         WYSIWYG (Rich Text) mode had no Delete/Cut/Copy/Paste at all — not broken, just never
+         built: no keyboard handler, no clipboard code, nothing (raw mode's AvaloniaEdit already
+         has all four natively). Added deleteSelection/getSelectionHtml to HtmlPageShell's JS
+         bridge (deleteSelection removes the current selection, or — since a collapsed caret has
+         nothing to delete — the nearest block-level ancestor: figure/table/list item/paragraph/
+         heading/blockquote/pre); Cut/Copy read that selection's HTML and write it to the real OS
+         clipboard via Avalonia's TopLevel.Clipboard (not a JS-only clipboard, so it round-trips
+         with other apps), Paste reads the OS clipboard and reuses the existing insertHtml.
+         New toolbar buttons wire all four in both modes (raw mode calls AvaloniaEdit's own
+         Cut/Copy/Paste/Delete directly). Also added a best-effort Window-level KeyDown handler
+         for Ctrl/Cmd+X/C/V and Delete/Backspace, active only in WYSIWYG mode and skipped
+         whenever a TextBox/ListBox/the raw editor already has focus — whether this actually
+         reaches the embedded native WebView depends on whether its OS-level key events are even
+         visible to Avalonia's routed-event system, which isn't verifiable in this sandbox; the
+         toolbar buttons are the mechanism guaranteed to work regardless. -->
+    <Version>2.29.1</Version>
   </PropertyGroup>
 </Project>

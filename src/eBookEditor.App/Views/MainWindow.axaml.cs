@@ -3,6 +3,7 @@ using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using eBookEditor.App.Services;
@@ -40,6 +41,52 @@ public partial class MainWindow : Window
         EditorTextBox.SyntaxHighlighting = AvaloniaEdit.Highlighting.HighlightingManager.Instance.GetDefinition("HTML");
         Closing += OnWindowClosing;
         Closed += OnWindowClosed;
+        KeyDown += OnWindowKeyDown;
+    }
+
+    /// <summary>
+    /// Best-effort Cut/Copy/Paste/Delete shortcuts for WYSIWYG mode, which — unlike raw mode's
+    /// AvaloniaEdit (already fully keyboard-native) — has nothing else wired up for this: no
+    /// Window.KeyBindings entry works here since none of these are backed by an ICommand (they're
+    /// code-behind handlers, matching every other WYSIWYG toolbar command in this app), so this
+    /// listens on the window's own KeyDown instead. Skips entirely outside WYSIWYG mode (raw mode
+    /// needs nothing extra) and whenever a TextBox/ListBox/the raw editor already has focus (the
+    /// chapter title/subtitle fields, the spine list), so this never steals a keystroke a more
+    /// specific control already owns. Whether this actually fires while the embedded native
+    /// WebView has real OS-level keyboard focus depends on whether that focus is even visible to
+    /// Avalonia's routed-event system — the toolbar's Cut/Copy/Paste/Delete buttons are the
+    /// mechanism guaranteed to work regardless.
+    /// </summary>
+    private void OnWindowKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (!IsWysiwygMode || e.Handled)
+            return;
+
+        var focused = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement();
+        if (focused is TextBox or ListBox or AvaloniaEdit.TextEditor)
+            return;
+
+        var ctrlOrCmd = e.KeyModifiers.HasFlag(KeyModifiers.Control) || e.KeyModifiers.HasFlag(KeyModifiers.Meta);
+        if (ctrlOrCmd && e.Key == Key.X)
+        {
+            OnWysiwygOrRawCutClick(sender, e);
+            e.Handled = true;
+        }
+        else if (ctrlOrCmd && e.Key == Key.C)
+        {
+            OnWysiwygOrRawCopyClick(sender, e);
+            e.Handled = true;
+        }
+        else if (ctrlOrCmd && e.Key == Key.V)
+        {
+            OnWysiwygOrRawPasteClick(sender, e);
+            e.Handled = true;
+        }
+        else if (e.Key is Key.Delete or Key.Back)
+        {
+            OnWysiwygOrRawDeleteClick(sender, e);
+            e.Handled = true;
+        }
     }
 
     private void OnWindowClosed(object? sender, EventArgs e) => ViewModel?.RecordProjectClosed();
@@ -363,6 +410,103 @@ public partial class MainWindow : Window
         {
             // Best-effort — a script call that races a fresh navigation can legitimately fail.
         }
+    }
+
+    /// <summary>
+    /// Like InvokeWysiwygScript, but for a bridge call whose actual return value is needed
+    /// inline (getSelectionHtml) rather than fired-and-forgotten — NativeWebView.InvokeScript's
+    /// Task&lt;string&gt; is the JSON-encoded JS expression result (mirroring WebView2/WKWebView's
+    /// own evaluateJavaScript semantics), so a plain JS string return needs one
+    /// JsonSerializer.Deserialize to unwrap.
+    /// </summary>
+    private async Task<string?> InvokeWysiwygScriptForResultAsync(string script)
+    {
+        if (_wysiwygWebView is null || !_wysiwygNavigated)
+            return null;
+
+        try
+        {
+            var raw = await _wysiwygWebView.InvokeScript(script);
+            return raw is null ? null : JsonSerializer.Deserialize<string>(raw);
+        }
+        catch
+        {
+            // Best-effort — a script call that races a fresh navigation can legitimately fail.
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Delete/Cut/Copy/Paste, wired to both the toolbar and Window.KeyBindings, working the same
+    /// in raw and WYSIWYG mode. Raw mode delegates straight to AvaloniaEdit's own TextEditor
+    /// Cut/Copy/Paste/Delete (already fully functional — this app never overrides them). WYSIWYG
+    /// mode has no such native equivalent to lean on (nothing in this app has ever wired up
+    /// keyboard/clipboard handling for the embedded WebView), so these go through the same
+    /// explicit JS-bridge-plus-real-OS-clipboard route every other WYSIWYG command already uses
+    /// (see HtmlPageShell's deleteSelection/getSelectionHtml and Avalonia's own IClipboard via
+    /// TopLevel — not a JS-only clipboard, so content copied here is pasteable in other apps too).
+    /// </summary>
+    private void OnWysiwygOrRawDeleteClick(object? sender, RoutedEventArgs e)
+    {
+        if (IsWysiwygMode)
+            InvokeWysiwygScript("window.ebookEditor.deleteSelection()");
+        else
+            EditorTextBox.Delete();
+    }
+
+    private async void OnWysiwygOrRawCutClick(object? sender, RoutedEventArgs e)
+    {
+        if (!IsWysiwygMode)
+        {
+            EditorTextBox.Cut();
+            return;
+        }
+
+        var html = await InvokeWysiwygScriptForResultAsync("window.ebookEditor.getSelectionHtml()");
+        if (string.IsNullOrEmpty(html))
+            return;
+
+        await SetClipboardTextAsync(html);
+        InvokeWysiwygScript("window.ebookEditor.deleteSelection()");
+    }
+
+    private async void OnWysiwygOrRawCopyClick(object? sender, RoutedEventArgs e)
+    {
+        if (!IsWysiwygMode)
+        {
+            EditorTextBox.Copy();
+            return;
+        }
+
+        var html = await InvokeWysiwygScriptForResultAsync("window.ebookEditor.getSelectionHtml()");
+        if (!string.IsNullOrEmpty(html))
+            await SetClipboardTextAsync(html);
+    }
+
+    private async void OnWysiwygOrRawPasteClick(object? sender, RoutedEventArgs e)
+    {
+        if (!IsWysiwygMode)
+        {
+            EditorTextBox.Paste();
+            return;
+        }
+
+        var text = await GetClipboardTextAsync();
+        if (!string.IsNullOrEmpty(text))
+            InsertAtCursor(text);
+    }
+
+    private async Task SetClipboardTextAsync(string text)
+    {
+        var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+        if (clipboard is not null)
+            await clipboard.SetTextAsync(text);
+    }
+
+    private async Task<string?> GetClipboardTextAsync()
+    {
+        var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
+        return clipboard is null ? null : await clipboard.TryGetTextAsync();
     }
 
     private async void OnInsertTableClick(object? sender, RoutedEventArgs e)
