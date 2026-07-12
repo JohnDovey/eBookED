@@ -31,14 +31,14 @@ public class PageGeneratorService
         {
             var lines = new List<string>();
             if (editorNames.Count > 0)
-                lines.Add($"Edited by {Encode(string.Join(", ", editorNames))}");
+                lines.Add($"Edited by <em>{Encode(string.Join(", ", editorNames))}</em>");
             if (illustratorNames.Count > 0)
-                lines.Add($"Illustrated by {Encode(string.Join(", ", illustratorNames))}");
+                lines.Add($"Illustrated by <em>{Encode(string.Join(", ", illustratorNames))}</em>");
             sb.AppendLine($"<p class=\"centered-block\">{string.Join("<br>\n", lines)}</p>");
         }
 
         if (metadata.Publisher is { } publisher)
-            sb.AppendLine($"<p class=\"centered-block\"><strong class=\"contributor-name\">{Encode(publisher.Name)}</strong></p>");
+            sb.AppendLine($"<p class=\"centered-block\">Published by <em>{Encode(publisher.Name)}</em></p>");
 
         return sb.ToString();
     }

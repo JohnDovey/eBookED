@@ -1110,6 +1110,21 @@
          since ShutdownMode is OnLastWindowClose, the app keeps running as long as the
          WelcomeWindow stays open, rather than quitting the way closing the last project window
          normally would. -->
-    <Version>2.31.0</Version>
+    <!-- 2.31.1: two user-reported bug fixes, no new features, so a patch bump.
+         (1) Importing a DOCX/EPUB/chapter file with its own "About the Author" or "Index"
+         heading (SpecialPageClassifier recognizes both as back matter) created a second,
+         genuinely duplicate-looking spine entry alongside the one every project already has
+         generated from metadata/marked entries — confusingly empty too, since the generated
+         page's real content never comes from that imported file. SpineImportRouter now renames
+         the imported one to "... (Imported)" instead when a generated page with that exact
+         title already exists in the spine, preserving its content as its own distinct page
+         rather than silently discarding it or creating two identical-looking entries.
+         (2) Title page: Editor/Illustrator/Publisher lines now put only the person/company's
+         name in &lt;em&gt;, with the "Edited by"/"Illustrated by"/"Published by" label as plain
+         text — matches the author line's existing "label, then emphasized name" shape instead
+         of the label being either unemphasized (Editor/Illustrator) or the name being bold
+         instead of emphasized (Publisher). PageGeneratorService.GenerateCopyrightPage (the
+         imprint page) is unaffected — this was specifically a title-page-only request. -->
+    <Version>2.31.1</Version>
   </PropertyGroup>
 </Project>

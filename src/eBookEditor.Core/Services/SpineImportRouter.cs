@@ -29,11 +29,38 @@ public class SpineImportRouter
         _ => project.ChaptersDir
     };
 
-    public SpineItem AddImportedItemToSpine(EbookProject project, string title, string relativePath, SpineItemType type, ChapterNumberMode numberMode, int? positionHint = null) => type switch
+    public SpineItem AddImportedItemToSpine(EbookProject project, string title, string relativePath, SpineItemType type, ChapterNumberMode numberMode, int? positionHint = null)
     {
-        SpineItemType.FrontMatter => _spineService.AddFrontMatterItem(project, title, relativePath),
-        SpineItemType.BackMatter => _spineService.AddBackMatterItem(project, title, relativePath),
-        _ when numberMode == ChapterNumberMode.None => _spineService.AddChapterDivider(project, title, relativePath, positionHint),
-        _ => _spineService.AddChapter(project, title, relativePath, positionHint)
+        var effectiveTitle = DisambiguateIfCollidesWithGeneratedPage(project, title);
+        return type switch
+        {
+            SpineItemType.FrontMatter => _spineService.AddFrontMatterItem(project, effectiveTitle, relativePath),
+            SpineItemType.BackMatter => _spineService.AddBackMatterItem(project, effectiveTitle, relativePath),
+            _ when numberMode == ChapterNumberMode.None => _spineService.AddChapterDivider(project, effectiveTitle, relativePath, positionHint),
+            _ => _spineService.AddChapter(project, effectiveTitle, relativePath, positionHint)
+        };
+    }
+
+    /// <summary>SpecialPageClassifier recognizes "About the Author"/"Index" headings as
+    /// back-matter, but every project already has its own generated page at those exact
+    /// titles (About the Author is seeded at project creation; Index is auto-seeded the first
+    /// time "Generate/Regenerate Index" runs) — importing a document with its own such heading
+    /// would otherwise create a second, genuinely duplicate-looking entry (confusingly empty
+    /// too, since the generated one's real content comes from metadata/marked entries, not from
+    /// this imported file). Renaming the imported one instead preserves its content as its own
+    /// distinct page rather than silently discarding it.</summary>
+    private static readonly Dictionary<string, string> GeneratedPageFileNamesByTitle = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["About the Author"] = ProjectPaths.AboutAuthorPageFileName,
+        ["Index"] = ProjectPaths.IndexPageFileName,
     };
+
+    private static string DisambiguateIfCollidesWithGeneratedPage(EbookProject project, string title)
+    {
+        if (!GeneratedPageFileNamesByTitle.TryGetValue(title.Trim(), out var generatedFileName))
+            return title;
+
+        var alreadyExists = project.Spine.Any(i => i.RelativePath.EndsWith(generatedFileName, StringComparison.Ordinal));
+        return alreadyExists ? $"{title} (Imported)" : title;
+    }
 }

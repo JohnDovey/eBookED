@@ -58,15 +58,34 @@ public class PageGeneratorServiceTests : IDisposable
         Assert.Contains("<h1 class=\"centered-block\">The Great Novel</h1>", html);
         Assert.Contains("<h2 class=\"centered-block\">A Story</h2>", html);
         Assert.Contains("<em>by Jane Doe</em>", html);
-        Assert.Contains("Edited by John Smith", html);
+        Assert.Contains("Edited by <em>John Smith</em>", html);
     }
 
     [Fact]
-    public void GenerateTitlePage_PublisherNameIsBoldAndCentered()
+    public void GenerateTitlePage_PublisherLineHasALabelAndEmphasizesOnlyTheName()
     {
         var html = _pageGenerator.GenerateTitlePage(SampleMetadata());
 
-        Assert.Contains("<p class=\"centered-block\"><strong class=\"contributor-name\">Acme Press</strong></p>", html);
+        Assert.Contains("<p class=\"centered-block\">Published by <em>Acme Press</em></p>", html);
+    }
+
+    [Fact]
+    public void GenerateTitlePage_EditorAndIllustratorLinesHaveAPlainLabelAndEmphasizeOnlyTheName()
+    {
+        var metadata = SampleMetadata() with
+        {
+            Contributors =
+            [
+                new Contributor("Jane", "Doe", ContributorRole.Author),
+                new Contributor("John", "Smith", ContributorRole.Editor),
+                new Contributor("Ivy", "Artist", ContributorRole.Illustrator)
+            ]
+        };
+
+        var html = _pageGenerator.GenerateTitlePage(metadata);
+
+        Assert.Contains("Edited by <em>John Smith</em>", html);
+        Assert.Contains("Illustrated by <em>Ivy Artist</em>", html);
     }
 
     [Fact]
@@ -77,7 +96,7 @@ public class PageGeneratorServiceTests : IDisposable
         Assert.Contains("<h1 class=\"centered-block\">", html);
         Assert.Contains("<h2 class=\"centered-block\">", html);
         Assert.Contains("<p class=\"centered-block\"><em>by Jane Doe</em></p>", html);
-        Assert.Contains("<p class=\"centered-block\">Edited by John Smith</p>", html);
+        Assert.Contains("<p class=\"centered-block\">Edited by <em>John Smith</em></p>", html);
     }
 
     [Fact]
