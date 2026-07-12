@@ -21,6 +21,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private readonly PageGeneratorService _pageGenerator = new();
     private readonly BookIndexGenerator _bookIndexGenerator = new();
     private readonly IndexEntryScanner _indexEntryScanner = new();
+    private readonly FigureScanner _figureScanner = new();
     private readonly HtmlBookAssembler _htmlBookAssembler = new();
     private readonly DocxImportService _docxImportService = new();
     private readonly HtmlToDocxConverter _htmlToDocxConverter = new();
@@ -522,6 +523,37 @@ public partial class MainWindowViewModel : ViewModelBase
 
         var termCount = occurrences.Select(o => o.Term).Distinct(StringComparer.OrdinalIgnoreCase).Count();
         StatusMessage = $"Index regenerated: {termCount} term(s), {occurrences.Count} occurrence(s).";
+    }
+
+    /// <summary>
+    /// Scans every chapter/page for captioned &lt;figure&gt;s (see FigureScanner) and
+    /// (re)writes the back-matter "List of Figures" page from them — same "auto-seed on first
+    /// use, explicit trigger rather than a side effect of every edit" shape as GenerateIndex.
+    /// Only meaningful when Metadata.GenerateListOfFigures is on; the "_Project" menu command
+    /// itself is disabled otherwise (see MainWindow.axaml).
+    /// </summary>
+    [RelayCommand]
+    private void GenerateListOfFigures()
+    {
+        if (Editor.IsDirty)
+            Editor.Save();
+
+        var occurrences = _figureScanner.FindAll(CurrentProject);
+
+        var listItem = CurrentProject.Spine.FirstOrDefault(i => i.RelativePath.EndsWith(ProjectPaths.ListOfFiguresPageFileName, StringComparison.Ordinal));
+        if (listItem is null)
+        {
+            var path = Path.Combine(CurrentProject.BackMatterDir, ProjectPaths.ListOfFiguresPageFileName);
+            File.WriteAllText(path, string.Empty);
+            listItem = _spineService.AddBackMatterItem(CurrentProject, "List of Figures", $"{ProjectPaths.BackMatterDirName}/{ProjectPaths.ListOfFiguresPageFileName}");
+        }
+
+        File.WriteAllText(CurrentProject.ResolvePath(listItem), _pageGenerator.GenerateListOfFiguresPage(occurrences));
+
+        _projectService.SaveProject(CurrentProject);
+        RegenerateGeneratedContent();
+
+        StatusMessage = $"List of Figures regenerated: {occurrences.Count} figure(s).";
     }
 
     /// <summary>Whether CurrentProject still has any chapter/front/back matter file in the

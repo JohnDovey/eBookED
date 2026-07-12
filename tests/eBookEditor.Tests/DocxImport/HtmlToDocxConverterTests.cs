@@ -179,6 +179,42 @@ public class HtmlToDocxConverterTests : IDisposable
     }
 
     [Fact]
+    public void ConvertToFile_FigureWithId_BecomesARealBookmarkBracketingImageAndCaption()
+    {
+        // The List of Figures page's own generated links to "fig:" markers (see
+        // InternalLinkConvention) need the same real-bookmark treatment "dest:"/"idx:" links
+        // already get — but a figure's bookmark must bracket both the image paragraph and its
+        // caption paragraph, not just inline runs within one paragraph the way the SPAN case
+        // does (see AppendFigure's own doc comment).
+        var path = Path.Combine(_tempDir, "chapter-figure.docx");
+        const string html = """
+            <figure id="fig:abc123"><img src="missing.jpg" alt="A cat"><figcaption class="caption">A photograph of a cat</figcaption></figure>
+            <p>Later, see <a href="chapters/001.ebhtml#fig:abc123">the photograph</a>.</p>
+            """;
+
+        _converter.ConvertToFile(html, "Chapter", path);
+
+        using var document = WordprocessingDocument.Open(path, false);
+        var mainPart = document.MainDocumentPart!;
+        var body = mainPart.Document!.Body!;
+
+        var bookmarkStart = body.Descendants<BookmarkStart>().Single();
+        var bookmarkEnd = body.Descendants<BookmarkEnd>().Single();
+        Assert.Equal(bookmarkStart.Id, bookmarkEnd.Id);
+        Assert.Equal("fig_abc123", bookmarkStart.Name);
+        Assert.Contains("A photograph of a cat", body.InnerText);
+
+        var hyperlink = body.Descendants<Hyperlink>().Single();
+        Assert.Equal("the photograph", hyperlink.InnerText);
+        Assert.Equal("fig_abc123", hyperlink.Anchor!.Value);
+        Assert.Null(hyperlink.Id);
+        Assert.Empty(mainPart.HyperlinkRelationships);
+
+        var errors = new OpenXmlValidator().Validate(document).ToList();
+        Assert.True(errors.Count == 0, string.Join("\n", errors.Select(e => $"{e.Path?.XPath} :: {e.Description}")));
+    }
+
+    [Fact]
     public void ConvertToFile_RendersTables()
     {
         const string html = """

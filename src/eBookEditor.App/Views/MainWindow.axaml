@@ -37,6 +37,11 @@
           <MenuItem Header="Regenerate Front Matter" Command="{Binding RegenerateFrontMatterCommand}" />
           <MenuItem Header="Generate/Regenerate Index" Command="{Binding GenerateIndexCommand}" />
           <Separator />
+          <MenuItem Header="Include List of Figures/Photos" ToggleType="CheckBox"
+                    IsChecked="{Binding Metadata.GenerateListOfFigures}" Click="OnToggleListOfFiguresClick" />
+          <MenuItem Header="Generate/Regenerate List of Figures" Command="{Binding GenerateListOfFiguresCommand}"
+                    IsEnabled="{Binding Metadata.GenerateListOfFigures}" />
+          <Separator />
           <MenuItem Header="Upgrade Project to HTML…" Click="OnUpgradeProjectToHtmlClick" />
         </MenuItem>
         <MenuItem Header="_Meta Data">

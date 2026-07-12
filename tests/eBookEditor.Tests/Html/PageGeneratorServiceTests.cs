@@ -326,6 +326,35 @@ public class PageGeneratorServiceTests : IDisposable
     }
 
     [Fact]
+    public void GenerateListOfFiguresPage_NoOccurrences_ShowsAPlaceholderMessage()
+    {
+        var html = _pageGenerator.GenerateListOfFiguresPage([]);
+
+        Assert.Contains("<h1>List of Figures</h1>", html);
+        Assert.Contains("No captioned images have been inserted yet", html);
+    }
+
+    [Fact]
+    public void GenerateListOfFiguresPage_ListsOneEntryPerFigureInDocumentOrder()
+    {
+        var chapterOne = new SpineItem { Type = SpineItemType.Chapter, RelativePath = "chapters/001.ebhtml", Title = "One", Order = 0, ResolvedNumber = 1 };
+        var chapterTwo = new SpineItem { Type = SpineItemType.Chapter, RelativePath = "chapters/002.ebhtml", Title = "Two", Order = 1, ResolvedNumber = 2 };
+        var occurrences = new List<FigureOccurrence>
+        {
+            new(chapterTwo, "fig:second", "The second figure"),
+            new(chapterOne, "fig:first", "The first figure"),
+        };
+
+        var html = _pageGenerator.GenerateListOfFiguresPage(occurrences);
+
+        var firstIndex = html.IndexOf("The first figure", StringComparison.Ordinal);
+        var secondIndex = html.IndexOf("The second figure", StringComparison.Ordinal);
+        Assert.True(firstIndex >= 0 && firstIndex < secondIndex, "Entries should be in document (spine) order, not the order passed in.");
+        Assert.Contains("href=\"chapters/001.ebhtml#fig:first\"", html);
+        Assert.Contains("href=\"chapters/002.ebhtml#fig:second\"", html);
+    }
+
+    [Fact]
     public void GenerateTocPage_ListsChaptersWithResolvedNumbersAndExcludesTocItself()
     {
         var project = _projectService.CreateProject(_tempDir, "Toc Test", SampleMetadata());

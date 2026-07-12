@@ -30,9 +30,11 @@ public static class InternalLinkConvention
     public const string FigureIdPrefix = "fig:";
 
     public static bool IsInternalMarkerId(string? id) =>
-        id is { Length: > 0 } && (id.StartsWith(DestinationIdPrefix, StringComparison.Ordinal) || id.StartsWith(IndexEntryIdPrefix, StringComparison.Ordinal));
+        id is { Length: > 0 } && (id.StartsWith(DestinationIdPrefix, StringComparison.Ordinal)
+            || id.StartsWith(IndexEntryIdPrefix, StringComparison.Ordinal)
+            || id.StartsWith(FigureIdPrefix, StringComparison.Ordinal));
 
-    /// <summary>True if <paramref name="href"/> is an internal link to a "dest:" or "idx:"
+    /// <summary>True if <paramref name="href"/> is an internal link to a "dest:"/"idx:"/"fig:"
     /// marker (same-chapter or cross-chapter), with <paramref name="destinationId"/> set to the
     /// full fragment (prefix included) — the same string used as both the marker's own id and,
     /// as-is, this app's export-time PDF Section/Word bookmark name.</summary>

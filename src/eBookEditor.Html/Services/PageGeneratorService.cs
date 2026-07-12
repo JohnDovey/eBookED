@@ -194,6 +194,32 @@ public class PageGeneratorService
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Builds the back-matter "List of Figures/Photos" page's body from every captioned
+    /// &lt;figure&gt; in the book (see FigureScanner) — in document order, not alphabetized (a
+    /// figure has no natural sort key the way an index term does), one entry per figure rather
+    /// than grouped, since two figures never share the same caption the way index occurrences
+    /// share a term.
+    /// </summary>
+    public string GenerateListOfFiguresPage(IReadOnlyList<FigureOccurrence> occurrences)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("<h1>List of Figures</h1>");
+
+        if (occurrences.Count == 0)
+        {
+            sb.AppendLine("<p><em>No captioned images have been inserted yet. Use \"Insert Image…\" to add one, then regenerate this page.</em></p>");
+            return sb.ToString();
+        }
+
+        sb.AppendLine("<ul class=\"list-of-figures\">");
+        foreach (var occurrence in occurrences.OrderBy(o => o.Item.Order))
+            sb.AppendLine($"<li><a href=\"{Encode(occurrence.Item.RelativePath)}#{Encode(occurrence.FigureId)}\">{Encode(occurrence.Caption)}</a></li>");
+        sb.AppendLine("</ul>");
+
+        return sb.ToString();
+    }
+
     public void RegenerateAllGeneratedPages(EbookProject project)
     {
         File.WriteAllText(

@@ -28,6 +28,7 @@ public partial class MetadataViewModel : ViewModelBase
     [ObservableProperty] private string _copyrightDisclaimer = BookMetadata.DefaultDisclaimerText;
     [ObservableProperty] private string _selectedTemplate = TemplateService.DefaultTemplateName;
     [ObservableProperty] private string _pdfPageSize = PdfPageSizeCatalog.DefaultName;
+    [ObservableProperty] private bool _generateListOfFigures;
 
     public IReadOnlyList<string> AvailablePdfPageSizes { get; } = PdfPageSizeCatalog.All.Select(o => o.Name).ToList();
 
@@ -118,6 +119,7 @@ public partial class MetadataViewModel : ViewModelBase
         CopyrightDisclaimer = metadata.CopyrightDisclaimer;
         SelectedTemplate = metadata.SelectedTemplate ?? TemplateService.DefaultTemplateName;
         PdfPageSize = metadata.PdfPageSize;
+        GenerateListOfFigures = metadata.GenerateListOfFigures;
     }
 
     public BookMetadata ToMetadata()
@@ -169,7 +171,8 @@ public partial class MetadataViewModel : ViewModelBase
                 ? BookMetadata.DefaultDisclaimerText
                 : CopyrightDisclaimer,
             SelectedTemplate = string.IsNullOrWhiteSpace(SelectedTemplate) ? null : SelectedTemplate,
-            PdfPageSize = string.IsNullOrWhiteSpace(PdfPageSize) ? PdfPageSizeCatalog.DefaultName : PdfPageSize
+            PdfPageSize = string.IsNullOrWhiteSpace(PdfPageSize) ? PdfPageSizeCatalog.DefaultName : PdfPageSize,
+            GenerateListOfFigures = GenerateListOfFigures
         };
     }
 

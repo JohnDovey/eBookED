@@ -32,6 +32,11 @@ public record BookMetadata
     public string? SelectedTemplate { get; init; }
     public string PdfPageSize { get; init; } = eBookEditor.Core.Services.PdfPageSizeCatalog.DefaultName;
 
+    /// <summary>When on, a "List of Figures" back-matter page is generated/kept up to date (see
+    /// MainWindowViewModel.GenerateListOfFigures) — off by default, since every inserted image
+    /// already becomes a captioned figure and not every book wants a list of them.</summary>
+    public bool GenerateListOfFigures { get; init; }
+
     public IEnumerable<Contributor> Authors => Contributors.Where(c => c.Role == ContributorRole.Author);
     public IEnumerable<Contributor> Editors => Contributors.Where(c => c.Role == ContributorRole.Editor);
     public IEnumerable<Contributor> Illustrators => Contributors.Where(c => c.Role == ContributorRole.Illustrator);

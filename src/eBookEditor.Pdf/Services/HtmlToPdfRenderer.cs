@@ -62,6 +62,7 @@ internal class HtmlToPdfRenderer
                 && figure.QuerySelector("img") is { } flowImage
                 && i + 1 < children.Count && children[i + 1] is DomElement { TagName: "P" } nextParagraph)
             {
+                EmitDestinationSections(column, figure);
                 RenderFlowedImageAndParagraph(column, flowImage, nextParagraph, placement, sourceDir, headingFontFamily, styled, DefaultFontSize);
                 i++;
                 continue;
@@ -204,6 +205,13 @@ internal class HtmlToPdfRenderer
     /// </summary>
     private static void EmitDestinationSections(ColumnDescriptor column, DomElement element)
     {
+        // Checks element itself, not just its descendants — "dest:"/"idx:" markers are always
+        // nested spans wrapping some marked text, but a "fig:" marker (see
+        // InternalLinkConvention.FigureIdPrefix) sits directly on the <figure> element passed in
+        // from RenderFigure/RenderFlowedImageAndParagraph, not on a descendant.
+        if (InternalLinkConvention.IsInternalMarkerId(element.Id))
+            column.Item().Height(0).Section(element.Id!);
+
         foreach (var marker in element.QuerySelectorAll("[id]").Where(e => InternalLinkConvention.IsInternalMarkerId(e.Id)))
             column.Item().Height(0).Section(marker.Id!);
     }
@@ -389,6 +397,8 @@ internal class HtmlToPdfRenderer
     /// approximation, a documented "top level only" scope reduction).</summary>
     private static void RenderFigure(ColumnDescriptor column, DomElement figure, string? sourceDir, string? headingFontFamily, HtmlStyleDocument styles, float baseFontSize)
     {
+        EmitDestinationSections(column, figure);
+
         var img = figure.QuerySelector("img");
         if (img is null)
         {

@@ -48,4 +48,5 @@ public static class ProjectPaths
     public const string TocPageFileName = "toc.ebhtml";
     public const string AboutAuthorPageFileName = "about-the-author.ebhtml";
     public const string IndexPageFileName = "index.ebhtml";
+    public const string ListOfFiguresPageFileName = "list-of-figures.ebhtml";
 }

@@ -1057,6 +1057,29 @@
          Image…" item that reopens InsertImageWindow pre-filled (new optional
          initialAlignment/initialFlow/title parameters) and, on confirm, updates that figure in
          place via a new updateFigure bridge call instead of inserting a duplicate. -->
-    <Version>2.29.2</Version>
+    <!-- 2.30.0: new feature, so a minor bump (fourth phase of the same batch as 2.29.0-2.29.2).
+         A "List of Figures/Photos" back-matter page, mirroring the existing Index feature's own
+         shape as closely as possible: a new BookMetadata.GenerateListOfFigures toggle (checkable
+         "_Project" menu item — unlike Index, which opts in purely by the user marking entries,
+         every inserted image already becomes a captioned figure, so an explicit on/off switch is
+         needed), a new FigureScanner (parallel to IndexEntryScanner) that walks every chapter for
+         captioned &lt;figure&gt; elements — backfilling a "fig:" id (InternalLinkConvention
+         .FigureIdPrefix) and persisting the chapter file for any figure that predates this
+         feature — and PageGeneratorService.GenerateListOfFiguresPage (one entry per figure, in
+         document order, not grouped/alphabetized like Index terms). "Generate/Regenerate List of
+         Figures" is a new manual command next to Index's own, auto-seeding the back-matter spine
+         item on first use the same way. PDF gets real page numbers: HtmlToPdfRenderer's
+         EmitDestinationSections now also checks an element's own id (not just descendants — a
+         "fig:" id sits directly on the &lt;figure&gt;, unlike "dest:"/"idx:" spans nested inside
+         one), and PdfBuilder.RenderListOfFiguresPage pairs SectionLink/BeginPageNumberOfSection
+         exactly as RenderIndexPage does. Word gets real bookmarks too: HtmlToDocxConverter's
+         AppendFigure now brackets a "fig:"-marked figure's image and caption paragraphs in a
+         body-level BookmarkStart/BookmarkEnd pair (a real, valid OOXML shape spanning multiple
+         paragraphs, unlike the existing SPAN case's single-paragraph inline bookmark) — reusing
+         the exact same InternalLinkConvention.IsInternalMarkerId/TryGetDestinationFragment/
+         BookmarkNameFor path already built for "dest:"/"idx:" links, now with "fig:" added to
+         the recognized prefixes. EPUB needed no changes — its internal-link resolution was
+         already prefix-agnostic. -->
+    <Version>2.30.0</Version>
   </PropertyGroup>
 </Project>

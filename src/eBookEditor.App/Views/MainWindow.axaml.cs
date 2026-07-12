@@ -1228,6 +1228,24 @@ public partial class MainWindow : Window
         }
     }
 
+    /// <summary>
+    /// "Include List of Figures/Photos" — a checkable MenuItem bound two-way to
+    /// Metadata.GenerateListOfFigures (already flipped by the time Click fires, same as any
+    /// CheckBox). Persists the change immediately (matching StyleWindow's own auto-apply-on-
+    /// select pattern, since there's no separate Save button on a menu toggle) and, when turned
+    /// on, immediately runs GenerateListOfFigures so the page shows up right away rather than
+    /// waiting for the user to separately find "Generate/Regenerate List of Figures".
+    /// </summary>
+    private void OnToggleListOfFiguresClick(object? sender, RoutedEventArgs e)
+    {
+        if (ViewModel is null)
+            return;
+
+        ViewModel.SaveMetadataAndRegenerate();
+        if (ViewModel.Metadata.GenerateListOfFigures)
+            ViewModel.GenerateListOfFiguresCommand.Execute(null);
+    }
+
     private async void OnEditFrontMatterClick(object? sender, RoutedEventArgs e)
     {
         if (ViewModel is null)

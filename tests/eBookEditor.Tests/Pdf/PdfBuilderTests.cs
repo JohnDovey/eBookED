@@ -276,6 +276,34 @@ public class PdfBuilderTests : IDisposable
     }
 
     [Fact]
+    public void Build_ListOfFiguresPage_LinksToACaptionedFigureRenderedElsewhereInTheBook()
+    {
+        var project = BuildSampleProject();
+
+        var firstChapterItem = project.Spine.Single(i => i.Title == "Chapter One");
+        var firstChapterPath = project.ResolvePath(firstChapterItem);
+        _chapterFileService.WriteChapter(firstChapterPath,
+            new ChapterFrontMatter { Title = "Chapter One" },
+            """<figure id="fig:test123"><img src="../images/missing.jpg" alt="A cat"><figcaption class="caption">A photograph of a cat</figcaption></figure>""");
+
+        var listPath = Path.Combine(project.BackMatterDir, ProjectPaths.ListOfFiguresPageFileName);
+        File.WriteAllText(listPath, "");
+        _spineService.AddBackMatterItem(project, "List of Figures", $"{ProjectPaths.BackMatterDirName}/{ProjectPaths.ListOfFiguresPageFileName}");
+
+        _projectService.SaveProject(project);
+        var outputPath = Path.Combine(project.OutputDir, "book.pdf");
+
+        var result = _pdfBuilder.Build(project, outputPath);
+
+        using var document = PdfDocument.Open(outputPath);
+        var allText = string.Join(" ", Enumerable.Range(1, document.NumberOfPages).Select(i => document.GetPage(i).Text));
+
+        Assert.Contains("List of Figures", allText);
+        Assert.Contains("A photograph of a cat", allText);
+        Assert.True(result.PageCount >= project.Spine.Count);
+    }
+
+    [Fact]
     public void Build_RendersARealFootnoteReferenceAndNotesSection()
     {
         var project = BuildSampleProject();

@@ -355,27 +355,49 @@ public class HtmlToDocxConverter
 
     /// <summary>&lt;figure&gt; export: the image itself (see AppendImage, given this figure's
     /// own ImagePlacement — alignment and whether text should flow around it, see
-    /// InsertImageWindow), then its caption paragraph, if any.</summary>
+    /// InsertImageWindow), then its caption paragraph, if any. When the figure carries a
+    /// "fig:" id (see InternalLinkConvention.FigureIdPrefix — every figure "Insert Image…"
+    /// creates has one), the whole thing is bracketed in a body-level Word bookmark — unlike the
+    /// "Mark Link Destination"/"Mark as Index Entry" SPAN case below, which brackets a bookmark
+    /// around inline runs within one paragraph, a figure's bookmark needs to span both the image
+    /// paragraph and its caption paragraph, so it's appended directly to Body rather than nested
+    /// inside a single Paragraph — a real, supported OOXML shape (a bookmark can bracket several
+    /// sibling block elements, not just inline content). A matching &lt;a
+    /// href="...#fig:{id}"&gt; (see PageGeneratorService.GenerateListOfFiguresPage) resolves to
+    /// this bookmark via the same InternalLinkConvention.TryGetDestinationFragment/
+    /// BookmarkNameFor path the SPAN case already uses.</summary>
     private static void AppendFigure(Body body, DomElement figure, MainDocumentPart mainPart, string? sourceDir, HtmlStyleDocument styles, float baseFontSizePt, FootnoteContext footnotes)
     {
+        var hasMarker = figure.Id is { } figureId && InternalLinkConvention.IsInternalMarkerId(figureId);
+        string? bookmarkId = null;
+        if (hasMarker)
+        {
+            bookmarkId = (mainPart.Document!.Descendants<BookmarkStart>().Count() + 1).ToString();
+            body.Append(new BookmarkStart { Id = bookmarkId, Name = BookmarkNameFor(figure.Id!) });
+        }
+
         var img = figure.QuerySelector("img");
         if (img is null)
         {
             foreach (var child in figure.Children)
                 AppendNode(body, child, mainPart, sourceDir, styles, baseFontSizePt, footnotes);
-            return;
         }
-
-        AppendImage(body, img, mainPart, sourceDir, ImagePlacementParser.Parse(figure.GetAttribute("style")));
-
-        if (figure.QuerySelector("figcaption") is { } figcaption)
+        else
         {
-            var captionStyle = styles.ComputedStyle(figcaption);
-            var captionSize = CssValueParser.ParseLength(captionStyle.GetPropertyValue("font-size"), baseFontSizePt) ?? baseFontSizePt;
-            var captionParagraph = new Paragraph();
-            AppendInlineChildren(captionParagraph, figcaption, mainPart, styles, captionSize, footnotes);
-            body.Append(captionParagraph);
+            AppendImage(body, img, mainPart, sourceDir, ImagePlacementParser.Parse(figure.GetAttribute("style")));
+
+            if (figure.QuerySelector("figcaption") is { } figcaption)
+            {
+                var captionStyle = styles.ComputedStyle(figcaption);
+                var captionSize = CssValueParser.ParseLength(captionStyle.GetPropertyValue("font-size"), baseFontSizePt) ?? baseFontSizePt;
+                var captionParagraph = new Paragraph();
+                AppendInlineChildren(captionParagraph, figcaption, mainPart, styles, captionSize, footnotes);
+                body.Append(captionParagraph);
+            }
         }
+
+        if (hasMarker)
+            body.Append(new BookmarkEnd { Id = bookmarkId! });
     }
 
     /// <summary>Sizes to the image's own explicit "width"/"height" attributes (see Insert

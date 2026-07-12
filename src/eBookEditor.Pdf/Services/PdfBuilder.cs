@@ -26,6 +26,7 @@ public class PdfBuilder
     private readonly HtmlToPdfRenderer _renderer = new();
     private readonly ChapterFileService _chapterFileService = new();
     private readonly IndexEntryScanner _indexEntryScanner = new();
+    private readonly FigureScanner _figureScanner = new();
     private readonly TemplateService _templateService;
     private readonly PdfTemplateFonts _templateFonts;
 
@@ -101,6 +102,12 @@ public class PdfBuilder
                         if (item.RelativePath.EndsWith(ProjectPaths.IndexPageFileName, StringComparison.Ordinal))
                         {
                             RenderIndexPage(column, project, fonts.HeadingFontFamily, sectionName, frontMatterPageCount);
+                            continue;
+                        }
+
+                        if (item.RelativePath.EndsWith(ProjectPaths.ListOfFiguresPageFileName, StringComparison.Ordinal))
+                        {
+                            RenderListOfFiguresPage(column, project, fonts.HeadingFontFamily, sectionName, frontMatterPageCount);
                             continue;
                         }
 
@@ -268,6 +275,39 @@ public class PdfBuilder
                         .FontSize(11);
                     text.Span(")").FontSize(11);
                 }
+            });
+        }
+    }
+
+    /// <summary>
+    /// Renders the back-matter "List of Figures" page directly from a fresh FigureScanner scan —
+    /// same reasoning and same SectionLink/BeginPageNumberOfSection shape as RenderIndexPage,
+    /// except one entry per figure rather than grouped by term (a caption has no natural grouping
+    /// key the way an index term does). Each figure's own &lt;figure&gt; element is given a
+    /// matching Section by HtmlToPdfRenderer's EmitDestinationSections (see its own doc comment)
+    /// wherever it's actually rendered in the book, so the page number resolved here is real.
+    /// </summary>
+    private void RenderListOfFiguresPage(ColumnDescriptor column, EbookProject project, string headingFontFamily, string sectionName, int frontMatterPageCount)
+    {
+        column.Item().Section(sectionName).PaddingBottom(12).Text("List of Figures").Bold().FontSize(16).FontFamily(headingFontFamily);
+
+        var occurrences = _figureScanner.FindAll(project).OrderBy(o => o.Item.Order).ToList();
+        if (occurrences.Count == 0)
+        {
+            column.Item().Text("No captioned images have been inserted yet.").Italic().FontSize(11);
+            return;
+        }
+
+        foreach (var occurrence in occurrences)
+        {
+            column.Item().PaddingBottom(4).Text(text =>
+            {
+                text.SectionLink(occurrence.Caption, occurrence.FigureId).FontSize(11);
+                text.Span(" (").FontSize(11);
+                text.BeginPageNumberOfSection(occurrence.FigureId)
+                    .Format(pageNumber => pageNumber is { } page ? PdfPageNumberFormatter.Format(page, frontMatterPageCount) : "?")
+                    .FontSize(11);
+                text.Span(")").FontSize(11);
             });
         }
     }
