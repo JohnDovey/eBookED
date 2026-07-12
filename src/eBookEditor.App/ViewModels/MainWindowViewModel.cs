@@ -9,6 +9,7 @@ using eBookEditor.Epub.Services;
 using eBookEditor.Html.Services;
 using eBookEditor.Migration.Services;
 using eBookEditor.Pdf.Services;
+using eBookEditor.App.Views;
 
 namespace eBookEditor.App.ViewModels;
 
@@ -36,6 +37,13 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public EditorViewModel Editor { get; } = new();
     public MetadataViewModel Metadata { get; } = new();
+
+    /// <summary>Set whenever book content changes (see RegenerateGeneratedContent), cleared by
+    /// GenerateIndex/GenerateListOfFigures — an in-memory, session-only "has content changed
+    /// since the Index/List of Figures were last regenerated" flag, checked by each export
+    /// command (see ConfirmRegenerateBackMatterListsAsync) so exporting doesn't silently ship a
+    /// stale Index/List of Figures page after later edits.</summary>
+    private bool _backMatterListsDirty;
 
     [ObservableProperty]
     private EbookProject _currentProject;
@@ -520,6 +528,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         _projectService.SaveProject(CurrentProject);
         RegenerateGeneratedContent();
+        _backMatterListsDirty = false;
 
         var termCount = occurrences.Select(o => o.Term).Distinct(StringComparer.OrdinalIgnoreCase).Count();
         StatusMessage = $"Index regenerated: {termCount} term(s), {occurrences.Count} occurrence(s).";
@@ -552,6 +561,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
         _projectService.SaveProject(CurrentProject);
         RegenerateGeneratedContent();
+        _backMatterListsDirty = false;
 
         StatusMessage = $"List of Figures regenerated: {occurrences.Count} figure(s).";
     }
@@ -593,8 +603,11 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void ExportEpub()
+    private async Task ExportEpub()
     {
+        if (!await ConfirmRegenerateBackMatterListsIfNeededAsync())
+            return;
+
         try
         {
             if (Editor.IsDirty)
@@ -618,8 +631,11 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void ExportPdf()
+    private async Task ExportPdf()
     {
+        if (!await ConfirmRegenerateBackMatterListsIfNeededAsync())
+            return;
+
         try
         {
             if (Editor.IsDirty)
@@ -639,8 +655,11 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private void ExportWordWholeBook()
+    private async Task ExportWordWholeBook()
     {
+        if (!await ConfirmRegenerateBackMatterListsIfNeededAsync())
+            return;
+
         try
         {
             if (Editor.IsDirty)
@@ -700,6 +719,8 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void RegenerateGeneratedContent()
     {
+        _backMatterListsDirty = true;
+
         if (Editor.IsDirty)
             Editor.Save();
 
@@ -709,5 +730,47 @@ public partial class MainWindowViewModel : ViewModelBase
 
         if (Editor.FilePath is { } path && File.Exists(path))
             Editor.LoadFile(path);
+    }
+
+    /// <summary>Whether the Index and/or List of Figures pages are worth offering to regenerate
+    /// before an export — true only if content has changed since the last regenerate AND at
+    /// least one of the two features is actually in use (an Index page already exists in the
+    /// spine, or Metadata.GenerateListOfFigures is on).</summary>
+    private bool ShouldOfferToRegenerateBackMatterLists() =>
+        _backMatterListsDirty && (Metadata.GenerateListOfFigures
+            || CurrentProject.Spine.Any(i => i.RelativePath.EndsWith(ProjectPaths.IndexPageFileName, StringComparison.Ordinal)));
+
+    public event Func<string, string, Task<ConfirmResult>>? ConfirmRequested;
+
+    /// <summary>
+    /// Called at the start of each export command (see ExportEpub/ExportPdf/
+    /// ExportWordWholeBook): if content has changed since the Index/List of Figures were last
+    /// regenerated, asks (via MainWindow's ConfirmRequested handler, since a ViewModel can't own
+    /// a Window itself) whether to regenerate them first. Returns false only when the user
+    /// cancels — the export command should abort in that case; true means "proceed with export,"
+    /// whether or not anything was actually regenerated.
+    /// </summary>
+    private async Task<bool> ConfirmRegenerateBackMatterListsIfNeededAsync()
+    {
+        if (!ShouldOfferToRegenerateBackMatterLists() || ConfirmRequested is null)
+            return true;
+
+        var result = await ConfirmRequested(
+            "Regenerate Index/List of Figures?",
+            "Content has changed since the Index and/or List of Figures were last generated. Regenerate them before exporting?");
+
+        switch (result)
+        {
+            case ConfirmResult.Cancel:
+                return false;
+            case ConfirmResult.Yes:
+                if (CurrentProject.Spine.Any(i => i.RelativePath.EndsWith(ProjectPaths.IndexPageFileName, StringComparison.Ordinal)))
+                    GenerateIndex();
+                if (Metadata.GenerateListOfFigures)
+                    GenerateListOfFigures();
+                return true;
+            default:
+                return true;
+        }
     }
 }

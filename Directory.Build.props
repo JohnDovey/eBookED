@@ -1080,6 +1080,18 @@
          BookmarkNameFor path already built for "dest:"/"idx:" links, now with "fig:" added to
          the recognized prefixes. EPUB needed no changes — its internal-link resolution was
          already prefix-agnostic. -->
-    <Version>2.30.0</Version>
+    <!-- 2.30.1: new feature, so a minor bump (fifth phase of the same batch as 2.29.0-2.30.0).
+         Exporting could silently ship a stale Index/List of Figures page if content changed
+         after they were last generated. New in-memory (session-only) MainWindowViewModel
+         ._backMatterListsDirty flag, set whenever RegenerateGeneratedContent runs (i.e. on
+         basically any content-mutating action) and cleared by GenerateIndex/
+         GenerateListOfFigures once they actually regenerate. ExportEpub/ExportPdf/
+         ExportWordWholeBook are now async and, when the flag is set and either an Index page
+         already exists in the spine or Metadata.GenerateListOfFigures is on, raise a new
+         ConfirmRequested event (a ViewModel can't own a Window itself) before proceeding — Yes
+         regenerates whichever apply then exports, No exports as-is, Cancel aborts the export
+         entirely. New generic ConfirmWindow (Yes/No/Cancel), same Window+Close(result) shape as
+         the existing UnsavedChangesDialog, handles the event from MainWindow. -->
+    <Version>2.30.1</Version>
   </PropertyGroup>
 </Project>

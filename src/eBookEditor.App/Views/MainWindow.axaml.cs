@@ -126,8 +126,15 @@ public partial class MainWindow : Window
 
         ViewModel.Editor.PropertyChanged += OnEditorViewModelPropertyChanged;
         ViewModel.PropertyChanged += OnMainViewModelPropertyChanged;
+        ViewModel.ConfirmRequested += OnConfirmRequested;
         SyncEditorTextFromViewModel();
     }
+
+    /// <summary>Handles MainWindowViewModel.ConfirmRequested — a ViewModel can't own a Window
+    /// itself, so it raises this event and awaits whatever the host (this window) decides,
+    /// currently just showing a ConfirmWindow. See ConfirmRegenerateBackMatterListsIfNeededAsync.</summary>
+    private Task<ConfirmResult> OnConfirmRequested(string title, string message) =>
+        new ConfirmWindow(title, message).ShowDialog<ConfirmResult>(this);
 
     private async void OnMainViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {

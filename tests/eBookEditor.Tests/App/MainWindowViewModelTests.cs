@@ -1,4 +1,5 @@
 using eBookEditor.App.ViewModels;
+using eBookEditor.App.Views;
 using eBookEditor.Core.Models;
 using eBookEditor.Core.Services;
 using eBookEditor.Epub.Services;
@@ -269,6 +270,89 @@ public class MainWindowViewModelTests : IDisposable
         var expectedPath = Path.Combine(vm.CurrentProject.OutputDir, "vm-test-book.epub");
         Assert.True(File.Exists(expectedPath));
         Assert.Contains(expectedPath, vm.StatusMessage);
+    }
+
+    [Fact]
+    public async Task ExportEpub_NoIndexOrListOfFigures_NeverAsksToRegenerate()
+    {
+        var vm = NewViewModel();
+        vm.AddChapterCommand.Execute(null);
+        var wasAsked = false;
+        vm.ConfirmRequested += (_, _) => { wasAsked = true; return Task.FromResult(ConfirmResult.Yes); };
+
+        await vm.ExportEpubCommand.ExecuteAsync(null);
+
+        Assert.False(wasAsked, "nothing to regenerate when neither Index nor List of Figures is in use");
+    }
+
+    [Fact]
+    public async Task ExportEpub_ListOfFiguresOnAndContentChanged_AsksAndRegeneratesOnYes()
+    {
+        var vm = NewViewModel();
+        vm.Metadata.GenerateListOfFigures = true;
+        vm.AddChapterCommand.Execute(null);
+        // AddChapterCommand's own RegenerateGeneratedContent call already marks content dirty.
+        var wasAsked = false;
+        vm.ConfirmRequested += (_, _) => { wasAsked = true; return Task.FromResult(ConfirmResult.Yes); };
+
+        await vm.ExportEpubCommand.ExecuteAsync(null);
+
+        Assert.True(wasAsked);
+        var listItem = Assert.Single(vm.SpineItems, i => i.RelativePath.EndsWith(ProjectPaths.ListOfFiguresPageFileName, StringComparison.Ordinal));
+        Assert.Contains("List of Figures", File.ReadAllText(vm.CurrentProject.ResolvePath(listItem)));
+        var expectedPath = Path.Combine(vm.CurrentProject.OutputDir, "vm-test-book.epub");
+        Assert.True(File.Exists(expectedPath));
+    }
+
+    [Fact]
+    public async Task ExportEpub_ConfirmCancelled_AbortsExportWithoutWritingAFile()
+    {
+        var vm = NewViewModel();
+        vm.Metadata.GenerateListOfFigures = true;
+        vm.AddChapterCommand.Execute(null);
+        vm.ConfirmRequested += (_, _) => Task.FromResult(ConfirmResult.Cancel);
+
+        await vm.ExportEpubCommand.ExecuteAsync(null);
+
+        var expectedPath = Path.Combine(vm.CurrentProject.OutputDir, "vm-test-book.epub");
+        Assert.False(File.Exists(expectedPath));
+    }
+
+    [Fact]
+    public async Task ExportEpub_ConfirmDeclinedWithNo_StillExportsWithoutRegenerating()
+    {
+        var vm = NewViewModel();
+        vm.Metadata.GenerateListOfFigures = true;
+        vm.AddChapterCommand.Execute(null);
+        vm.ConfirmRequested += (_, _) => Task.FromResult(ConfirmResult.No);
+
+        await vm.ExportEpubCommand.ExecuteAsync(null);
+
+        Assert.DoesNotContain(vm.SpineItems, i => i.RelativePath.EndsWith(ProjectPaths.ListOfFiguresPageFileName, StringComparison.Ordinal));
+        var expectedPath = Path.Combine(vm.CurrentProject.OutputDir, "vm-test-book.epub");
+        Assert.True(File.Exists(expectedPath));
+    }
+
+    [Fact]
+    public void GenerateIndex_ClearsTheBackMatterListsDirtyFlagThatAddChapterSet()
+    {
+        // Regression test for the flag itself: RegenerateGeneratedContent (called by
+        // AddChapterCommand among others) marks content dirty; GenerateIndex must clear it again
+        // once it's actually regenerated the page, or every export would ask forever.
+        var vm = NewViewModel();
+        var indexPath = Path.Combine(vm.CurrentProject.BackMatterDir, ProjectPaths.IndexPageFileName);
+        File.WriteAllText(indexPath, "");
+        var spineService = new SpineService();
+        spineService.AddBackMatterItem(vm.CurrentProject, "Index", $"{ProjectPaths.BackMatterDirName}/{ProjectPaths.IndexPageFileName}");
+        vm.AddChapterCommand.Execute(null);
+        var wasAskedBeforeGenerate = false;
+
+        vm.GenerateIndexCommand.Execute(null);
+
+        vm.ConfirmRequested += (_, _) => { wasAskedBeforeGenerate = true; return Task.FromResult(ConfirmResult.Yes); };
+        vm.ExportEpubCommand.Execute(null);
+
+        Assert.False(wasAskedBeforeGenerate, "GenerateIndex should have cleared the dirty flag already");
     }
 
     [Fact]

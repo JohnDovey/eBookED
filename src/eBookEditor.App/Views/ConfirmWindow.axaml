@@ -1,0 +1,19 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        mc:Ignorable="d"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        x:Class="eBookEditor.App.Views.ConfirmWindow"
+        Width="420" Height="170"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+
+  <StackPanel Margin="20" Spacing="16">
+    <TextBlock x:Name="MessageText" TextWrapping="Wrap" />
+    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+      <Button Content="Cancel" Click="OnCancelClick" />
+      <Button Content="No" Click="OnNoClick" />
+      <Button Content="Yes" Click="OnYesClick" IsDefault="True" />
+    </StackPanel>
+  </StackPanel>
+
+</Window>
