@@ -987,7 +987,6 @@ public partial class MainWindow : Window
         if (ViewModel is null)
             return;
 
-        ViewModel.ApplyAutofillDefaultsIfEmpty();
         await new FrontMatterWindow(ViewModel).ShowDialog(this);
     }
 
@@ -1005,7 +1004,6 @@ public partial class MainWindow : Window
         if (ViewModel is null)
             return;
 
-        ViewModel.ApplyAutofillDefaultsIfEmpty();
         await new CopyrightPublishingWindow(ViewModel).ShowDialog(this);
     }
 

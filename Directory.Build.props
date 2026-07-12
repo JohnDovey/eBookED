@@ -991,6 +991,29 @@
          the small unstyled publisher paragraph at the bottom easy to miss entirely next to the
          Imprint page's already-centered equivalent. GenerateTitlePage now applies the same
          .centered-block class (added in 2.28.0) to every line on the page. -->
-    <Version>2.28.1</Version>
+    <!-- 2.28.2: two user-reported bug fixes, no new features, so a patch bump.
+         (1) Editor/Illustrator/Author/Publisher fields showed values "left over from a
+         previous project" that the user had never entered into the current one.
+         MainWindowViewModel.ApplyAutofillDefaultsIfEmpty() silently pre-filled any empty
+         contributor/publisher field from the app-wide Known* history (every name/publisher
+         ever saved across all projects) every single time the Front Matter or Copyright &
+         Publishing dialog was opened — not just once for a genuinely new project — so a
+         field the user deliberately cleared would silently refill from another project's
+         data the next time either dialog was reopened. Removed both unconditional call
+         sites (OnEditFrontMatterClick/OnEditCopyrightPublishingClick in MainWindow.axaml.cs)
+         and the now-dead method; the underlying Known* history is left untouched since it's
+         still used (harmlessly) as an autocomplete source elsewhere.
+         (2) Recent Projects menu appeared permanently empty despite AppSettings on disk
+         holding real entries (confirmed via direct inspection: Load()/Save() round-trip
+         correctly). Root cause: RecentProjectsMenuItem had zero child MenuItems in XAML at
+         load time, so Avalonia's MenuItem.HasSubMenu (driven by the live ":empty"
+         pseudo-class on its Items collection) was false from the start — a MenuItem with no
+         submenu never opens one on hover, so OnRecentProjectsSubmenuOpened (which populates
+         Items from AppSettings) never got a chance to fire in the first place. Fixed by
+         seeding RecentProjectsMenuItem with a placeholder "(No recent projects)" child in
+         XAML, so the submenu is always recognized as openable; the existing handler still
+         clears and repopulates it with real entries (or the same placeholder) every time
+         it's actually opened. -->
+    <Version>2.28.2</Version>
   </PropertyGroup>
 </Project>

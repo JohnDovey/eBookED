@@ -260,30 +260,6 @@ public partial class MainWindowViewModel : ViewModelBase
         RegenerateGeneratedContent();
     }
 
-    /// <summary>
-    /// Pre-fills currently-empty metadata fields with the most recently used values from
-    /// other projects. Never overwrites a field the user has already filled in.
-    /// </summary>
-    public void ApplyAutofillDefaultsIfEmpty()
-    {
-        var settings = _appSettingsService.Load();
-
-        if (Metadata.Authors.Count == 0 && settings.KnownAuthorNames.Count > 0)
-            Metadata.Authors.Add(ContributorEntry.FromFullName(settings.KnownAuthorNames[0]));
-
-        if (Metadata.Editors.Count == 0 && settings.KnownEditorNames.Count > 0)
-            Metadata.Editors.Add(ContributorEntry.FromFullName(settings.KnownEditorNames[0]));
-
-        if (Metadata.Illustrators.Count == 0 && settings.KnownIllustratorNames.Count > 0)
-            Metadata.Illustrators.Add(ContributorEntry.FromFullName(settings.KnownIllustratorNames[0]));
-
-        if (string.IsNullOrWhiteSpace(Metadata.PublisherName) && settings.KnownPublishers.Count > 0)
-        {
-            Metadata.PublisherName = settings.KnownPublishers[0].Name;
-            Metadata.PublisherLogoPath = settings.KnownPublishers[0].LogoPath ?? string.Empty;
-        }
-    }
-
     public void OpenSpineItem(SpineItem item)
     {
         if (Editor.IsDirty)

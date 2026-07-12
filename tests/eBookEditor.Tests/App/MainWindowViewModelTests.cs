@@ -341,26 +341,6 @@ public class MainWindowViewModelTests : IDisposable
     }
 
     [Fact]
-    public void ApplyAutofillDefaultsIfEmpty_FillsOnlyEmptyFieldsFromKnownAppSettings()
-    {
-        var firstProject = NewViewModel("First Book");
-        firstProject.Metadata.Authors.Add(new ContributorEntry { FirstName = "Jane", LastName = "Doe" });
-        firstProject.Metadata.PublisherName = "Acme Press";
-        firstProject.SaveMetadataAndRegenerate();
-
-        var secondProject = NewViewModel("Second Book");
-        secondProject.Metadata.Editors.Add(new ContributorEntry { FirstName = "Already Set", LastName = "Editor" });
-
-        secondProject.ApplyAutofillDefaultsIfEmpty();
-
-        Assert.Equal("Jane", secondProject.Metadata.Authors.Single().FirstName);
-        Assert.Equal("Doe", secondProject.Metadata.Authors.Single().LastName);
-        Assert.Equal("Acme Press", secondProject.Metadata.PublisherName);
-        Assert.Equal("Already Set", secondProject.Metadata.Editors.Single().FirstName);
-        Assert.Equal("Editor", secondProject.Metadata.Editors.Single().LastName);
-    }
-
-    [Fact]
     public void Constructor_RecordsProjectInRecentProjectsList()
     {
         var vm = NewViewModel();

@@ -25,7 +25,9 @@
           <MenuItem Header="New Project…" Click="OnNewProjectClick" />
           <MenuItem Header="Create Project from ePub…" Click="OnCreateProjectFromEpubClick" />
           <MenuItem Header="Open Project…" Click="OnOpenProjectClick" />
-          <MenuItem Header="Recent Projects" x:Name="RecentProjectsMenuItem" SubmenuOpened="OnRecentProjectsSubmenuOpened" />
+          <MenuItem Header="Recent Projects" x:Name="RecentProjectsMenuItem" SubmenuOpened="OnRecentProjectsSubmenuOpened">
+            <MenuItem Header="(No recent projects)" IsEnabled="False" />
+          </MenuItem>
           <MenuItem Header="Save Project" Command="{Binding SaveProjectCommand}" InputGesture="Ctrl+S" />
           <Separator />
           <MenuItem Header="Import DOCX…" Click="OnImportDocxClick" />
