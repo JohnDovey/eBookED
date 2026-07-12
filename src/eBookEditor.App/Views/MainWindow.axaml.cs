@@ -163,8 +163,7 @@ public partial class MainWindow : Window
 
         var title = ViewModel.Editor.FilePath is { } path ? Path.GetFileNameWithoutExtension(path) : null;
         var body = CurrentBodyOnly();
-        var previewBody = HtmlPageShell.RewriteAssetPathsForProjectRootBase(body);
-        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), previewBody, title, ChapterHeadingHtmlFor(body), CurrentProjectRootDirectory);
+        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), body, title, ChapterHeadingHtmlFor(body), CurrentProjectRootDirectory);
         ScrollPreviewToCaret();
     }
 
@@ -173,25 +172,14 @@ public partial class MainWindow : Window
         if (_previewWindow is null || ViewModel is null)
             return;
 
-        var previewBody = HtmlPageShell.RewriteAssetPathsForProjectRootBase(bodyHtml);
-        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), previewBody, title, ChapterHeadingHtmlFor(bodyHtml), CurrentProjectRootDirectory);
+        _previewWindow.UpdateContent(ViewModel.GetCurrentTemplateCss(), bodyHtml, title, ChapterHeadingHtmlFor(bodyHtml), CurrentProjectRootDirectory);
         ScrollPreviewToCaret();
     }
 
-    /// <summary>
-    /// The current project's root directory — paired with
-    /// HtmlPageShell.RewriteAssetPathsForProjectRootBase at every call site below, since a
-    /// WebView navigation's file-URL sandboxing only grants read access within the base URI's
-    /// own directory and its subdirectories. An earlier fix used the currently-open file's own
-    /// directory instead (mathematically correct for resolving a stored "../images/foo.jpg"
-    /// reference), but "images/" is a sibling of "frontmatter/"/"backmatter/"/"chapters/", not
-    /// a descendant of any of them — the resolved path was right, but still outside what the
-    /// WebView was allowed to actually read, so the image loaded as broken regardless. Using
-    /// the project root instead (which does contain "images/" as a real descendant) requires
-    /// every "../"-prefixed reference in the body to be rewritten to a project-root-relative
-    /// one first — see RewriteAssetPathsForProjectRootBase's own doc comment for the full
-    /// reasoning.
-    /// </summary>
+    /// <summary>The current project's root directory — passed through to PreviewWindow.
+    /// UpdateContent, which writes a real preview .html file under it (see HtmlPageShell.
+    /// WritePreviewFile) so relative "../images/foo.jpg" references in the body resolve exactly
+    /// like they do for the real stored file, one directory below this root.</summary>
     private string? CurrentProjectRootDirectory =>
         ViewModel?.CurrentProject.DirectoryPath;
 
@@ -290,9 +278,11 @@ public partial class MainWindow : Window
 
         EnsureWysiwygWebView();
         _wysiwygNavigated = false;
-        var wysiwygBody = HtmlPageShell.RewriteAssetPathsForProjectRootBase(bodyHtml);
-        var html = HtmlPageShell.Wrap(ViewModel.GetCurrentTemplateCss(), wysiwygBody, editable: true, ChapterHeadingHtmlFor(bodyHtml));
-        _wysiwygWebView!.NavigateToString(html, HtmlPageShell.BuildFileBaseUri(CurrentProjectRootDirectory));
+        var html = HtmlPageShell.Wrap(ViewModel.GetCurrentTemplateCss(), bodyHtml, editable: true, ChapterHeadingHtmlFor(bodyHtml));
+        if (CurrentProjectRootDirectory is { Length: > 0 } projectRoot)
+            _wysiwygWebView!.Navigate(HtmlPageShell.WritePreviewFile(projectRoot, html));
+        else
+            _wysiwygWebView!.NavigateToString(html, new Uri("about:blank"));
     }
 
     /// <summary>
@@ -316,8 +306,7 @@ public partial class MainWindow : Window
             if (message.RootElement.GetProperty("event").GetString() != "change")
                 return;
 
-            var editedBody = HtmlPageShell.RestoreAssetPathsAfterProjectRootBase(
-                message.RootElement.GetProperty("html").GetString() ?? string.Empty);
+            var editedBody = message.RootElement.GetProperty("html").GetString() ?? string.Empty;
             _suppressWysiwygPush = true;
             ViewModel.Editor.CurrentText = _chapterFileService.ReplaceBody(ViewModel.Editor.CurrentText, editedBody);
             _suppressWysiwygPush = false;

@@ -68,70 +68,65 @@ public class HtmlPageShellTests
     }
 
     [Fact]
-    public void BuildFileBaseUri_WithAProjectDirectory_ReturnsAFileUriWithTrailingSeparator()
+    public void WritePreviewFile_WritesTheHtmlUnderAHiddenDirectoryOneLevelBelowTheProjectRoot()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), "ebookeditor-tests-" + Guid.NewGuid());
         Directory.CreateDirectory(tempDir);
         try
         {
-            var uri = HtmlPageShell.BuildFileBaseUri(tempDir);
+            var uri = HtmlPageShell.WritePreviewFile(tempDir, "<p>Hello</p>");
 
             Assert.Equal("file", uri.Scheme);
-            Assert.EndsWith("/", uri.AbsoluteUri);
+            var expectedPath = Path.Combine(tempDir, ".eb-preview", "preview.html");
+            Assert.Equal(Path.GetFullPath(expectedPath), uri.LocalPath);
+            Assert.True(File.Exists(uri.LocalPath));
+            Assert.Equal("<p>Hello</p>", File.ReadAllText(uri.LocalPath));
         }
         finally
         {
-            Directory.Delete(tempDir);
+            Directory.Delete(tempDir, recursive: true);
         }
     }
 
     [Fact]
-    public void BuildFileBaseUri_ResolvesARelativeImagePathAgainstTheProjectDirectory()
+    public void WritePreviewFile_ResolvesARelativeImagePathAgainstTheProjectDirectory()
+    {
+        // The whole point of writing a real file one level below the project root (rather than
+        // navigating via NavigateToString's baseUri workaround) — a stored body's "../images/
+        // foo.jpg" convention must resolve to the same place a real front/back-matter or
+        // chapter file's own "../images/foo.jpg" would.
+        var tempDir = Path.Combine(Path.GetTempPath(), "ebookeditor-tests-" + Guid.NewGuid());
+        Directory.CreateDirectory(tempDir);
+        try
+        {
+            var uri = HtmlPageShell.WritePreviewFile(tempDir, "<p>Hello</p>");
+
+            var resolved = new Uri(uri, "../images/foo.jpg");
+
+            Assert.Equal(Path.Combine(tempDir, "images", "foo.jpg"), resolved.LocalPath);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void WritePreviewFile_CalledTwice_OverwritesRatherThanAccumulatingFiles()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), "ebookeditor-tests-" + Guid.NewGuid());
         Directory.CreateDirectory(tempDir);
         try
         {
-            var baseUri = HtmlPageShell.BuildFileBaseUri(tempDir);
+            HtmlPageShell.WritePreviewFile(tempDir, "<p>First</p>");
+            var uri = HtmlPageShell.WritePreviewFile(tempDir, "<p>Second</p>");
 
-            var resolved = new Uri(baseUri, "../images/foo.jpg");
-
-            Assert.Equal(Path.Combine(Path.GetDirectoryName(tempDir)!, "images", "foo.jpg"), resolved.LocalPath);
+            Assert.Equal("<p>Second</p>", File.ReadAllText(uri.LocalPath));
+            Assert.Single(Directory.GetFiles(Path.Combine(tempDir, ".eb-preview")));
         }
         finally
         {
-            Directory.Delete(tempDir);
+            Directory.Delete(tempDir, recursive: true);
         }
-    }
-
-    [Theory]
-    [InlineData(null)]
-    [InlineData("")]
-    public void BuildFileBaseUri_NoDirectory_FallsBackToAboutBlank(string? directory)
-    {
-        var uri = HtmlPageShell.BuildFileBaseUri(directory);
-
-        Assert.Equal("about:blank", uri.ToString());
-    }
-
-    [Fact]
-    public void RewriteAssetPathsForProjectRootBase_StripsLeadingDotDotFromImgSrc()
-    {
-        var body = "<p><img src=\"../images/cover.jpg\" alt=\"Cover\"></p>";
-
-        var rewritten = HtmlPageShell.RewriteAssetPathsForProjectRootBase(body);
-
-        Assert.Equal("<p><img src=\"images/cover.jpg\" alt=\"Cover\"></p>", rewritten);
-    }
-
-    [Fact]
-    public void RestoreAssetPathsAfterProjectRootBase_IsTheExactInverseOfTheRewrite()
-    {
-        var original = "<p><img src=\"../images/cover.jpg\" alt=\"Cover\"><br>\n<img src=\"../images/logo.png\"></p>";
-
-        var roundTripped = HtmlPageShell.RestoreAssetPathsAfterProjectRootBase(
-            HtmlPageShell.RewriteAssetPathsForProjectRootBase(original));
-
-        Assert.Equal(original, roundTripped);
     }
 }

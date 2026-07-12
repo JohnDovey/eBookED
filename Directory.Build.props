@@ -931,6 +931,23 @@
          narrower than a very wide display, with no way to reach whichever buttons overflowed.
          Swapped the toolbar's StackPanel for a WrapPanel (MainWindow.axaml) — same fixed
          8px spacing, but now wraps onto a second row instead of clipping. -->
-    <Version>2.27.4</Version>
+    <!-- 2.27.5: user-reported bug fix, no new features, so a patch bump. Relative images
+         (Publisher Logo, cover image, author photo — every use of the app's "../images/foo.jpg"
+         stored-content convention) still didn't load in Preview/Rich Text after 2.27.2's fix,
+         which changed the WebView navigation's base URI/relative-path math but not the actual
+         root cause: NavigateToString's underlying platform call (loadHTMLString(_:baseURL:) on
+         macOS) hands HTML to a heavily sandboxed WebKit content process that needs an explicit
+         allowingReadAccessTo grant to read anything from disk — confirmed directly this time,
+         not just theorized, by reflecting over Avalonia.Controls.WebView's actual public API.
+         Switched to NativeWebView.Navigate(Uri) — a genuine file:// navigation, the same as
+         double-clicking the file in Finder, with no separate read-access grant needed — via a
+         new HtmlPageShell.WritePreviewFile, which writes the wrapped page to a real temp file
+         in a new ".eb-preview" directory one level below the project root (the same depth every
+         real front/back-matter or chapter file already lives at), so the stored "../images/..."
+         convention resolves completely unchanged, no path rewriting needed anywhere — 2.27.2's
+         RewriteAssetPathsForProjectRootBase/RestoreAssetPathsAfterProjectRootBase and the now-
+         unused BuildFileBaseUri are removed. ".eb-preview/" is gitignored (added to every
+         project directory the app opens, including this repo's own manual/ when testing it). -->
+    <Version>2.27.5</Version>
   </PropertyGroup>
 </Project>

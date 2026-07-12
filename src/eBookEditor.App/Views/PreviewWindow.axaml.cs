@@ -42,12 +42,12 @@ public partial class PreviewWindow : Window
         }, DispatcherPriority.Loaded);
     }
 
-    /// <summary><paramref name="projectDirectory"/> becomes the WebView navigation's base
-    /// URI, so a chapter body's relative <c>&lt;img src="../images/foo.jpg"&gt;</c> actually
-    /// resolves to a real file instead of failing against an "about:blank" base (there's no
-    /// filesystem context for a relative path to resolve against otherwise) — pass null only
-    /// when there's genuinely no project directory to resolve images against (e.g. previewing
-    /// generated, path-independent content).</summary>
+    /// <summary><paramref name="projectDirectory"/> is where a real preview .html file gets
+    /// written (see HtmlPageShell.WritePreviewFile) so the WebView can Navigate to a genuine
+    /// file:// URL instead of NavigateToString — needed for a chapter body's relative
+    /// <c>&lt;img src="../images/foo.jpg"&gt;</c> to actually load; pass null only when there's
+    /// genuinely no project directory to resolve images against (e.g. previewing generated,
+    /// path-independent content), which falls back to NavigateToString against "about:blank".</summary>
     public void UpdateContent(string css, string bodyHtml, string? title, string? headingHtml = null, string? projectDirectory = null)
     {
         _pendingCss = css;
@@ -65,7 +65,10 @@ public partial class PreviewWindow : Window
 
         _navigated = false;
         var html = HtmlPageShell.Wrap(_pendingCss, _pendingBody, editable: false, _pendingHeading);
-        _webView.NavigateToString(html, HtmlPageShell.BuildFileBaseUri(_pendingBaseDirectory));
+        if (_pendingBaseDirectory is { Length: > 0 } projectRoot)
+            _webView.Navigate(HtmlPageShell.WritePreviewFile(projectRoot, html));
+        else
+            _webView.NavigateToString(html, new Uri("about:blank"));
     }
 
     private async void OnNavigationCompleted(object? sender, WebViewNavigationCompletedEventArgs e)

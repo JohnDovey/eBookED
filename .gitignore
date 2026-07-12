@@ -11,3 +11,7 @@ src/eBookEditor.App/sample-project-data/
 # Generated exports of the User Manual project (manual/ itself — the source content — is
 # tracked; regenerate these from the app via Export, don't commit binary build output).
 manual/output/
+
+# Preview/WYSIWYG's scratch HTML file (see HtmlPageShell.WritePreviewFile) — written into
+# every project directory the app opens, including manual/ when working on this repo itself.
+.eb-preview/

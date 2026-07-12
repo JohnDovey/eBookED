@@ -268,48 +268,34 @@ public static class HtmlPageShell
     /// only in front matter, never in the body itself — folding the heading into #content would
     /// permanently duplicate it into the saved file the next time WYSIWYG edits synced back).
     /// </summary>
-    /// <summary>The base URI a WebView navigation needs for a wrapped page's relative
-    /// <c>&lt;img src="../images/foo.jpg"&gt;</c> references to actually resolve — "about:blank"
-    /// (this app's previous default) has no filesystem context for a relative path to resolve
-    /// against, so every relative image failed to load regardless of how correct its path was.
-    /// Returns "about:blank" unchanged when there's genuinely no project directory to resolve
-    /// against (e.g. wrapping generated, path-independent content).</summary>
-    public static Uri BuildFileBaseUri(string? projectDirectory) =>
-        projectDirectory is { Length: > 0 }
-            ? new Uri(Path.GetFullPath(projectDirectory) + Path.DirectorySeparatorChar)
-            : new Uri("about:blank");
-
     /// <summary>
-    /// Rewrites a stored body's "../images/foo.jpg"-style asset references (always exactly one
-    /// level up from a front/back-matter or chapter file's own directory, this app's one
-    /// consistent stored-content convention) into project-root-relative form
-    /// ("images/foo.jpg") for WebView rendering specifically, paired with a project-root
-    /// BuildFileBaseUri call rather than the referencing file's own directory. Needed because
-    /// WKWebView's file-URL sandboxing for a loadHTMLString(_:baseURL:)-style navigation only
-    /// grants read access within the base URL's own directory and its subdirectories — a base
-    /// at the file's own directory computes the mathematically correct "../images/..." path but
-    /// still can't actually read it, since "images/" is a sibling of "frontmatter/"/
-    /// "backmatter/"/"chapters/", not a descendant. Stripping the leading "../" and using the
-    /// project root as the base instead keeps every referenced asset within the granted
-    /// subtree. Only affects the copy of the body handed to the WebView — stored file content,
-    /// EPUB/PDF/Word export are untouched, since none of them resolve images through this HTML
-    /// convention (EPUB packages its own relative paths; PDF/Word resolve straight from the
-    /// underlying metadata field via Path.Combine(project.DirectoryPath, ...), never by parsing
-    /// "../" out of HTML).
+    /// Writes a wrapped page's HTML to a real file on disk and returns its file:// URI, so a
+    /// WebView can Navigate(uri) to it directly instead of NavigateToString(html, baseUri).
+    /// This is the actual fix for relative images not loading — NavigateToString's underlying
+    /// platform call (loadHTMLString(_:baseURL:) on macOS) hands the HTML content to a heavily
+    /// sandboxed WebKit content process that, per Apple's own documentation, needs an explicit
+    /// allowingReadAccessTo grant to read anything from disk at all; this app's cross-platform
+    /// WebView wrapper doesn't expose that, so file reads were silently denied regardless of
+    /// how correct the base URI/relative path math was (confirmed directly: an earlier fix's
+    /// own BuildFileBaseUri helper computed the mathematically right absolute path, and the
+    /// image still failed to load — that helper is gone now, superseded by this one).
+    /// A genuine Navigate(fileUri) call doesn't have that problem — it's the same as
+    /// double-clicking the file in Finder, with no separate read-access grant needed.
+    /// The file lives in a new ".eb-preview" directory, one level below the project root —
+    /// the exact same depth every real front/back-matter or chapter file already lives at, so
+    /// the stored "../images/foo.jpg" convention resolves correctly completely unchanged, no
+    /// path rewriting needed anywhere. Never picked up as an orphan chapter (OrphanChapterScanner
+    /// only ever looks in chapters/), and overwritten on every call rather than uniquely named,
+    /// since only ever one Preview/WYSIWYG navigation is "current" at a time per window.
     /// </summary>
-    public static string RewriteAssetPathsForProjectRootBase(string bodyHtml) =>
-        bodyHtml.Replace("src=\"../", "src=\"", StringComparison.Ordinal);
-
-    /// <summary>
-    /// The exact inverse of RewriteAssetPathsForProjectRootBase — restores the leading "../"
-    /// WYSIWYG mode's project-root-relative display rewrite strips, before an edited body syncs
-    /// back into the stored chapter file. Without this, editing anything in WYSIWYG mode would
-    /// permanently bake the project-root-relative form into the saved file the next time it
-    /// synced, breaking every other renderer (EPUB/PDF/Word, and even Preview/WYSIWYG's own next
-    /// load) that still expects the file-relative "../images/..." convention.
-    /// </summary>
-    public static string RestoreAssetPathsAfterProjectRootBase(string bodyHtml) =>
-        bodyHtml.Replace("src=\"images/", "src=\"../images/", StringComparison.Ordinal);
+    public static Uri WritePreviewFile(string projectDirectory, string html)
+    {
+        var previewDir = Path.Combine(projectDirectory, ".eb-preview");
+        Directory.CreateDirectory(previewDir);
+        var path = Path.Combine(previewDir, "preview.html");
+        File.WriteAllText(path, html);
+        return new Uri(path);
+    }
 
     public static string Wrap(string css, string bodyHtml, bool editable, string? headingHtml = null) =>
         $"""
