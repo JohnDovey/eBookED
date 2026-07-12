@@ -948,6 +948,21 @@
          RewriteAssetPathsForProjectRootBase/RestoreAssetPathsAfterProjectRootBase and the now-
          unused BuildFileBaseUri are removed. ".eb-preview/" is gitignored (added to every
          project directory the app opens, including this repo's own manual/ when testing it). -->
-    <Version>2.27.5</Version>
+    <!-- 2.27.6: two user-reported bug fixes, no new features, so a patch bump.
+         (1) None of the WYSIWYG toolbar's commands (Bold/Italic/Insert Element/Insert Table/
+         Insert Image/Insert Footnote/Mark Link Destination/Insert Internal Link/Mark as Index
+         Entry/Apply Style) worked in Rich Text mode — a regression from 2.27.5's switch to
+         NativeWebView.Navigate(Uri) for real file:// navigation, since every one of those
+         commands funnels through InvokeWysiwygScript, which silently no-ops unless
+         _wysiwygNavigated is true, and that flag was set only from the WebView's own
+         NavigationCompleted event — not a safe proxy for "window.ebookEditor now exists and is
+         callable," since nothing guarantees that event lands after the page's own bridge script
+         has actually finished running. HtmlPageShell's BridgeScript now posts a
+         { event: "ready" } message immediately after defining window.ebookEditor, and
+         MainWindow.OnWysiwygMessageBody sets _wysiwygNavigated from that instead — a direct
+         signal for the thing that's actually being gated on, rather than an indirect one.
+         (2) The publisher's name is now bold everywhere it's generated: the Title page's bare
+         publisher-name paragraph, and the Imprint page's "Published by ..." line. -->
+    <Version>2.27.6</Version>
   </PropertyGroup>
 </Project>

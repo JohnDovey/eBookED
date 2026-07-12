@@ -38,7 +38,7 @@ public class PageGeneratorService
         }
 
         if (metadata.Publisher is { } publisher)
-            sb.AppendLine($"<p>{Encode(publisher.Name)}</p>");
+            sb.AppendLine($"<p><strong>{Encode(publisher.Name)}</strong></p>");
 
         return sb.ToString();
     }
@@ -80,7 +80,7 @@ public class PageGeneratorService
 
         var publisherLines = new List<string>();
         if (metadata.Publisher is { } publisher)
-            publisherLines.Add($"Published by {Encode(publisher.Name)}");
+            publisherLines.Add($"Published by <strong>{Encode(publisher.Name)}</strong>");
         if (!string.IsNullOrWhiteSpace(metadata.Isbn13))
             publisherLines.Add($"ISBN-13: {Encode(metadata.Isbn13)}");
         if (!string.IsNullOrWhiteSpace(metadata.Isbn10))

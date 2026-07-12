@@ -286,14 +286,19 @@ public partial class MainWindow : Window
     }
 
     /// <summary>
-    /// Receives the debounced { event: "change", html: "..." } message the WYSIWYG page's JS
-    /// bridge posts after an edit (see HtmlPageShell's BridgeScript) and folds it back into
-    /// CurrentText — guarded by _suppressWysiwygPush so SyncEditorTextFromViewModel doesn't
-    /// immediately re-navigate the WebView back to the content it just sent us. The WYSIWYG
-    /// page only ever showed the body (see PushContentToWysiwyg/CurrentBodyOnly), so the edited
-    /// html here is just the body too — ChapterFileService.ReplaceBody folds it back in under
-    /// CurrentText's existing front matter block, left untouched, rather than overwriting the
-    /// whole file with body-only text and losing the front matter entirely.
+    /// Receives every message the WYSIWYG page's JS bridge posts (see HtmlPageShell's
+    /// BridgeScript): a { event: "ready" } message the moment window.ebookEditor itself becomes
+    /// callable — the signal InvokeWysiwygScript actually gates on, since NativeWebView's own
+    /// NavigationCompleted fires once the document has loaded, which isn't guaranteed to land
+    /// after this same script has finished running and isn't a safe proxy for "the toolbar can
+    /// call into the page now" — and the debounced { event: "change", html: "..." } message
+    /// posted after an edit, folded back into CurrentText, guarded by _suppressWysiwygPush so
+    /// SyncEditorTextFromViewModel doesn't immediately re-navigate the WebView back to the
+    /// content it just sent us. The WYSIWYG page only ever showed the body (see
+    /// PushContentToWysiwyg/CurrentBodyOnly), so the edited html here is just the body too —
+    /// ChapterFileService.ReplaceBody folds it back in under CurrentText's existing front
+    /// matter block, left untouched, rather than overwriting the whole file with body-only text
+    /// and losing the front matter entirely.
     /// </summary>
     private void OnWysiwygMessageBody(string? body)
     {
@@ -303,7 +308,15 @@ public partial class MainWindow : Window
         try
         {
             using var message = JsonDocument.Parse(body);
-            if (message.RootElement.GetProperty("event").GetString() != "change")
+            var eventName = message.RootElement.GetProperty("event").GetString();
+
+            if (eventName == "ready")
+            {
+                _wysiwygNavigated = true;
+                return;
+            }
+
+            if (eventName != "change")
                 return;
 
             var editedBody = message.RootElement.GetProperty("html").GetString() ?? string.Empty;

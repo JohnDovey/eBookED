@@ -257,6 +257,13 @@ public static class HtmlPageShell
               notifyChange();
             }
           };
+
+          // Told the host the bridge is actually ready to receive script calls — the WebView's
+          // own "navigation completed" event fires once the document itself has loaded, which
+          // isn't the same moment window.ebookEditor becomes callable (this script runs as part
+          // of that same document, but nothing guarantees the two host-visible signals land in
+          // the order the host assumes). Toolbar commands gate on this instead.
+          invokeCSharpAction(JSON.stringify({ event: 'ready' }));
         })();
         """;
 

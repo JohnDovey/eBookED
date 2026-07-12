@@ -68,6 +68,24 @@ public class HtmlPageShellTests
     }
 
     [Fact]
+    public void Wrap_PostsAReadyEventOnceTheBridgeItselfIsCallable()
+    {
+        // Regression test: toolbar commands (Bold/Italic/Insert Element/Apply Style/etc.) all
+        // gate on MainWindow's _wysiwygNavigated flag before invoking window.ebookEditor.* —
+        // this "ready" message is what actually sets it, since the WebView's own navigation-
+        // completed signal isn't a safe proxy for "this script has finished running and
+        // window.ebookEditor now exists" (see OnWysiwygMessageBody's own doc comment).
+        var html = HtmlPageShell.Wrap("", "<p>Hello</p>", editable: true);
+
+        Assert.Contains("{ event: 'ready' }", html);
+
+        var readyIndex = html.IndexOf("event: 'ready'", StringComparison.Ordinal);
+        var ebookEditorIndex = html.IndexOf("window.ebookEditor = {", StringComparison.Ordinal);
+        Assert.True(readyIndex > ebookEditorIndex,
+            "the ready ping must fire after window.ebookEditor is assigned, not before");
+    }
+
+    [Fact]
     public void WritePreviewFile_WritesTheHtmlUnderAHiddenDirectoryOneLevelBelowTheProjectRoot()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), "ebookeditor-tests-" + Guid.NewGuid());

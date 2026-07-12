@@ -62,6 +62,14 @@ public class PageGeneratorServiceTests : IDisposable
     }
 
     [Fact]
+    public void GenerateTitlePage_PublisherNameIsBold()
+    {
+        var html = _pageGenerator.GenerateTitlePage(SampleMetadata());
+
+        Assert.Contains("<p><strong>Acme Press</strong></p>", html);
+    }
+
+    [Fact]
     public void GenerateTitlePage_HtmlEncodesInterpolatedValues()
     {
         var metadata = SampleMetadata() with { Title = "Foo & Bar <Baz>" };
@@ -78,7 +86,7 @@ public class PageGeneratorServiceTests : IDisposable
         var html = _pageGenerator.GenerateCopyrightPage(SampleMetadata());
 
         Assert.Contains("Copyright © 2026 Jane Doe", html);
-        Assert.Contains("Published by Acme Press", html);
+        Assert.Contains("Published by <strong>Acme Press</strong>", html);
         Assert.Contains("ISBN-13: 9780306406157", html);
         Assert.Contains(EncodedDefaultDisclaimerText, html);
     }
