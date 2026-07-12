@@ -1,5 +1,5 @@
-<h1>eBook Editor User Guide</h1>
-<p><em>by John Dovey</em></p>
-<p>Edited by Claude Code<br>
+<h1 class="centered-block">eBook Editor User Guide</h1>
+<p class="centered-block"><em>by John Dovey</em></p>
+<p class="centered-block">Edited by Claude Code<br>
 Illustrated by Screen Shot</p>
-<p>Larry&#39;s Farm</p>
+<p class="centered-block"><strong class="contributor-name">Larry&#39;s Farm</strong></p>

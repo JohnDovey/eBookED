@@ -984,6 +984,13 @@
          gets it added with its default declarations, persisted to the template's own file,
          the moment it's selected (new TemplateService.EnsureRequiredStylesPresent, wired into
          StyleWindow's template picker alongside the existing EnsureTemplateFontsInstalled). -->
-    <Version>2.28.0</Version>
+    <!-- 2.28.1: user-reported bug fix, no new features, so a patch bump. The Title page
+         (title, subtitle, author, editor/illustrator, and publisher lines) had never actually
+         been centered — h1/h2 have no text-align of their own in any shipped template, and
+         body p is text-align: justify, so every line rendered left-aligned/justified, making
+         the small unstyled publisher paragraph at the bottom easy to miss entirely next to the
+         Imprint page's already-centered equivalent. GenerateTitlePage now applies the same
+         .centered-block class (added in 2.28.0) to every line on the page. -->
+    <Version>2.28.1</Version>
   </PropertyGroup>
 </Project>

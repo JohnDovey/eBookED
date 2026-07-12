@@ -1,10 +1,10 @@
-<p style="text-align: center"><strong>eBook Editor User Guide</strong><br>
-<span style="font-size: 1.3em">By <strong>John Dovey</strong></span><br>
-Illustrated by <strong>Screen Shot</strong><br>
-Edited by <strong>Claude Code</strong></p>
-<p style="text-align: center"><img src="../images/favicon.png" alt="Larry&#39;s Farm"><br>
+<p class="centered-block"><strong>eBook Editor User Guide</strong><br>
+<span class="author-name">By <strong class="contributor-name">John Dovey</strong></span><br>
+Illustrated by <strong class="contributor-name">Screen Shot</strong><br>
+Edited by <strong class="contributor-name">Claude Code</strong></p>
+<p class="centered-block"><img src="../images/favicon.png" alt="Larry&#39;s Farm"><br>
 <span class="caption">Larry&#39;s Farm</span></p>
-<p>Published by Larry&#39;s Farm<br>
+<p>Published by <strong class="contributor-name">Larry&#39;s Farm</strong><br>
 Published 2026-07-11</p>
 <p>Copyright © 2026 John Dovey</p>
 <p>All rights reserved. No part of this publication may be reproduced, distributed, or transmitted in any form or by any means, including photocopying, recording, or other electronic or mechanical methods, without the prior written permission of the publisher, except in the case of brief quotations embodied in critical reviews and certain other noncommercial uses permitted by copyright law.</p>

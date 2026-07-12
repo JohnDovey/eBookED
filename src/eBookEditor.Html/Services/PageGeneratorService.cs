@@ -16,14 +16,14 @@ public class PageGeneratorService
     public string GenerateTitlePage(BookMetadata metadata)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"<h1>{Encode(metadata.Title)}</h1>");
+        sb.AppendLine($"<h1 class=\"centered-block\">{Encode(metadata.Title)}</h1>");
 
         if (!string.IsNullOrWhiteSpace(metadata.Subtitle))
-            sb.AppendLine($"<h2>{Encode(metadata.Subtitle)}</h2>");
+            sb.AppendLine($"<h2 class=\"centered-block\">{Encode(metadata.Subtitle)}</h2>");
 
         var authorNames = metadata.Authors.Select(a => a.Name).ToList();
         if (authorNames.Count > 0)
-            sb.AppendLine($"<p><em>by {Encode(string.Join(", ", authorNames))}</em></p>");
+            sb.AppendLine($"<p class=\"centered-block\"><em>by {Encode(string.Join(", ", authorNames))}</em></p>");
 
         var editorNames = metadata.Editors.Select(e => e.Name).ToList();
         var illustratorNames = metadata.Illustrators.Select(i => i.Name).ToList();
@@ -34,11 +34,11 @@ public class PageGeneratorService
                 lines.Add($"Edited by {Encode(string.Join(", ", editorNames))}");
             if (illustratorNames.Count > 0)
                 lines.Add($"Illustrated by {Encode(string.Join(", ", illustratorNames))}");
-            sb.AppendLine($"<p>{string.Join("<br>\n", lines)}</p>");
+            sb.AppendLine($"<p class=\"centered-block\">{string.Join("<br>\n", lines)}</p>");
         }
 
         if (metadata.Publisher is { } publisher)
-            sb.AppendLine($"<p><strong class=\"contributor-name\">{Encode(publisher.Name)}</strong></p>");
+            sb.AppendLine($"<p class=\"centered-block\"><strong class=\"contributor-name\">{Encode(publisher.Name)}</strong></p>");
 
         return sb.ToString();
     }

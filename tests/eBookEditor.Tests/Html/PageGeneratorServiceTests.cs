@@ -55,18 +55,29 @@ public class PageGeneratorServiceTests : IDisposable
     {
         var html = _pageGenerator.GenerateTitlePage(SampleMetadata());
 
-        Assert.Contains("<h1>The Great Novel</h1>", html);
-        Assert.Contains("<h2>A Story</h2>", html);
+        Assert.Contains("<h1 class=\"centered-block\">The Great Novel</h1>", html);
+        Assert.Contains("<h2 class=\"centered-block\">A Story</h2>", html);
         Assert.Contains("<em>by Jane Doe</em>", html);
         Assert.Contains("Edited by John Smith", html);
     }
 
     [Fact]
-    public void GenerateTitlePage_PublisherNameIsBold()
+    public void GenerateTitlePage_PublisherNameIsBoldAndCentered()
     {
         var html = _pageGenerator.GenerateTitlePage(SampleMetadata());
 
-        Assert.Contains("<p><strong class=\"contributor-name\">Acme Press</strong></p>", html);
+        Assert.Contains("<p class=\"centered-block\"><strong class=\"contributor-name\">Acme Press</strong></p>", html);
+    }
+
+    [Fact]
+    public void GenerateTitlePage_TitleSubtitleAndContributorLinesAreAllCentered()
+    {
+        var html = _pageGenerator.GenerateTitlePage(SampleMetadata());
+
+        Assert.Contains("<h1 class=\"centered-block\">", html);
+        Assert.Contains("<h2 class=\"centered-block\">", html);
+        Assert.Contains("<p class=\"centered-block\"><em>by Jane Doe</em></p>", html);
+        Assert.Contains("<p class=\"centered-block\">Edited by John Smith</p>", html);
     }
 
     [Fact]
@@ -76,7 +87,7 @@ public class PageGeneratorServiceTests : IDisposable
 
         var html = _pageGenerator.GenerateTitlePage(metadata);
 
-        Assert.Contains("<h1>Foo &amp; Bar &lt;Baz&gt;</h1>", html);
+        Assert.Contains("<h1 class=\"centered-block\">Foo &amp; Bar &lt;Baz&gt;</h1>", html);
         Assert.DoesNotContain("<Baz>", html);
     }
 
