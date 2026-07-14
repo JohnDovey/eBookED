@@ -20,6 +20,42 @@ public static class DefaultStylesheet
             max-width: 100%;
         }
 
+        /* Shrink-wrap the figure to its image so the caption wraps to the same width, then
+           honour Insert Image…'s inline text-align via auto margins (text-align alone cannot
+           shift a fit-content block). Floated figures keep width:fit-content naturally. */
+        figure {
+            width: fit-content;
+            max-width: 100%;
+        }
+
+        figure[style*="text-align:center"] {
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        figure[style*="text-align:right"] {
+            margin-left: auto;
+            margin-right: 0;
+        }
+
+        figure[style*="text-align:left"] {
+            margin-left: 0;
+            margin-right: auto;
+        }
+
+        figure img {
+            display: block;
+            border: 1px solid;
+            max-width: 100%;
+            box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.35);
+        }
+
+        figure .caption,
+        figure figcaption {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
         table {
             border-collapse: collapse;
             width: 100%;
