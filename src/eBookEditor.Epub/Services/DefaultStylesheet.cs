@@ -16,6 +16,12 @@ public static class DefaultStylesheet
             line-height: 1.2;
         }
 
+        /* Keep section headings below any left/right floated figure rather than
+           sitting beside it when "Flow text around image" is on. */
+        h2 {
+            clear: both;
+        }
+
         img {
             max-width: 100%;
         }

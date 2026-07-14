@@ -73,6 +73,12 @@ h2, h3, h4 {
     page-break-inside: avoid;
 }
 
+/* Keep section headings below any left/right floated figure rather than
+   sitting beside it when "Flow text around image" is on. */
+h2 {
+    clear: both;
+}
+
 p {
     margin: 0;
     text-indent: 0;
