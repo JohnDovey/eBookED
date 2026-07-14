@@ -207,4 +207,46 @@ public class SpineServiceTests : IDisposable
 
         Assert.Equal(expectedOrder, project.Spine.OrderBy(i => i.Order).Select(i => i.Id));
     }
+
+    [Fact]
+    public void EnsureRequiredGeneratedPages_NoOp_WhenAllPresent()
+    {
+        var project = NewProject();
+
+        Assert.False(_spineService.EnsureRequiredGeneratedPages(project));
+    }
+
+    [Fact]
+    public void EnsureRequiredGeneratedPages_RestoresMissingImprintBetweenTitleAndToc()
+    {
+        var project = NewProject();
+        var imprint = project.Spine.Single(i => i.RelativePath.EndsWith(ProjectPaths.CopyrightPageFileName));
+        _spineService.RemoveItem(project, imprint.Id);
+        _spineService.AddFrontMatterItem(project, "Preface", "frontmatter/preface.ebhtml");
+
+        Assert.True(_spineService.EnsureRequiredGeneratedPages(project));
+
+        var frontMatter = project.Spine.Where(i => i.Type == SpineItemType.FrontMatter).OrderBy(i => i.Order).ToList();
+        Assert.Equal(
+            ["title-page.ebhtml", "copyright.ebhtml", "toc.ebhtml", "preface.ebhtml"],
+            frontMatter.Select(i => Path.GetFileName(i.RelativePath)).ToList());
+        Assert.True(frontMatter.Single(i => i.RelativePath.EndsWith(ProjectPaths.CopyrightPageFileName)).IsGenerated);
+        Assert.Equal("Imprint", frontMatter.Single(i => i.RelativePath.EndsWith(ProjectPaths.CopyrightPageFileName)).Title);
+    }
+
+    [Fact]
+    public void EnsureRequiredGeneratedPages_RestoresMissingAboutAuthorAtStartOfBackMatter()
+    {
+        var project = NewProject();
+        var about = project.Spine.Single(i => i.RelativePath.EndsWith(ProjectPaths.AboutAuthorPageFileName));
+        _spineService.RemoveItem(project, about.Id);
+        _spineService.AddBackMatterItem(project, "Notes", "backmatter/notes.ebhtml");
+
+        Assert.True(_spineService.EnsureRequiredGeneratedPages(project));
+
+        var backMatter = project.Spine.Where(i => i.Type == SpineItemType.BackMatter).OrderBy(i => i.Order).ToList();
+        Assert.Equal(
+            ["about-the-author.ebhtml", "notes.ebhtml"],
+            backMatter.Select(i => Path.GetFileName(i.RelativePath)).ToList());
+    }
 }

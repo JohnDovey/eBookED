@@ -126,6 +126,73 @@ public class SpineService
         RaiseSpineChanged(project);
     }
 
+    /// <summary>
+    /// Re-seeds Title Page / Imprint / Table of Contents / About the Author into the spine
+    /// when any of those CreateProject defaults are missing. Regenerate-front-matter only
+    /// rewrote the on-disk files before — so a project that lost a spine slot (deleted in
+    /// the sidebar, or dropped by LoadProject when its file was briefly missing) still looked
+    /// "regenerated" on disk while the page never reappeared in the book. Returns true when
+    /// anything was added.
+    /// </summary>
+    public bool EnsureRequiredGeneratedPages(EbookProject project)
+    {
+        var front = project.Spine.Where(i => i.Type == SpineItemType.FrontMatter).OrderBy(i => i.Order).ToList();
+        var chapters = project.Spine.Where(i => i.Type == SpineItemType.Chapter).OrderBy(i => i.Order).ToList();
+        var back = project.Spine.Where(i => i.Type == SpineItemType.BackMatter).OrderBy(i => i.Order).ToList();
+
+        var added = false;
+        added |= EnsureInGroup(front, SpineItemType.FrontMatter,
+            $"{ProjectPaths.FrontMatterDirName}/{ProjectPaths.TitlePageFileName}", "Title Page", preferredIndex: 0);
+        var titleIndex = IndexOfFile(front, ProjectPaths.TitlePageFileName);
+        added |= EnsureInGroup(front, SpineItemType.FrontMatter,
+            $"{ProjectPaths.FrontMatterDirName}/{ProjectPaths.CopyrightPageFileName}", "Imprint",
+            preferredIndex: titleIndex >= 0 ? titleIndex + 1 : 0);
+        var imprintIndex = IndexOfFile(front, ProjectPaths.CopyrightPageFileName);
+        added |= EnsureInGroup(front, SpineItemType.FrontMatter,
+            $"{ProjectPaths.FrontMatterDirName}/{ProjectPaths.TocPageFileName}", "Table of Contents",
+            preferredIndex: imprintIndex >= 0 ? imprintIndex + 1 : (titleIndex >= 0 ? titleIndex + 1 : 0));
+        added |= EnsureInGroup(back, SpineItemType.BackMatter,
+            $"{ProjectPaths.BackMatterDirName}/{ProjectPaths.AboutAuthorPageFileName}", "About the Author",
+            preferredIndex: 0);
+
+        if (!added)
+            return false;
+
+        project.Spine.Clear();
+        project.Spine.AddRange(front);
+        project.Spine.AddRange(chapters);
+        project.Spine.AddRange(back);
+        NormalizeOrder(project);
+        RenumberChapters(project);
+        RaiseSpineChanged(project);
+        return true;
+    }
+
+    private static bool EnsureInGroup(
+        List<SpineItem> group,
+        SpineItemType type,
+        string relativePath,
+        string title,
+        int preferredIndex)
+    {
+        var fileName = Path.GetFileName(relativePath);
+        if (group.Any(i => i.RelativePath.EndsWith(fileName, StringComparison.Ordinal)))
+            return false;
+
+        var item = new SpineItem
+        {
+            Type = type,
+            RelativePath = relativePath,
+            Title = title,
+            IsGenerated = true
+        };
+        group.Insert(Math.Clamp(preferredIndex, 0, group.Count), item);
+        return true;
+    }
+
+    private static int IndexOfFile(List<SpineItem> group, string fileName) =>
+        group.FindIndex(i => i.RelativePath.EndsWith(fileName, StringComparison.Ordinal));
+
     public void RemoveItem(EbookProject project, Guid itemId)
     {
         project.Spine.RemoveAll(i => i.Id == itemId);

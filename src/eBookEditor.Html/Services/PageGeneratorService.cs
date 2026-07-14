@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using eBookEditor.Core.Models;
+using eBookEditor.Core.Services;
 
 namespace eBookEditor.Html.Services;
 
@@ -222,6 +223,14 @@ public class PageGeneratorService
 
     public void RegenerateAllGeneratedPages(EbookProject project)
     {
+        // Restore any of the four CreateProject spine slots that have gone missing — rewriting
+        // the files alone left those pages invisible in the sidebar/export (see SpineService.
+        // EnsureRequiredGeneratedPages). TOC generation below then sees the restored imprint.
+        new SpineService().EnsureRequiredGeneratedPages(project);
+
+        Directory.CreateDirectory(project.FrontMatterDir);
+        Directory.CreateDirectory(project.BackMatterDir);
+
         File.WriteAllText(
             Path.Combine(project.FrontMatterDir, ProjectPaths.TitlePageFileName),
             GenerateTitlePage(project.Metadata));

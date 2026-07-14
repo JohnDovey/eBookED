@@ -741,6 +741,10 @@ public partial class MainWindowViewModel : ViewModelBase
 
         _pageGenerator.RegenerateAllGeneratedPages(CurrentProject);
         File.WriteAllText(CurrentProject.BookMdPath, _bookIndexGenerator.GenerateBookMd(CurrentProject));
+        // EnsureRequiredGeneratedPages (called inside RegenerateAllGeneratedPages) may have
+        // re-seeded Title/Imprint/TOC/About-Author into the spine — persist that immediately
+        // so the next open doesn't reopen without them.
+        _projectService.SaveProject(CurrentProject);
         OnPropertyChanged(nameof(SpineItems));
 
         if (Editor.FilePath is { } path && File.Exists(path))

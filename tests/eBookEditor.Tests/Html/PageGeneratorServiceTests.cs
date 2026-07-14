@@ -426,4 +426,19 @@ public class PageGeneratorServiceTests : IDisposable
         Assert.Contains("Table of Contents", tocText);
         Assert.Contains("About the Author", aboutText);
     }
+
+    [Fact]
+    public void RegenerateAllGeneratedPages_RestoresMissingImprintSpineSlot()
+    {
+        var project = _projectService.CreateProject(_tempDir, "Missing Imprint", SampleMetadata());
+        var imprint = project.Spine.Single(i => i.RelativePath.EndsWith(ProjectPaths.CopyrightPageFileName));
+        _spineService.RemoveItem(project, imprint.Id);
+        Assert.DoesNotContain(project.Spine, i => i.RelativePath.EndsWith(ProjectPaths.CopyrightPageFileName));
+
+        _pageGenerator.RegenerateAllGeneratedPages(project);
+
+        Assert.Contains(project.Spine, i => i.RelativePath.EndsWith(ProjectPaths.CopyrightPageFileName) && i.IsGenerated);
+        Assert.Contains("Copyright ©", File.ReadAllText(Path.Combine(project.FrontMatterDir, ProjectPaths.CopyrightPageFileName)));
+        Assert.Contains("Imprint", File.ReadAllText(Path.Combine(project.FrontMatterDir, ProjectPaths.TocPageFileName)));
+    }
 }
